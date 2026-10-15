@@ -12,10 +12,13 @@ from counterfix.core import (
     Message,
     Prescription,
     PrescriptionKind,
+    RetryAttempt,
     SkipCheck,
     Usage,
     run_detectors,
 )
+from counterfix.lint import LintIssue, lint
+from counterfix.rules import FixRule, RuleStore
 
 __version__ = "0.0.1"
 
@@ -27,15 +30,20 @@ __all__ = [
     "Evidence",
     "FailureType",
     "Finding",
+    "FixRule",
     "GuardedClient",
+    "LintIssue",
     "Message",
     "Prescription",
     "PrescriptionKind",
+    "RetryAttempt",
+    "RuleStore",
     "SkipCheck",
     "Usage",
     "__version__",
     "get_diagnosis",
     "guard",
+    "lint",
     "record_from_openai",
     "run_detectors",
 ]

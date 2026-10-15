@@ -135,6 +135,20 @@ def test_responses_that_refuse_new_attributes(response_factory: Any) -> None:
     assert isinstance(get_diagnosis(returned), Diagnosis)
 
 
-def test_default_detectors_are_empty_in_phase_1() -> None:
+def test_default_detectors_run_and_find_nothing_on_a_clean_call() -> None:
     response = guard(FakeClient()).chat.completions.create(model="m", messages=[])
-    assert response.diagnosis.ok and response.diagnosis.checked == []
+    assert response.diagnosis.ok
+    assert set(response.diagnosis.checked) == {
+        "provider_filter",
+        "empty_output",
+        "truncation",
+        "format",
+        "refusal",
+    }
+
+
+def test_default_detectors_flag_truncation() -> None:
+    raw = FakeClient(FakeCompletions(response=make_response("A long essay about", "length")))
+    response = guard(raw).chat.completions.create(model="m", messages=[], max_tokens=40)
+    assert response.diagnosis.top.failure_type is FailureType.TRUNCATION
+    assert response.diagnosis.top.prescription.patch == {"max_tokens": 160}

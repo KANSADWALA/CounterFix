@@ -12,8 +12,9 @@ can use:
 
     python examples/demo_guard.py groq --list-models
 
-Phase 1 ships no built-in detectors yet, so this demo adds one small custom detector
-to show how detectors plug in. It flags responses cut off by the max_tokens limit.
+The guarded client runs counterfix's built-in live checks (truncation, format, refusal,
+empty output, provider filter). Add --retry to let live mode re-run a failed call once
+with a known fix.
 """
 
 from __future__ import annotations
@@ -24,16 +25,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from counterfix import (
-    CallRecord,
-    Config,
-    Evidence,
-    FailureType,
-    Finding,
-    Prescription,
-    PrescriptionKind,
-    guard,
-)
+from counterfix import CallRecord, Config, guard
 
 PROVIDERS = {
     "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "openai/gpt-oss-120b"),
@@ -65,45 +57,14 @@ def load_env_file(path: Path) -> None:
             os.environ[key] = value
 
 
-class CutOffExample:
-    """Example custom detector: the response stopped because it hit max_tokens."""
-
-    name = "cut_off_example"
-    covers = (FailureType.TRUNCATION,)
-
-    def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        if record.finish_reason != "length":
-            return []
-        limit = record.max_tokens
-        if record.has_reasoning and not record.answer_text:
-            detail = f"the model spent the whole max_tokens budget ({limit}) on reasoning"
-            fix = Prescription(
-                kind=PrescriptionKind.PARAM_CHANGE,
-                description="Raise max_tokens, or lower reasoning effort if the provider allows it",
-                patch={"max_tokens": (limit or 256) * 8, "reasoning_effort": "low"},
-            )
-        else:
-            detail = f"the answer stopped at the max_tokens limit ({limit})"
-            fix = Prescription(
-                kind=PrescriptionKind.PARAM_CHANGE,
-                description="Raise max_tokens, or ask for a shorter answer",
-                patch={"max_tokens": (limit or 256) * 4},
-            )
-        return [
-            Finding(
-                failure_type=FailureType.TRUNCATION,
-                confidence=0.95,
-                evidence=[Evidence(detector=self.name, detail=detail)],
-                prescription=fix,
-            )
-        ]
-
-
-def run(client: Any, model: str) -> list[Any]:
+def run(client: Any, model: str, *, retry: bool = False) -> list[Any]:
     """Send two calls through the guarded client and print what counterfix saw."""
-    seen: list[CallRecord] = []
-    config = Config(on_diagnosis=lambda record, diagnosis: seen.append(record))
-    guarded = guard(client, detectors=[CutOffExample()], config=config)
+    seen: dict[str, CallRecord] = {}  # record id -> record, for every call incl. retries
+    config = Config(
+        mode="retry" if retry else "flag",
+        on_diagnosis=lambda record, diagnosis: seen.update({record.id: record}),
+    )
+    guarded = guard(client, config=config)
     calls = [
         ("short answer", {"max_tokens": 1024, "content": "Say hello in five words."}),
         ("cut off", {"max_tokens": 40, "content": "Write a detailed essay on monsoons."}),
@@ -116,7 +77,10 @@ def run(client: Any, model: str) -> list[Any]:
             messages=[{"role": "user", "content": spec["content"]}],
             max_tokens=spec["max_tokens"],
         )
-        record = seen[-1] if seen else CallRecord(response_text=response.choices[0].message.content)
+        # The record behind the response actually returned (the retry's, if it was kept).
+        record = seen.get(response.diagnosis.record_id) or CallRecord(
+            response_text=response.choices[0].message.content
+        )
         text = record.answer_text.replace("\n", " ")
         seconds = f"{record.latency_ms / 1000:.1f}s" if record.latency_ms is not None else "?"
         thinking = " (model reasoned first)" if record.has_reasoning else ""
@@ -129,6 +93,8 @@ def run(client: Any, model: str) -> list[Any]:
                 print(f"  why: {evidence.detail}")
             if top.prescription is not None:
                 print(f"  fix: {top.prescription.description} -> {top.prescription.patch}")
+        for attempt in response.diagnosis.retries:
+            print(f"  retried with {attempt.changes}: {attempt.outcome}")
         responses.append(response)
     return responses
 
@@ -172,6 +138,7 @@ def main() -> None:
     parser.add_argument("provider", nargs="?", default="groq", choices=sorted(PROVIDERS))
     parser.add_argument("--model", help="model id (default: CF_MODEL or the provider default)")
     parser.add_argument("--list-models", action="store_true", help="list models and exit")
+    parser.add_argument("--retry", action="store_true", help="let live mode retry once with a fix")
     parser.add_argument(
         "--timeout", type=float, help="seconds per call (default 60; 120 for gemini)"
     )
@@ -198,7 +165,7 @@ def main() -> None:
     model = args.model or os.environ.get("CF_MODEL") or default_model
     print(f"provider={args.provider} model={model}")
     try:
-        run(client, model)
+        run(client, model, retry=args.retry)
     except Exception as error:
         if type(error).__name__ == "APITimeoutError":
             sys.exit(

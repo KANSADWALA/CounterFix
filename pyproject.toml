@@ -44,7 +44,11 @@ dev = [
   "pytest-recording>=0.13",
   "ruff>=0.6",
   "mypy>=1.11",
+  "types-jsonschema",
 ]
+
+[project.scripts]
+counterfix = "counterfix.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/KANSADWALA/CounterFix"

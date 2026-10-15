@@ -9,9 +9,9 @@ model a tool, raises `max_tokens`) and re-runs the call. The change that fixes t
 failure is both the diagnosis and the prescription. We call this **counterfactual
 diagnosis**.
 
-> **Status: pre-alpha (v0.0.1).** The core records, the `guard()` wrapper and the seed
-> failure set are in place. Detectors and the counterfactual engine are being built.
-> APIs will change.
+> **Status: pre-alpha.** The `guard()` wrapper, the live checks (F1 to F3, empty output,
+> provider filter), optional auto-retry and the prompt linter work today. The LLM-judge
+> checks and the counterfactual engine are being built. APIs will change.
 
 ## What it plugs into
 
@@ -36,6 +36,46 @@ Ollama server:
 ```python
 client = guard(OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"))
 ```
+
+Live checks make no extra LLM calls. They catch truncation (including reasoning models that
+spend the whole budget thinking), broken JSON or schema mismatches, broken tool-call
+arguments, refusals, empty answers and provider content filters.
+
+### Optional auto-retry
+
+```python
+from counterfix import Config, guard
+
+client = guard(OpenAI(), config=Config(mode="retry"))  # one retry with a known fix
+r = client.chat.completions.create(model="gpt-4o-mini", messages=msgs, max_tokens=40)
+for attempt in r.diagnosis.retries:
+    print(attempt.changes, attempt.outcome)  # e.g. {'max_tokens': 160} fixed
+```
+
+Retry keeps whichever response is better, records what it tried, and never raises if the
+retry fails. Add your own fixes per model with `RuleStore` and `FixRule`.
+
+### Lint prompts before you send them
+
+```python
+from counterfix import lint
+
+for issue in lint("Return ONLY JSON with keys name and age for: Priya, 29."):
+    print(issue.rule, issue.title, "->", issue.suggestion)
+```
+
+Or from the command line, e.g. in CI:
+
+```bash
+counterfix lint prompts/*.txt --fail-on-warning
+```
+
+| Rule | Flags | Tends to cause |
+| --- | --- | --- |
+| L1 | A constraint buried in the middle of a long prompt | F6 |
+| L3 | A factual question with no "I don't know" option | F4, F5 |
+| L4 | JSON/YAML/CSV asked for in words only, no example or JSON mode | F2 |
+| L7 | Pasted outside text with no delimiters | prompt injection |
 
 Design rules:
 
@@ -77,7 +117,7 @@ Optional extras: `openai`, `anthropic`, `litellm`, `langchain`, `llamaindex`, `o
 
 1. Foundations and seed failure set ✅
 2. Core records and the `guard()` plug ✅
-3. Cheap live detectors (F1 to F3) and the prompt linter
+3. Cheap live detectors (F1 to F3), auto-retry and the prompt linter ✅
 4. LLM-judge and sampling detectors
 5. Diagnose mode and HTML report
 6. Counterfactual engine with verified fixes

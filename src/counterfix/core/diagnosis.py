@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -36,6 +36,17 @@ class Finding(BaseModel):
     inferred: bool = False  # True when the signal was indirect (e.g. no stop reason)
 
 
+class RetryAttempt(BaseModel):
+    """One automatic retry made by live mode (only when ``Config.mode == "retry"``)."""
+
+    failure_type: FailureType
+    changes: dict[str, Any]
+    source: str  # "rule:<description>" or "prescription"
+    outcome: Literal["fixed", "improved", "no_better", "error"]
+    error: str | None = None
+    findings_after: list[FailureType] = Field(default_factory=list)
+
+
 class Diagnosis(BaseModel):
     """The result of checking one call.
 
@@ -49,6 +60,15 @@ class Diagnosis(BaseModel):
     checked: list[str] = Field(default_factory=list)
     skipped: dict[str, str] = Field(default_factory=dict)
     errors: dict[str, str] = Field(default_factory=dict)
+    retries: list[RetryAttempt] = Field(default_factory=list)
+    """Automatic retries made in retry mode. If one helped, this diagnosis belongs to the
+    retried response and ``retried_from`` holds the first call's findings."""
+    retried_from: list[Finding] = Field(default_factory=list)
+
+    @property
+    def model_failures(self) -> list[Finding]:
+        """Findings of type F1 to F9 (excludes infrastructure, filter and empty output)."""
+        return [f for f in self.findings if f.failure_type.is_model_failure]
 
     @property
     def ok(self) -> bool:

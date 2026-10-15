@@ -26,8 +26,11 @@ class Detector(Protocol):
     fine) or raises :class:`SkipCheck` when it cannot judge this call.
     """
 
-    name: str
-    covers: tuple[FailureType, ...]
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def covers(self) -> tuple[FailureType, ...]: ...
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]: ...
 

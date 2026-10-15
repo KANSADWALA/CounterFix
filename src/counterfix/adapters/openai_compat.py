@@ -12,13 +12,14 @@ import inspect
 import logging
 import time
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, Literal
 
 from counterfix.adapters._attach import attach
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector, run_detectors
-from counterfix.core.diagnosis import Diagnosis
+from counterfix.core.diagnosis import Diagnosis, Finding, RetryAttempt
 from counterfix.core.record import CallRecord, Message, Usage
+from counterfix.core.types import PrescriptionKind
 
 logger = logging.getLogger("counterfix")
 
@@ -105,7 +106,9 @@ class _Guard:
         self.detectors = list(detectors)
         self.provider = provider
 
-    def diagnose(self, request: dict[str, Any], response: Any, latency_ms: float) -> None:
+    def diagnose(
+        self, request: dict[str, Any], response: Any, latency_ms: float
+    ) -> Diagnosis | None:
         """Build the record, run detectors, attach the result. Never raises if fail_open."""
         try:
             record = record_from_openai(
@@ -115,10 +118,81 @@ class _Guard:
             attach(response, diagnosis)
             if self.config.on_diagnosis is not None:
                 self.config.on_diagnosis(record, diagnosis)
+            return diagnosis
         except Exception as exc:
             if not self.config.fail_open:
                 raise
             logger.warning("counterfix could not diagnose this call: %s", exc)
+            return None
+
+    # --- retry mode --------------------------------------------------------------------
+
+    def plan_retry(
+        self, diagnosis: Diagnosis, request: dict[str, Any]
+    ) -> tuple[Finding, dict[str, Any], str] | None:
+        """Pick the most confident fixable finding and the parameter change to try."""
+        store = self.config.rule_store()
+        model = request.get("model")
+        params = {k: v for k, v in request.items() if k != "messages"}
+        tried = {(a.failure_type, repr(sorted(a.changes.items()))) for a in diagnosis.retries}
+        for finding in sorted(diagnosis.model_failures, key=lambda f: -f.confidence):
+            candidates: list[tuple[dict[str, Any], str]] = []
+            rule = store.find(finding.failure_type, model if isinstance(model, str) else None)
+            if rule is not None and rule.source != "builtin":
+                candidates.append((rule.changes(params), f"rule:{rule.description}"))
+            fix = finding.prescription
+            if fix is not None and fix.kind is PrescriptionKind.PARAM_CHANGE and fix.patch:
+                changed = {k: v for k, v in fix.patch.items() if params.get(k) != v}
+                candidates.append((changed, "prescription"))
+            if rule is not None and rule.source == "builtin":
+                candidates.append((rule.changes(params), f"rule:{rule.description}"))
+            for changes, source in candidates:
+                key = (finding.failure_type, repr(sorted(changes.items())))
+                if changes and key not in tried:
+                    return finding, changes, source
+        return None
+
+    @staticmethod
+    def judge_retry(
+        before: Diagnosis, after: Diagnosis | None, finding: Finding
+    ) -> Literal["fixed", "improved", "no_better"]:
+        if after is None:
+            return "no_better"
+        after_types = {f.failure_type for f in after.model_failures}
+        if not after.model_failures:
+            return "fixed"
+        if finding.failure_type not in after_types and len(after.model_failures) <= len(
+            before.model_failures
+        ):
+            return "improved"
+        return "no_better"
+
+    def _record_attempt(
+        self,
+        before: Diagnosis,
+        after: Diagnosis | None,
+        finding: Finding,
+        changes: dict[str, Any],
+        source: str,
+        error: Exception | None = None,
+    ) -> RetryAttempt:
+        outcome = "error" if error is not None else self.judge_retry(before, after, finding)
+        return RetryAttempt(
+            failure_type=finding.failure_type,
+            changes=changes,
+            source=source,
+            outcome=outcome,
+            error=f"{type(error).__name__}: {error}" if error is not None else None,
+            findings_after=[f.failure_type for f in after.findings] if after is not None else [],
+        )
+
+    def _adopt(self, before: Diagnosis, after: Diagnosis, attempt: RetryAttempt) -> Diagnosis:
+        """The retried response is better: its diagnosis carries the history."""
+        after.retries = [*before.retries, attempt]
+        after.retried_from = before.retried_from or before.findings
+        return after
+
+    # --- the wrapped create ------------------------------------------------------------
 
     def wrap_create(self, create: Callable[..., Any]) -> Callable[..., Any]:
         guard = self
@@ -132,18 +206,102 @@ class _Guard:
             start = time.perf_counter()
             result = create(*args, **kwargs)  # the user's own errors propagate unchanged
             if inspect.isawaitable(result):
-                return guard._finish_async(result, kwargs, start)
-            guard.diagnose(kwargs, result, (time.perf_counter() - start) * 1000)
-            return result
+                return guard._finish_async(create, args, result, kwargs, start)
+            diagnosis = guard.diagnose(kwargs, result, (time.perf_counter() - start) * 1000)
+            return guard._retry_sync(create, args, kwargs, result, diagnosis)
 
         guarded_create.__doc__ = create.__doc__
         guarded_create.__wrapped__ = create  # type: ignore[attr-defined]
         return guarded_create
 
-    async def _finish_async(self, pending: Any, kwargs: dict[str, Any], start: float) -> Any:
-        result = await pending
-        self.diagnose(kwargs, result, (time.perf_counter() - start) * 1000)
+    def _retry_sync(
+        self,
+        create: Callable[..., Any],
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+        result: Any,
+        diagnosis: Diagnosis | None,
+    ) -> Any:
+        for _ in range(self.config.retry_budget):
+            if diagnosis is None or not diagnosis.model_failures:
+                break
+            plan = self._safe_plan(diagnosis, kwargs)
+            if plan is None:
+                break
+            finding, changes, source = plan
+            new_kwargs = {**kwargs, **changes}
+            start = time.perf_counter()
+            try:
+                new_result = create(*args, **new_kwargs)
+            except Exception as exc:
+                diagnosis.retries.append(
+                    self._record_attempt(diagnosis, None, finding, changes, source, exc)
+                )
+                break
+            new_diag = self.diagnose(new_kwargs, new_result, (time.perf_counter() - start) * 1000)
+            attempt = self._record_attempt(diagnosis, new_diag, finding, changes, source)
+            if attempt.outcome in ("fixed", "improved") and new_diag is not None:
+                result, kwargs, diagnosis = (
+                    new_result,
+                    new_kwargs,
+                    self._adopt(diagnosis, new_diag, attempt),
+                )
+            else:
+                diagnosis.retries.append(attempt)
+                attach(result, diagnosis)
+                break
         return result
+
+    async def _finish_async(
+        self,
+        create: Callable[..., Any],
+        args: tuple[Any, ...],
+        pending: Any,
+        kwargs: dict[str, Any],
+        start: float,
+    ) -> Any:
+        result = await pending
+        diagnosis = self.diagnose(kwargs, result, (time.perf_counter() - start) * 1000)
+        for _ in range(self.config.retry_budget):
+            if diagnosis is None or not diagnosis.model_failures:
+                break
+            plan = self._safe_plan(diagnosis, kwargs)
+            if plan is None:
+                break
+            finding, changes, source = plan
+            new_kwargs = {**kwargs, **changes}
+            begin = time.perf_counter()
+            try:
+                new_result = await create(*args, **new_kwargs)
+            except Exception as exc:
+                diagnosis.retries.append(
+                    self._record_attempt(diagnosis, None, finding, changes, source, exc)
+                )
+                break
+            new_diag = self.diagnose(new_kwargs, new_result, (time.perf_counter() - begin) * 1000)
+            attempt = self._record_attempt(diagnosis, new_diag, finding, changes, source)
+            if attempt.outcome in ("fixed", "improved") and new_diag is not None:
+                result, kwargs, diagnosis = (
+                    new_result,
+                    new_kwargs,
+                    self._adopt(diagnosis, new_diag, attempt),
+                )
+            else:
+                diagnosis.retries.append(attempt)
+                attach(result, diagnosis)
+                break
+        return result
+
+    def _safe_plan(
+        self, diagnosis: Diagnosis, kwargs: dict[str, Any]
+    ) -> tuple[Finding, dict[str, Any], str] | None:
+        try:
+            return self.plan_retry(diagnosis, kwargs)
+        except Exception as exc:
+            if not self.config.fail_open:
+                raise
+            logger.warning("counterfix could not plan a retry: %s", exc)
+            return None
 
 
 class GuardedClient:

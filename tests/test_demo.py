@@ -70,6 +70,17 @@ def test_demo_explains_reasoning_budget_truncation() -> None:
     response = make_response(content="", finish_reason="length")
     response.choices[0].message.reasoning = "thinking..."
     client = FakeClient(FakeCompletions(response=response))
-    top = demo_guard.run(client, "reasoning-model")[0].diagnosis.top
+    top = demo_guard.run(client, "reasoning-model")[1].diagnosis.top  # the max_tokens=40 call
     assert "reasoning" in top.evidence[0].detail
-    assert top.prescription.patch["reasoning_effort"] == "low"
+    assert top.prescription.patch == {"max_tokens": 320}  # 40 x 8
+
+
+def test_demo_retry_mode() -> None:
+    def respond(**kwargs: object) -> object:
+        cut = kwargs.get("max_tokens", 0) < 100  # type: ignore[operator]
+        return make_response("An essay that", "length") if cut else make_response("Done.")
+
+    completions = FakeCompletions()
+    completions.create = respond  # type: ignore[method-assign,assignment]
+    responses = demo_guard.run(FakeClient(completions), "m", retry=True)
+    assert responses[1].diagnosis.retries[0].outcome == "fixed"
