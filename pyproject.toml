@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "counterfix"
+version = "0.0.1"
+description = "Find why an LLM call failed and get a fix that was tested to work."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Shubham Kansadwala" }]
+keywords = ["llm", "debugging", "hallucination", "evaluation", "reliability", "counterfactual"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "pydantic>=2.7",
+  "jsonschema>=4.20",
+  "json-repair>=0.30",
+  "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.40"]
+anthropic = ["anthropic>=0.40"]
+litellm = ["litellm>=1.50"]
+langchain = ["langchain-core>=0.3"]
+llamaindex = ["llama-index-core>=0.11"]
+otel = ["opentelemetry-sdk>=1.27"]
+semantic = ["transformers>=4.44", "torch>=2.2"]
+cache = ["diskcache>=5.6"]
+cli = ["typer>=0.12", "rich>=13.7"]
+report = ["jinja2>=3.1"]
+jev = ["typesafe-sdk>=0.7"]
+dev = [
+  "pytest>=8.0",
+  "pytest-recording>=0.13",
+  "ruff>=0.6",
+  "mypy>=1.11",
+]
+
+[project.urls]
+Homepage = "https://github.com/KANSADWALA/CounterFix"
+Issues = "https://github.com/KANSADWALA/CounterFix/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/counterfix"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"bench/make_seed.py" = ["E501"]  # prompt text is data
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+packages = ["counterfix"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
