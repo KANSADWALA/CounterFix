@@ -10,8 +10,8 @@ failure is both the diagnosis and the prescription. We call this **counterfactua
 diagnosis**.
 
 > **Status: pre-alpha.** The `guard()` wrapper, the live checks (F1 to F3, empty output,
-> provider filter), optional auto-retry and the prompt linter work today. The LLM-judge
-> checks and the counterfactual engine are being built. APIs will change.
+> provider filter), optional auto-retry, the prompt linter and the LLM-judge checks work
+> today. The counterfactual engine is being built. APIs will change.
 
 ## What it plugs into
 
@@ -55,6 +55,33 @@ for attempt in r.diagnosis.retries:
 Retry keeps whichever response is better, records what it tried, and never raises if the
 retry fails. Add your own fixes per model with `RuleStore` and `FixRule`.
 
+### Deeper checks with a judge (diagnose mode)
+
+Some failures need meaning to spot: invented facts, false premises, dropped instructions,
+ambiguity, wrong arithmetic. These checks ask a judge model, so they cost extra calls and
+never run in live mode.
+
+```python
+from counterfix import run_detectors, Config
+from counterfix.detectors import judge_detectors
+from counterfix.judges import JudgePanel, LLMJudge
+from counterfix.presets import make_caller
+
+panel = JudgePanel(
+    [  # three model families vote, which reduces self-preference bias
+        LLMJudge(make_caller("groq:openai/gpt-oss-20b")),
+        LLMJudge(make_caller("groq:qwen/qwen3.8-27b")),
+        LLMJudge(make_caller("gemini:gemini-3.5-flash-lite")),
+    ]
+)
+diagnosis = run_detectors(record, judge_detectors(panel), Config())
+```
+
+The F8 check never trusts the judge's arithmetic: the judge writes one expression and
+counterfix evaluates it with a small whitelist-only evaluator. A sampling check
+(`SamplingCheck`) re-asks the model and flags answers that change between samples.
+An optional Jev back-end (`counterfix[jev]`) plugs into the same judge interface.
+
 ### Lint prompts before you send them
 
 ```python
@@ -76,6 +103,9 @@ counterfix lint prompts/*.txt --fail-on-warning
 | L3 | A factual question with no "I don't know" option | F4, F5 |
 | L4 | JSON/YAML/CSV asked for in words only, no example or JSON mode | F2 |
 | L7 | Pasted outside text with no delimiters | prompt injection |
+| L2 | Instructions that conflict (needs `--judge`) | F6, F7 |
+| L5 | System prompt and user message disagree (needs `--judge`) | F6, F3 |
+| L6 | Request missing a key detail (needs `--judge`) | F9 |
 
 Design rules:
 
@@ -118,7 +148,7 @@ Optional extras: `openai`, `anthropic`, `litellm`, `langchain`, `llamaindex`, `o
 1. Foundations and seed failure set ✅
 2. Core records and the `guard()` plug ✅
 3. Cheap live detectors (F1 to F3), auto-retry and the prompt linter ✅
-4. LLM-judge and sampling detectors
+4. LLM-judge and sampling detectors ✅ (accuracy measurement in progress)
 5. Diagnose mode and HTML report
 6. Counterfactual engine with verified fixes
 7. Model failure profiles

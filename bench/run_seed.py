@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
@@ -24,14 +23,12 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "examples"))
-
-import demo_guard  # noqa: E402  (provider presets and .env loading)
 
 from bench.seed import SeedItem, load_seed  # noqa: E402
 from counterfix import Config, FailureType, lint, record_from_openai, run_detectors  # noqa: E402
 from counterfix.detectors import default_detectors  # noqa: E402
 from counterfix.detectors.fmt import SCHEMA_METADATA_KEY  # noqa: E402
+from counterfix.presets import PRESETS, load_env_file, make_client  # noqa: E402
 
 RESULTS = ROOT / "bench" / "results" / "phase2"
 LIVE_TYPES = {FailureType.TRUNCATION, FailureType.FORMAT_BREAK, FailureType.OVER_REFUSAL}
@@ -68,6 +65,8 @@ def run_item(client: Any, model: str, item: SeedItem, retries: int = 2) -> dict[
         latency_s=round(latency / 1000, 2),
         reasoned=record.has_reasoning,
         answer=record.answer_text[:160],
+        answer_full=record.answer_text,
+        reasoning_chars=len(record.reasoning_text or ""),
         found=[f.failure_type.value for f in diagnosis.findings],
         evidence=[e.detail for f in diagnosis.findings for e in f.evidence],
         skipped=diagnosis.skipped,
@@ -106,9 +105,9 @@ def summarise(rows: list[dict[str, Any]]) -> list[str]:
 
 
 def main() -> None:
-    demo_guard.load_env_file(ROOT / ".env")
+    load_env_file(ROOT / ".env")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("provider", choices=sorted(demo_guard.PROVIDERS))
+    parser.add_argument("provider", choices=sorted(PRESETS))
     parser.add_argument("--model")
     parser.add_argument("--types", help="comma-separated, e.g. F1,F2,F3 (default: all)")
     parser.add_argument("--limit", type=int, help="run only the first N items")
@@ -116,13 +115,11 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=120)
     args = parser.parse_args()
 
-    from openai import OpenAI
-
-    base_url, key_var, default_model = demo_guard.PROVIDERS[args.provider]
-    api_key = os.environ.get(key_var, "") if key_var else "ollama"
-    if key_var and not api_key:
-        sys.exit(f"Set {key_var} in .env first.")
-    client = OpenAI(base_url=base_url, api_key=api_key, timeout=args.timeout, max_retries=1)
+    try:
+        client = make_client(args.provider, timeout=args.timeout)
+    except Exception as exc:
+        sys.exit(str(exc))
+    default_model = PRESETS[args.provider][2]
     model = args.model or default_model
     sleep = args.sleep if args.sleep is not None else (2.5 if args.provider == "groq" else 0.5)
 

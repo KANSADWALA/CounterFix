@@ -273,3 +273,19 @@ def test_premise_correction_is_not_treated_as_a_confident_refusal() -> None:
     [f] = RefusalDetector().check(rec(text), CFG)
     assert f.confidence == 0.3 and f.evidence[0].data["premise_correction"] is True
     assert "false premise" in f.evidence[0].detail
+
+
+def test_honest_abstention_is_not_a_confident_refusal() -> None:
+    # seen live from qwen2.5:3b on the seed set (F4-001)
+    text = (
+        "I'm sorry for the confusion, but I don't have specific information about the Nimbus "
+        "Kitchenware 2026 refund policy. Without verification, I can't provide exact details."
+    )
+    [f] = RefusalDetector().check(rec(text), CFG)
+    assert f.confidence == 0.3 and f.evidence[0].data["abstention"] is True
+
+
+def test_bare_refusal_keeps_high_confidence() -> None:
+    # seen live from gpt-oss-120b on the seed set (F4-006): a harmless refund question
+    [f] = RefusalDetector().check(rec("I\u2019m sorry, but I can\u2019t help with that."), CFG)
+    assert f.confidence == 0.7 and not f.evidence[0].data["abstention"]

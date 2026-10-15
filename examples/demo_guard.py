@@ -26,35 +26,9 @@ from pathlib import Path
 from typing import Any
 
 from counterfix import CallRecord, Config, guard
+from counterfix.presets import PRESETS, load_env_file
 
-PROVIDERS = {
-    "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "openai/gpt-oss-120b"),
-    "gemini": (
-        "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "GEMINI_API_KEY",
-        "gemini-3.5-flash-lite",
-    ),
-    "ollama": ("http://localhost:11434/v1", None, "llama3.2:3b"),
-    "openai": (None, "OPENAI_API_KEY", "gpt-4o-mini"),
-}
-
-
-def load_env_file(path: Path) -> None:
-    """Load KEY=VALUE lines from a .env file into os.environ.
-
-    Values already set in the environment win. Blank values and comments are ignored.
-    Kept dependency-free on purpose.
-    """
-    if not path.is_file():
-        return
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key, value = key.strip(), value.strip().strip('"').strip("'")
-        if key and value and key not in os.environ:
-            os.environ[key] = value
+PROVIDERS = PRESETS  # kept for backwards compatibility with earlier scripts
 
 
 def run(client: Any, model: str, *, retry: bool = False) -> list[Any]:

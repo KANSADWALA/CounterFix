@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import Any
 
 from counterfix import __version__
-from counterfix.lint import RULES, LintIssue, lint
+from counterfix.judges.base import Judge
+from counterfix.lint import JUDGE_RULES, RULES, LintIssue, lint
 
 
 def _prompts(path: Path) -> Iterator[tuple[str, Any, dict[str, Any]]]:
@@ -51,9 +52,24 @@ def _print_issue(issue: LintIssue) -> None:
 
 def cmd_lint(args: argparse.Namespace) -> int:
     rules = args.rules.split(",") if args.rules else None
-    unknown = [r for r in rules or [] if r not in RULES]
+    known = {**RULES, **JUDGE_RULES}
+    unknown = [r for r in rules or [] if r not in known]
     if unknown:
-        print(f"Unknown rule(s): {', '.join(unknown)}. Available: {', '.join(RULES)}")
+        print(f"Unknown rule(s): {', '.join(unknown)}. Available: {', '.join(known)}")
+        return 2
+    judge: Judge | None = None
+    if args.judge:
+        from counterfix.judges import LLMJudge
+        from counterfix.presets import load_env_file, make_caller
+
+        load_env_file(Path.cwd() / ".env")
+        try:
+            judge = LLMJudge(make_caller(args.judge))
+        except Exception as exc:
+            print(f"Could not set up the judge {args.judge!r}: {exc}")
+            return 2
+    elif any(r in JUDGE_RULES for r in rules or []):
+        print("Rules L2, L5 and L6 need --judge provider:model (e.g. groq:openai/gpt-oss-20b)")
         return 2
     total = warnings = flagged = 0
     for name in args.paths:
@@ -63,7 +79,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
             return 2
         for label, prompt, params in _prompts(path):
             total += 1
-            issues = lint(prompt, params=params, rules=rules)
+            issues = lint(prompt, params=params, rules=rules, judge=judge)
             if not issues and not args.quiet:
                 print(f"{label}: ok")
             if issues:
@@ -84,6 +100,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_lint.add_argument("paths", nargs="+", help=".txt, .md, .json or .jsonl files")
     p_lint.add_argument("--rules", help="comma-separated rule ids, e.g. L1,L4")
     p_lint.add_argument("--quiet", action="store_true", help="only print prompts with issues")
+    p_lint.add_argument(
+        "--judge",
+        help="also run L2, L5, L6 with this judge, e.g. groq:openai/gpt-oss-20b (reads .env)",
+    )
     p_lint.add_argument(
         "--fail-on-warning", action="store_true", help="exit with code 1 if any warning (for CI)"
     )
