@@ -53,6 +53,10 @@ Issues = "https://github.com/KANSADWALA/CounterFix/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/counterfix"]
 
+# Only these files go into the source upload on PyPI (never .env, bench data or local files).
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "README.md", "LICENSE", "pyproject.toml"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
