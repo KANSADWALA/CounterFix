@@ -1,4 +1,4 @@
-"""Command line: ``counterfix lint FILE...`` and ``counterfix setup``.
+"""Command line: ``counterfix lint FILE...``, ``counterfix diagnose LOG``, ``counterfix setup``.
 
 Accepted files:
   * .txt / .md      the whole file is one user prompt
@@ -50,6 +50,24 @@ def _print_issue(issue: LintIssue) -> None:
     print(f"      fix: {issue.suggestion}")
 
 
+def _cli_judge(choice: str) -> Judge | None:
+    """The judge for ``--judge`` ("auto" picks one from your keys, reading .env); None on error."""
+    from counterfix.judges.auto import NoJudgeError, resolve_judge
+    from counterfix.presets import load_env_file
+
+    load_env_file(Path.cwd() / ".env")
+    try:
+        judge, source = resolve_judge(None if choice == "auto" else choice)
+    except NoJudgeError as exc:
+        print(exc)
+        return None
+    except Exception as exc:
+        print(f"Could not set up the judge {choice!r}: {exc}")
+        return None
+    print(f"Judge: {judge.name} ({source})\n")
+    return judge
+
+
 def cmd_lint(args: argparse.Namespace) -> int:
     rules = args.rules.split(",") if args.rules else None
     known = {**RULES, **JUDGE_RULES}
@@ -59,19 +77,9 @@ def cmd_lint(args: argparse.Namespace) -> int:
         return 2
     judge: Judge | None = None
     if args.judge:
-        from counterfix.judges.auto import NoJudgeError, resolve_judge
-        from counterfix.presets import load_env_file
-
-        load_env_file(Path.cwd() / ".env")
-        try:
-            judge, source = resolve_judge(None if args.judge == "auto" else args.judge)
-        except NoJudgeError as exc:
-            print(exc)
+        judge = _cli_judge(args.judge)
+        if judge is None:
             return 2
-        except Exception as exc:
-            print(f"Could not set up the judge {args.judge!r}: {exc}")
-            return 2
-        print(f"Judge: {judge.name} ({source})\n")
     elif any(r in JUDGE_RULES for r in rules or []):
         print("Rules L2, L5 and L6 need a judge: add --judge (picks one from your keys)")
         return 2
@@ -94,6 +102,41 @@ def cmd_lint(args: argparse.Namespace) -> int:
                     _print_issue(issue)
     print(f"\n{total} prompt(s) checked, {flagged} with issues, {warnings} warning(s).")
     return 1 if args.fail_on_warning and warnings else 0
+
+
+def cmd_diagnose(args: argparse.Namespace) -> int:
+    """Check every call in a JSONL log and print, save or render what was found."""
+    from counterfix.diagnose import diagnose
+    from counterfix.report import html_report, load_log, log_line, text_report
+
+    try:
+        records = load_log(args.log)
+    except (OSError, ValueError) as exc:
+        print(exc)
+        return 2
+    judge: Judge | None = None
+    if args.judge:
+        judge = _cli_judge(args.judge)
+        if judge is None:
+            return 2
+    reports = []
+    for n, record in enumerate(records, 1):
+        if judge is not None:
+            print(f"\rchecking {n}/{len(records)}...", end="", file=sys.stderr, flush=True)
+        report = diagnose(record, judge=judge if judge is not None else False)
+        report.judge = judge.name if judge is not None else None
+        reports.append(report)
+    if judge is not None:
+        print(file=sys.stderr)
+    print(text_report(reports, failures_only=not args.all))
+    if args.json:
+        lines = [log_line(r, d) for r, d in zip(records, reports, strict=True)]
+        Path(args.json).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print(f"\nJSON lines written to {args.json}")
+    if args.html:
+        Path(args.html).write_text(html_report(reports), encoding="utf-8")
+        print(f"\nHTML report written to {args.html}")
+    return 1 if args.fail_on_failure and any(not d.ok for d in reports) else 0
 
 
 def cmd_setup(args: argparse.Namespace) -> int:
@@ -187,6 +230,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--fail-on-warning", action="store_true", help="exit with code 1 if any warning (for CI)"
     )
     p_lint.set_defaults(func=cmd_lint)
+    p_diag = sub.add_parser("diagnose", help="check a JSONL log of calls and report failures")
+    p_diag.add_argument("log", help="JSONL log, e.g. from Config(on_diagnosis=log_to(path))")
+    p_diag.add_argument(
+        "--judge",
+        nargs="?",
+        const="auto",
+        help="also run judge checks (extra calls). Alone it picks a judge from your keys; "
+        "or name one, e.g. --judge groq:qwen/qwen3.8-27b",
+    )
+    p_diag.add_argument("--html", metavar="PATH", help="also write a shareable HTML report")
+    p_diag.add_argument("--json", metavar="PATH", help="also write results as JSON lines")
+    p_diag.add_argument("--all", action="store_true", help="list calls with no failure too")
+    p_diag.add_argument(
+        "--fail-on-failure", action="store_true", help="exit with code 1 if any call failed (CI)"
+    )
+    p_diag.set_defaults(func=cmd_diagnose)
     p_setup = sub.add_parser("setup", help="show which keys, local models and judge will be used")
     p_setup.add_argument("--test", action="store_true", help="ask the judge one tiny question")
     p_setup.set_defaults(func=cmd_setup)

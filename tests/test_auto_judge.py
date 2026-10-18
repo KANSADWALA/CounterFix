@@ -147,3 +147,18 @@ def test_setup_command_never_prints_key_values(
     out = capsys.readouterr().out
     assert "gsk_secret_value" not in out
     assert "GROQ_API_KEY" in out and "will use groq:qwen/qwen3.8-27b" in out
+
+
+def test_diagnose_without_a_judge_runs_live_checks_only(clean: pytest.MonkeyPatch) -> None:
+    record = CallRecord(
+        model="m",
+        messages=[Message(role="user", content="Write an essay.")],
+        response_text="Essays are",
+        finish_reason="length",
+        params={"max_tokens": 4},
+    )
+    report = counterfix.diagnose(record, judge=False)
+    assert [f.failure_type for f in report.findings] == [FailureType.TRUNCATION]
+    assert report.judge is None and not any(c.startswith("judge_") for c in report.checked)
+    text = report.explain()
+    assert text.startswith("F1 Truncation") and "why:" in text and "fix:" in text

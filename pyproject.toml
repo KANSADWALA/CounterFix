@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "counterfix"
-version = "0.0.1"
+version = "0.1.0"
 description = "Find why an LLM call failed and get a fix that was tested to work."
 readme = "README.md"
 license = "MIT"
@@ -13,7 +13,7 @@ requires-python = ">=3.10"
 authors = [{ name = "Shubham Kansadwala" }]
 keywords = ["llm", "debugging", "hallucination", "evaluation", "reliability", "counterfactual"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",

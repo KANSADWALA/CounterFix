@@ -106,3 +106,17 @@ class Diagnosis(BaseModel):
             for f in sorted(self.findings, key=lambda f: -f.confidence)
         ]
         return "; ".join(parts)
+
+    def explain(self) -> str:
+        """A few readable lines: each finding, why it was flagged, and the suggested fix."""
+        if self.ok:
+            return self.summary()
+        lines = []
+        for f in sorted(self.findings, key=lambda f: -f.confidence):
+            lines.append(f"{f.failure_type.value} {f.failure_type.label} ({f.confidence:.0%})")
+            lines += [f"  why: {e.detail}" for e in f.evidence]
+            if f.prescription is not None:
+                lines.append(f"  fix: {f.prescription.description}")
+        if self.judge:
+            lines.append(f"judged by {self.judge}")
+        return "\n".join(lines)

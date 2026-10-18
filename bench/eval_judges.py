@@ -290,8 +290,14 @@ def main() -> None:
                 if why.startswith("judge failed"):
                     reasons[_reason(why)] += 1
         errors = sum(len(d.errors) for _, d in results)
+        mistakes: dict[str, dict[str, list[str]]] = {}
+        for key, codes in predicted.items():
+            for code in codes ^ truth[key]:
+                side = "fp" if code in codes else "fn"
+                mistakes.setdefault(code, {"fp": [], "fn": []})[side].append(key)
         return {
             "scores": score(predicted, truth),
+            "mistakes": dict(sorted(mistakes.items())),
             "judge_failures": sum(reasons.values()),
             "failure_reasons": dict(reasons.most_common(3)),
             "errors": errors,

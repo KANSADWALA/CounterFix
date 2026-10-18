@@ -39,7 +39,7 @@ def _target(target: Any) -> tuple[CallRecord, Any]:
 def diagnose(
     target: Any,
     *,
-    judge: JudgeChoice | None = None,
+    judge: JudgeChoice | bool | None = None,
     detectors: Sequence[Detector] | None = None,
     config: Config | None = None,
 ) -> Diagnosis:
@@ -47,24 +47,32 @@ def diagnose(
 
     ``target`` is a response from a guarded client, its ``Diagnosis``, or a
     :class:`CallRecord`. ``judge`` overrides the automatic choice (a spec such as
-    ``"groq:qwen/qwen3.8-27b"``, a list of specs for a panel, or a judge object).
+    ``"groq:qwen/qwen3.8-27b"``, a list of specs for a panel, or a judge object);
+    ``judge=False`` runs only the free live checks (no extra calls, no key needed).
     ``detectors`` replaces the default set entirely.
     """
-    from counterfix.detectors import default_detectors, judge_detectors
+    from counterfix.detectors import default_detectors
 
     record, client = _target(target)
-    if detectors is None:
-        chosen, source = resolve_judge(
-            judge,
-            target_model=record.model,
-            fallback_client=client,
-            fallback_provider=record.provider,
-        )
-        checks: list[Detector] = default_detectors() + judge_detectors(chosen)
-        judge_name: str | None = f"{chosen.name} ({source})"
-    else:
-        checks, judge_name = list(detectors), None
-    result = run_detectors(record, checks, config or Config())
-    result.judge = judge_name
+    if detectors is not None or judge is False:
+        checks = list(detectors) if detectors is not None else default_detectors()
+        result = run_detectors(record, checks, config or Config())
+        result._client = client
+        return result
+    return _judged(record, client, None if judge is True else judge, config or Config())
+
+
+def _judged(record: CallRecord, client: Any, judge: Any, config: Config) -> Diagnosis:
+    """Live checks plus judge checks with the judge chosen for this record."""
+    from counterfix.detectors import default_detectors, judge_detectors
+
+    chosen, source = resolve_judge(
+        judge,
+        target_model=record.model,
+        fallback_client=client,
+        fallback_provider=record.provider,
+    )
+    result = run_detectors(record, default_detectors() + judge_detectors(chosen), config)
+    result.judge = f"{chosen.name} ({source})"
     result._client = client
     return result

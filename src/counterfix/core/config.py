@@ -41,11 +41,22 @@ class Config(BaseModel):
     rules: Any = None
     """A RuleStore of fixes used in retry mode. None uses the built-in rules."""
 
-    judge_model: str | None = None
-    """Model used by LLM-judge detectors (diagnose mode). None until configured."""
-
     on_diagnosis: DiagnosisHook | None = None
-    """Optional callback run after every diagnosis, e.g. to log or store it."""
+    """Optional callback run after every live diagnosis, e.g. ``log_to("calls.jsonl")``."""
+
+    sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+    """Background judge checks: 0 (default) is off. Above 0, every flagged call plus this
+    share of the others is judged on a background thread (see ``counterfix.background``)."""
+
+    max_judged_per_hour: int = Field(default=60, ge=0)
+    """Cost cap for background judge checks; calls over it are skipped, never delayed."""
+
+    judge: Any = None
+    """Judge for background checks: a spec, a list of specs, or a judge. None picks one as
+    ``counterfix.diagnose`` does (bring your own key)."""
+
+    on_judged: DiagnosisHook | None = None
+    """Callback with each background diagnosis (live plus judge checks), e.g. ``log_to``."""
 
     @property
     def retry_budget(self) -> int:

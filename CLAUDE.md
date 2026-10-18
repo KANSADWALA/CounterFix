@@ -28,7 +28,7 @@ Free API keys in `.env`: GROQ_API_KEY, GEMINI_API_KEY. Ollama is installed (qwen
 ```powershell
 conda activate cuda
 pip install -e ".[dev,openai]"        # once, into the cuda env
-pytest                                  # 218 passed, 1 skipped at handover
+pytest                                  # 230 passed
 ruff check . ; ruff format --check . ; mypy   # CI runs all three (Python 3.10-3.13)
 python -m counterfix setup              # which keys / judge are available
 python bench\eval_judges.py             # judge accuracy vs labels (cached; Ctrl+C safe)
@@ -57,22 +57,26 @@ python bench\try_judge.py gemini:gemma-4-31b-it   # debug one judge's request op
   in `bench/labels/history/`), `eval_judges.py` (writes `bench/results/judges.md`),
   cache `bench/cache/judges.jsonl` (git-ignored). Treat the eval as a **regression gate**.
 
-## Status at handover (2026-10-19)
+## Status (2026-10-19, later)
 
-- Phases 1-3 done; Phase 3 committed (83aaac8). Uncommitted since then: code instruction
-  checks, precedence rule, new F4/F6 judge prompts, safe_eval comprehensions, yes/no F8
-  fix, Gemma judge (no JSON mode), 5xx retries, BYOK (`configure`, `diagnose`, `setup`),
-  7 adjudicated labels. Commit these first (ask the owner).
-- Judges: groq:qwen/qwen3.8-27b, gemini:gemini-3.5-flash-lite, gemini:gemma-4-31b-it
-  (slow, 30-40 s, rejects JSON mode; 103 checks still to fill: run the eval once).
-  gpt-oss-20b dropped (many failures).
-- Latest offline numbers (live checks + panel): F1 1.00/1.00, F2 1.00/1.00, F4 P 1.00
-  R 0.92, F6 1.00/1.00, F8 1.00/1.00; weak: F9 (2 FP on "tomato"), F5 (1 FP), F3 live 1 FP.
+- Committed up to e943ba8 (judge run 2, BYOK). Uncommitted since then (ask before commit):
+  v0.1.0 bump, quickstart README + `examples/quickstart.py` (no key) and
+  `examples/diagnose_with_judge.py`, CHANGELOG.md, `diagnose(judge=False)`,
+  `Diagnosis.explain()`, `report.py` (`log_to`, `load_log`, text/HTML reports),
+  `counterfix diagnose LOG [--judge] [--html] [--json]`, `background.py` (Config
+  `sample_rate`, `max_judged_per_hour`, `judge`, `on_judged`; `judge_model` removed),
+  `adapters/decorator.py` (`@counterfix.watch`), eval per-item mistakes in judges.json,
+  2 more adjudicated F4 labels (history in `bench/labels/history/labels_claude_run2.jsonl`).
+- Judge run 3 done: every Gemma check filled (3 timeouts). Live checks + panel: F1, F2, F6,
+  F8 1.00/1.00; F4 P 1.00 R 0.93 (15 positives); weak: F9 2 FP, F5 1 FP, F3 1 FP / 1 FN.
+  `judges.json` now lists each setup's FP/FN keys per type.
+- Roadmap steps 1-3 done, step 4 partly (decorator, async guard). Not done: PyPI upload of
+  0.1.0 (needs the owner's OK), Anthropic / LiteLLM / LangChain plugs.
+- In this shell `conda activate` does not take; call
+  `C:/Users/Admin/anaconda3/envs/cuda/python.exe` directly.
 - The build plan is a Claude Doc, "LLM Failure Debugger: Build Plan"
-  (https://claude.ai/code/artifact/a4489e20-b78d-427e-b2e5-c5fabe50ffd7). Updated 2026-10-19:
-  Phase 3 results, the "Direction" section with the roadmap below, paper parts removed.
-- `bench/results/`: `judges.md` = latest run, `judges_run1_before_fixes.md` and
-  `judges_run2.md` = earlier runs for comparison.
+  (https://claude.ai/code/artifact/a4489e20-b78d-427e-b2e5-c5fabe50ffd7); an export sits
+  untracked at `LLM Failure Debugger Build Plan.md`.
 
 ## Roadmap (developer-first, agreed 2026-10-19)
 

@@ -115,11 +115,25 @@ class _Guard:
             record = record_from_openai(
                 request, response, latency_ms=latency_ms, provider=self.provider
             )
+        except Exception as exc:
+            if not self.config.fail_open:
+                raise
+            logger.warning("counterfix could not read this call: %s", exc)
+            return None
+        return self.check(record, response)
+
+    def check(self, record: CallRecord, response: Any) -> Diagnosis | None:
+        """Run detectors on a record, attach the result, call hooks. Never raises if fail_open."""
+        try:
             diagnosis: Diagnosis = run_detectors(record, self.detectors, self.config)
             diagnosis._client = self.client
             attach(response, diagnosis)
             if self.config.on_diagnosis is not None:
                 self.config.on_diagnosis(record, diagnosis)
+            from counterfix import background
+
+            if background.wants(diagnosis, self.config):
+                background.submit(record, self.config, self.client)
             return diagnosis
         except Exception as exc:
             if not self.config.fail_open:
