@@ -1,7 +1,15 @@
 """counterfix: find why an LLM call failed and get a fix that was tested to work."""
 
 from counterfix import background
-from counterfix.adapters import GuardedClient, get_diagnosis, guard, record_from_openai, watch
+from counterfix.adapters import (
+    GuardedClient,
+    get_diagnosis,
+    guard,
+    langchain_callback,
+    litellm_callback,
+    record_from_openai,
+    watch,
+)
 from counterfix.core import (
     CallRecord,
     Config,
@@ -52,7 +60,9 @@ __all__ = [
     "diagnose",
     "get_diagnosis",
     "guard",
+    "langchain_callback",
     "lint",
+    "litellm_callback",
     "load_log",
     "log_to",
     "record_from_openai",

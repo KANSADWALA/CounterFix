@@ -81,8 +81,13 @@ packages = ["counterfix"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["openai", "openai.*", "typesafe_sdk", "typesafe_sdk.*"]
+module = ["openai", "openai.*", "typesafe_sdk", "typesafe_sdk.*", "litellm.*", "langchain_core.*"]
 ignore_missing_imports = true
+
+# The frameworks are optional: installed locally, missing in CI, so the ignores differ.
+[[tool.mypy.overrides]]
+module = ["counterfix.adapters.callbacks"]
+warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -13,6 +13,11 @@ First real release.
 - `counterfix.diagnose()`: live checks plus judge checks (F3, F4, F5, F6, F8, F9), one cause
   per mistake; `judge=False` for live checks only; `Diagnosis.explain()` for readable output.
 - `@counterfix.watch`: live checks on any function that calls a model (sync or async).
+- `guard(Anthropic())`: the Anthropic SDK's `messages.create` (sync and async, tool_use
+  arguments checked, thinking kept as reasoning; retries change only `max_tokens`).
+  `stop_reason="refusal"` counts as a provider filter, not F3.
+- `litellm_callback()` and `langchain_callback()`: observe-only live checks for apps already
+  on LiteLLM or LangChain.
 - Bring your own judge key: `configure()`, `COUNTERFIX_JUDGE`, detected Groq / Gemini /
   OpenAI / OpenRouter keys or local Ollama; voting panels.
 - `counterfix setup [--test]` and `counterfix lint` (rules L1 to L7).

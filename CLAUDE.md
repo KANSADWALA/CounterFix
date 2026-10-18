@@ -28,7 +28,7 @@ Free API keys in `.env`: GROQ_API_KEY, GEMINI_API_KEY. Ollama is installed (qwen
 ```powershell
 conda activate cuda
 pip install -e ".[dev,openai]"        # once, into the cuda env
-pytest                                  # 230 passed
+pytest                                  # 237 passed
 ruff check . ; ruff format --check . ; mypy   # CI runs all three (Python 3.10-3.13)
 python -m counterfix setup              # which keys / judge are available
 python bench\eval_judges.py             # judge accuracy vs labels (cached; Ctrl+C safe)
@@ -59,19 +59,17 @@ python bench\try_judge.py gemini:gemma-4-31b-it   # debug one judge's request op
 
 ## Status (2026-10-19, later)
 
-- Committed up to e943ba8 (judge run 2, BYOK). Uncommitted since then (ask before commit):
-  v0.1.0 bump, quickstart README + `examples/quickstart.py` (no key) and
-  `examples/diagnose_with_judge.py`, CHANGELOG.md, `diagnose(judge=False)`,
-  `Diagnosis.explain()`, `report.py` (`log_to`, `load_log`, text/HTML reports),
-  `counterfix diagnose LOG [--judge] [--html] [--json]`, `background.py` (Config
-  `sample_rate`, `max_judged_per_hour`, `judge`, `on_judged`; `judge_model` removed),
-  `adapters/decorator.py` (`@counterfix.watch`), eval per-item mistakes in judges.json,
-  2 more adjudicated F4 labels (history in `bench/labels/history/labels_claude_run2.jsonl`).
+- Committed 4bebf16: v0.1.0 prep (quickstart, examples, CHANGELOG, `diagnose(judge=False)`,
+  `explain()`, `report.py` + `counterfix diagnose LOG`, `background.py`, `@watch`, judge run 3).
+  Uncommitted since then: Anthropic in `guard()` (`adapters/anthropic.py`, auto-detected by
+  `messages` without `chat`), `adapters/callbacks.py` (`litellm_callback`,
+  `langchain_callback`), `refusal` stop reason as provider filter.
 - Judge run 3 done: every Gemma check filled (3 timeouts). Live checks + panel: F1, F2, F6,
   F8 1.00/1.00; F4 P 1.00 R 0.93 (15 positives); weak: F9 2 FP, F5 1 FP, F3 1 FP / 1 FN.
   `judges.json` now lists each setup's FP/FN keys per type.
-- Roadmap steps 1-3 done, step 4 partly (decorator, async guard). Not done: PyPI upload of
-  0.1.0 (needs the owner's OK), Anthropic / LiteLLM / LangChain plugs.
+- Roadmap steps 1-4 done (plugs: OpenAI-compatible, Anthropic, LiteLLM, LangChain, @watch,
+  async). Not done: PyPI upload of 0.1.0 (needs the owner's OK); next is step 5, the
+  counterfactual engine. Plugs are duck-typed: CI installs no SDKs, tests use fakes.
 - In this shell `conda activate` does not take; call
   `C:/Users/Admin/anaconda3/envs/cuda/python.exe` directly.
 - The build plan is a Claude Doc, "LLM Failure Debugger: Build Plan"

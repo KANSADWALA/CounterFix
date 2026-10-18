@@ -67,7 +67,23 @@ Any OpenAI-compatible endpoint works, for example a local Ollama server:
 client = counterfix.guard(OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"))
 ```
 
-Not using an OpenAI-style client? Decorate the function that calls your model (sync or
+The Anthropic SDK works the same way (`messages.create`, sync or async; `tool_use`
+arguments are checked against each tool's `input_schema`):
+
+```python
+from anthropic import Anthropic
+
+client = counterfix.guard(Anthropic())
+```
+
+Already on LiteLLM or LangChain? Add a callback; it only observes, never changes a reply:
+
+```python
+litellm.callbacks = [counterfix.litellm_callback()]
+llm.invoke("...", config={"callbacks": [counterfix.langchain_callback()]})
+```
+
+Not using any of these? Decorate the function that calls your model (sync or
 async). It takes a prompt string or chat messages and returns text or a response:
 
 ```python
@@ -273,14 +289,14 @@ Done:
 - Reports: `log_to()`, `counterfix diagnose LOG` with terminal, JSON and HTML output ✅
 - Background judge checks on a sample of traffic, with a cost cap ✅
 - `@counterfix.watch` decorator for any function, sync or async ✅
+- Anthropic SDK in `guard()`, LiteLLM and LangChain callbacks ✅
 
 Next, in order:
 
 1. First release on PyPI (v0.1.0)
-2. More plugs: Anthropic SDK, LiteLLM, LangChain
-3. Verified fixes: try a fix, re-run the call, suggest only what worked
-4. Prompt regression tests for CI (pytest plugin)
-5. OpenTelemetry export
+2. Verified fixes: try a fix, re-run the call, suggest only what worked
+3. Prompt regression tests for CI (pytest plugin)
+4. OpenTelemetry export
 
 ## License
 

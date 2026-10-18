@@ -8,7 +8,7 @@ from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
 
 FILTER_REASONS = frozenset(
-    {"content_filter", "safety", "recitation", "blocklist", "prohibited_content"}
+    {"content_filter", "safety", "recitation", "blocklist", "prohibited_content", "refusal"}
 )
 LENGTH_REASONS = frozenset({"length", "max_tokens", "max_output_tokens"})
 

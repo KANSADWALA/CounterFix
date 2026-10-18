@@ -101,18 +101,30 @@ def record_from_openai(
 class _Guard:
     """Shared state for one guarded client."""
 
-    def __init__(self, config: Config, detectors: Sequence[Detector], provider: str | None):
+    def __init__(
+        self,
+        config: Config,
+        detectors: Sequence[Detector],
+        provider: str | None,
+        *,
+        to_record: Callable[..., CallRecord] | None = None,
+        create_path: tuple[str, ...] = _CREATE_PATH,
+        retry_params: frozenset[str] | None = None,
+    ):
         self.config = config
         self.detectors = list(detectors)
         self.provider = provider
         self.client: Any = None  # the raw client, kept so diagnose() can fall back to it
+        self.to_record = to_record or record_from_openai
+        self.create_path = create_path
+        self.retry_params = retry_params  # request fields retries may change; None = any
 
     def diagnose(
         self, request: dict[str, Any], response: Any, latency_ms: float
     ) -> Diagnosis | None:
         """Build the record, run detectors, attach the result. Never raises if fail_open."""
         try:
-            record = record_from_openai(
+            record = self.to_record(
                 request, response, latency_ms=latency_ms, provider=self.provider
             )
         except Exception as exc:
@@ -163,6 +175,8 @@ class _Guard:
             if rule is not None and rule.source == "builtin":
                 candidates.append((rule.changes(params), f"rule:{rule.description}"))
             for changes, source in candidates:
+                if self.retry_params is not None:
+                    changes = {k: v for k, v in changes.items() if k in self.retry_params}
                 key = (finding.failure_type, repr(sorted(changes.items())))
                 if changes and key not in tried:
                     return finding, changes, source
@@ -321,8 +335,9 @@ class _Guard:
 
 
 class GuardedClient:
-    """A transparent proxy: everything behaves like the wrapped client, except that
-    ``chat.completions.create`` also produces a diagnosis."""
+    """A transparent proxy: everything behaves like the wrapped client, except that its
+    create call (``chat.completions.create``, or ``messages.create`` for Anthropic) also
+    produces a diagnosis."""
 
     __slots__ = ("_cf_guard", "_cf_path", "_cf_target")
 
@@ -336,9 +351,9 @@ class GuardedClient:
         guard = object.__getattribute__(self, "_cf_guard")
         path = (*object.__getattribute__(self, "_cf_path"), name)
         value = getattr(target, name)
-        if path == _CREATE_PATH and callable(value):
+        if path == guard.create_path and callable(value):
             return guard.wrap_create(value)
-        if path == _CREATE_PATH[: len(path)]:
+        if path == guard.create_path[: len(path)]:
             return GuardedClient(value, guard, path)
         return value
 
@@ -361,7 +376,8 @@ def guard(
     detectors: Sequence[Detector] | None = None,
     provider: str | None = None,
 ) -> Any:
-    """Wrap an OpenAI-compatible client so every chat completion is checked.
+    """Wrap an LLM client so every call is checked: an OpenAI-compatible client
+    (``chat.completions.create``) or an Anthropic client (``messages.create``), sync or async.
 
     >>> from openai import OpenAI          # doctest: +SKIP
     >>> client = guard(OpenAI())           # doctest: +SKIP
@@ -377,6 +393,18 @@ def guard(
         from counterfix.detectors import default_detectors
 
         detectors = default_detectors()
-    state = _Guard(config or Config(), detectors, provider)
+    if not hasattr(client, "chat") and hasattr(client, "messages"):
+        from counterfix.adapters.anthropic import ANTHROPIC_RETRY_PARAMS, record_from_anthropic
+
+        state = _Guard(
+            config or Config(),
+            detectors,
+            provider or "anthropic",
+            to_record=record_from_anthropic,
+            create_path=("messages", "create"),
+            retry_params=ANTHROPIC_RETRY_PARAMS,
+        )
+    else:
+        state = _Guard(config or Config(), detectors, provider)
     state.client = client
     return GuardedClient(client, state)
