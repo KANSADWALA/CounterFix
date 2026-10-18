@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
+from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
 
 
@@ -64,6 +65,19 @@ class Diagnosis(BaseModel):
     """Automatic retries made in retry mode. If one helped, this diagnosis belongs to the
     retried response and ``retried_from`` holds the first call's findings."""
     retried_from: list[Finding] = Field(default_factory=list)
+    judge: str | None = None
+    """The judge behind judge-based findings (set by ``counterfix.diagnose``)."""
+    suppressed: list[Finding] = Field(default_factory=list)
+    """Findings that describe the same problem as a root-cause finding (e.g. F4 next to
+    F8) and so are not reported in ``findings``. Kept here for transparency."""
+
+    _record: CallRecord | None = PrivateAttr(default=None)
+    _client: Any = PrivateAttr(default=None)
+
+    @property
+    def record(self) -> CallRecord | None:
+        """The call this diagnosis is about, when it was made in this process."""
+        return self._record
 
     @property
     def model_failures(self) -> list[Finding]:

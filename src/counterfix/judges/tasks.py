@@ -3,6 +3,8 @@ reviewed, versioned and reported in the paper."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from counterfix.core.record import CallRecord
 from counterfix.judges.base import JudgeTask
 
@@ -28,13 +30,24 @@ def hallucination(record: CallRecord) -> JudgeTask:
         name="F4_hallucination",
         instructions=(
             "Decide whether the model answer states a specific factual claim that is false or "
-            "made up. If <context> is given, any specific claim the context does not support "
-            "counts as unsupported, even if it might be true elsewhere. If <reference_answer> "
-            "is given, use it as ground truth. Without context, use well-established knowledge: "
-            "specific details about obscure, private or fictional entities that cannot be known "
-            "(exact policies, numbers, dates, emails) count as unsupported. An answer that says "
-            "it does not know, hedges without inventing details, or asks for a source has "
-            "no_claims."
+            "made up. Only checkable facts count: names, dates, numbers and statistics, quotes, "
+            "events, prices, policies, contact details, citations and links about the real "
+            "world or about a named organisation, product or person.\n"
+            "Do NOT count, and do not check:\n"
+            "- arithmetic, counting letters or characters, reversing text or any other "
+            "calculation (code checks those separately), even if you think it is wrong;\n"
+            "- general advice, how-to steps, tips, recommendations and opinions;\n"
+            "- creative, fictional or marketing text the user asked for, unless it contradicts "
+            "facts the user gave;\n"
+            "- reasonable simplifications for the audience.\n"
+            "If <context> is given, a specific claim the context does not support is "
+            "contains_unsupported. If <reference_answer> is given, use it as ground truth. "
+            "Without context, specific details about an obscure, private or fictional "
+            "organisation, product or person that the model cannot know (exact policies, "
+            "prices, dates, email addresses) are contains_unsupported. Use contains_false only "
+            "for a claim you are sure contradicts well-established fact; when unsure, choose "
+            "supported. An answer that says it does not know, hedges without inventing "
+            "details, or asks for a source has no_claims."
         ),
         material=_material(record),
         labels=("supported", "contains_false", "contains_unsupported", "no_claims"),
@@ -57,19 +70,34 @@ def false_premise(record: CallRecord) -> JudgeTask:
     )
 
 
-def dropped_instruction(record: CallRecord) -> JudgeTask:
+def dropped_instruction(record: CallRecord, checked_in_code: Sequence[str] = ()) -> JudgeTask:
+    """Only the instructions code cannot verify (content, coverage, tone). Counting, letter
+    case, script and spelling are checked exactly by ``InstructionCheck``."""
+    skip = (
+        "These were already checked exactly by code, so ignore them: "
+        + "; ".join(checked_in_code)
+        + ". "
+        if checked_in_code
+        else ""
+    )
     return JudgeTask(
         name="F6_dropped_instruction",
         instructions=(
-            "List every explicit instruction or constraint the user gave (format, length, "
-            "number of items or sentences, words to use or avoid, language, letter case, "
-            "structure, ending). Check the model answer against each one. Count sentences, "
-            "bullet points and words exactly; do not estimate."
+            "Check whether the model answer follows the explicit instructions in the request "
+            "that are about content: what to mention or not mention, what to cover or "
+            "compare, the audience, the tone, the role or the structure asked for. "
+            + skip
+            + "Also ignore anything about counting (sentences, words, items, paragraphs), "
+            "letter case, language or spelling: code checks those. Report an instruction as "
+            "unmet only if you can quote the part of the answer that breaks it, or it is "
+            "clearly missing from the answer; when in doubt, it is met. Never list an "
+            "instruction just because it appears in the request."
         ),
         material=_material(record, with_context=False),
         labels=("all_met", "some_unmet"),
         extra_fields={
-            "unmet": "list of the constraints the answer breaks, quoted from the request"
+            "unmet": 'list of {"instruction": quoted from the request, "evidence": quoted '
+            'from the answer, or "missing"} (empty if all met)'
         },
     )
 

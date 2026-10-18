@@ -1,0 +1,549 @@
+{
+  "generated": "2026-10-18 19:19 UTC",
+  "n": 108,
+  "label_counts": {
+    "F1": 12,
+    "F2": 1,
+    "F3": 3,
+    "F4": 8,
+    "F5": 1,
+    "F6": 2,
+    "F7": 0,
+    "F8": 5,
+    "F9": 1
+  },
+  "with_reference": false,
+  "setups": {
+    "live checks (no LLM)": {
+      "scores": {
+        "F1": {
+          "tp": 12,
+          "fp": 0,
+          "fn": 0,
+          "positives": 12,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F2": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "positives": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F3": {
+          "tp": 2,
+          "fp": 1,
+          "fn": 1,
+          "positives": 3,
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666,
+          "f1": 0.6666666666666666
+        },
+        "F4": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 8,
+          "positives": 8,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F5": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "positives": 1,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F6": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "positives": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F7": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "positives": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "F8": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 5,
+          "positives": 5,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F9": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "positives": 1,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "judge_failures": 0,
+      "failure_reasons": {},
+      "errors": 0
+    },
+    "judge groq:qwen/qwen3.8-27b": {
+      "scores": {
+        "F1": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 12,
+          "positives": 12,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F2": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "positives": 1,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F3": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "positives": 3,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "f1": 0.8
+        },
+        "F4": {
+          "tp": 5,
+          "fp": 10,
+          "fn": 3,
+          "positives": 8,
+          "precision": 0.3333333333333333,
+          "recall": 0.625,
+          "f1": 0.43478260869565216
+        },
+        "F5": {
+          "tp": 1,
+          "fp": 3,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4
+        },
+        "F6": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 1,
+          "positives": 2,
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1": 0.5
+        },
+        "F7": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "positives": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "F8": {
+          "tp": 5,
+          "fp": 6,
+          "fn": 0,
+          "positives": 5,
+          "precision": 0.45454545454545453,
+          "recall": 1.0,
+          "f1": 0.625
+        },
+        "F9": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        }
+      },
+      "judge_failures": 0,
+      "failure_reasons": {},
+      "errors": 0
+    },
+    "judge gemini:gemini-3.5-flash-lite": {
+      "scores": {
+        "F1": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 12,
+          "positives": 12,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F2": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "positives": 1,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F3": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "positives": 3,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "f1": 0.8
+        },
+        "F4": {
+          "tp": 6,
+          "fp": 2,
+          "fn": 2,
+          "positives": 8,
+          "precision": 0.75,
+          "recall": 0.75,
+          "f1": 0.75
+        },
+        "F5": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        },
+        "F6": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "positives": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "F7": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "positives": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "F8": {
+          "tp": 5,
+          "fp": 2,
+          "fn": 0,
+          "positives": 5,
+          "precision": 0.7142857142857143,
+          "recall": 1.0,
+          "f1": 0.8333333333333333
+        },
+        "F9": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666
+        }
+      },
+      "judge_failures": 0,
+      "failure_reasons": {},
+      "errors": 0
+    },
+    "judge gemini:gemma-4-31b-it": {
+      "scores": {
+        "F1": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 12,
+          "positives": 12,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F2": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "positives": 1,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F3": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "positives": 3,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "f1": 0.8
+        },
+        "F4": {
+          "tp": 3,
+          "fp": 9,
+          "fn": 5,
+          "positives": 8,
+          "precision": 0.25,
+          "recall": 0.375,
+          "f1": 0.3
+        },
+        "F5": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        },
+        "F6": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 1,
+          "positives": 2,
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1": 0.5
+        },
+        "F7": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "positives": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "F8": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "positives": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F9": {
+          "tp": 0,
+          "fp": 2,
+          "fn": 1,
+          "positives": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "judge_failures": 109,
+      "failure_reasons": {
+        "InternalServerError": 107,
+        "APITimeoutError": 2
+      },
+      "errors": 0
+    },
+    "panel of all judges": {
+      "scores": {
+        "F1": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 12,
+          "positives": 12,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F2": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "positives": 1,
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "F3": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "positives": 3,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "f1": 0.8
+        },
+        "F4": {
+          "tp": 6,
+          "fp": 6,
+          "fn": 2,
+          "positives": 8,
+          "precision": 0.5,
+          "recall": 0.75,
+          "f1": 0.6
+        },
+        "F5": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666
+        },
+        "F6": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "positives": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "F7": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "positives": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "F8": {
+          "tp": 5,
+          "fp": 4,
+          "fn": 0,
+          "positives": 5,
+          "precision": 0.5555555555555556,
+          "recall": 1.0,
+          "f1": 0.7142857142857143
+        },
+        "F9": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        }
+      },
+      "judge_failures": 0,
+      "failure_reasons": {},
+      "errors": 0
+    },
+    "counterfix: live checks + panel": {
+      "scores": {
+        "F1": {
+          "tp": 12,
+          "fp": 0,
+          "fn": 0,
+          "positives": 12,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F2": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "positives": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F3": {
+          "tp": 2,
+          "fp": 1,
+          "fn": 1,
+          "positives": 3,
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666,
+          "f1": 0.6666666666666666
+        },
+        "F4": {
+          "tp": 6,
+          "fp": 6,
+          "fn": 2,
+          "positives": 8,
+          "precision": 0.5,
+          "recall": 0.75,
+          "f1": 0.6
+        },
+        "F5": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666
+        },
+        "F6": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "positives": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "F7": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "positives": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "F8": {
+          "tp": 5,
+          "fp": 4,
+          "fn": 0,
+          "positives": 5,
+          "precision": 0.5555555555555556,
+          "recall": 1.0,
+          "f1": 0.7142857142857143
+        },
+        "F9": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "positives": 1,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        }
+      },
+      "judge_failures": 0,
+      "failure_reasons": {},
+      "errors": 0
+    }
+  }
+}

@@ -23,6 +23,40 @@ PRESETS: dict[str, tuple[str | None, str | None, str]] = {
 }
 DEFAULT_TIMEOUT = {"gemini": 120.0}
 
+# provider -> the model used as a judge when the user has not chosen one. Picked from the
+# Phase 3 judge evaluation (bench/results/judges.md); a different family from common targets.
+JUDGE_MODELS: dict[str, str] = {
+    "groq": "qwen/qwen3.8-27b",
+    "gemini": "gemini-3.5-flash-lite",
+    "openai": "gpt-4o-mini",
+    "openrouter": "openai/gpt-oss-20b:free",
+}
+# requests per minute that keep free tiers happy (the provider's 429 replies are also obeyed)
+FREE_TIER_RPM: dict[str, float] = {"groq": 28.0, "gemini": 12.0, "openrouter": 15.0}
+
+
+def judge_params(spec: str) -> dict[str, Any]:
+    """Extra request fields that make a model a better judge. gpt-oss reasons at length by
+    default and can spend the whole token budget before writing its JSON verdict."""
+    _, model = parse_spec(spec)
+    if "gpt-oss" in model:
+        return {"reasoning_effort": "low"}
+    return {}
+
+
+def supports_json_mode(spec: str) -> bool:
+    """False for models whose endpoint rejects response_format (it then errors or 500s)."""
+    provider, model = parse_spec(spec)
+    return not (provider == "gemini" and model.startswith("gemma"))
+
+
+def rpm_for(spec: str) -> float:
+    """A safe requests-per-minute for a spec (0 = no pacing, e.g. local Ollama)."""
+    provider, model = parse_spec(spec)
+    if provider == "gemini" and model.startswith("gemma"):
+        return 28.0  # Gemma has its own, higher free limit
+    return FREE_TIER_RPM.get(provider, 0.0)
+
 
 def load_env_file(path: str | Path) -> None:
     """Load KEY=VALUE lines from a .env file into os.environ. Values already set win;

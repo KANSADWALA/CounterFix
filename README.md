@@ -9,9 +9,9 @@ model a tool, raises `max_tokens`) and re-runs the call. The change that fixes t
 failure is both the diagnosis and the prescription. We call this **counterfactual
 diagnosis**.
 
-> **Status: pre-alpha.** The `guard()` wrapper, the live checks (F1 to F3, empty output,
-> provider filter), optional auto-retry, the prompt linter and the LLM-judge checks work
-> today. The counterfactual engine is being built. APIs will change.
+> **Status: pre-alpha.** The `guard()` wrapper, the live checks (F1 to F3, F6 in code,
+> empty output, provider filter), optional auto-retry, the prompt linter, `diagnose()` with
+> LLM-judge checks work today. The counterfactual engine is being built. APIs will change.
 
 ## What it plugs into
 
@@ -39,7 +39,10 @@ client = guard(OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"))
 
 Live checks make no extra LLM calls. They catch truncation (including reasoning models that
 spend the whole budget thinking), broken JSON or schema mismatches, broken tool-call
-arguments, refusals, empty answers and provider content filters.
+arguments, refusals, empty answers, provider content filters, and broken instructions that
+code can verify exactly: sentence, word and bullet counts, letter case, reply language
+(by script), British or American spelling, banned words, "end with a question", "only the
+number", "one word" and similar (in the spirit of IFEval).
 
 ### Optional auto-retry
 
@@ -57,30 +60,47 @@ retry fails. Add your own fixes per model with `RuleStore` and `FixRule`.
 
 ### Deeper checks with a judge (diagnose mode)
 
-Some failures need meaning to spot: invented facts, false premises, dropped instructions,
-ambiguity, wrong arithmetic. These checks ask a judge model, so they cost extra calls and
-never run in live mode.
+Some failures need meaning to spot: invented facts, false premises, content instructions
+("mention the price"), ambiguity, wrong arithmetic. These checks ask a judge model, so they
+cost extra calls and never run in live mode. Ask for them when you want the deeper look:
 
 ```python
-from counterfix import run_detectors, Config
-from counterfix.detectors import judge_detectors
-from counterfix.judges import JudgePanel, LLMJudge
-from counterfix.presets import make_caller
+import counterfix
 
-panel = JudgePanel(
-    [  # three model families vote, which reduces self-preference bias
-        LLMJudge(make_caller("groq:openai/gpt-oss-20b")),
-        LLMJudge(make_caller("groq:qwen/qwen3.8-27b")),
-        LLMJudge(make_caller("gemini:gemini-3.5-flash-lite")),
-    ]
-)
-diagnosis = run_detectors(record, judge_detectors(panel), Config())
+report = counterfix.diagnose(response)  # a response from a guarded client
+print(report.summary(), "| judged by", report.judge)
 ```
+
+One mistake gets one cause: a wrong calculation is reported as F8, not also as an invented
+fact (F4), and a cut-off answer as F1, not also as dropped instructions (F6). The findings
+that were set aside are kept in `report.suppressed`.
 
 The F8 check never trusts the judge's arithmetic: the judge writes one expression and
 counterfix evaluates it with a small whitelist-only evaluator. A sampling check
 (`SamplingCheck`) re-asks the model and flags answers that change between samples.
 An optional Jev back-end (`counterfix[jev]`) plugs into the same judge interface.
+
+### Bring your own key
+
+counterfix never ships API keys. Live checks need none: they wrap your own client and make
+no calls of their own. Judge checks use a judge you choose, in this order:
+
+1. `counterfix.diagnose(response, judge="groq:qwen/qwen3.8-27b")`
+2. `counterfix.configure(judge=...)`, once per process. A list of specs makes a voting
+   panel, e.g. `["groq:qwen/qwen3.8-27b", "gemini:gemini-3.5-flash-lite", "ollama:llama3.2"]`
+3. the `COUNTERFIX_JUDGE` environment variable (comma-separated for a panel)
+4. a key it finds: `GROQ_API_KEY` or `GEMINI_API_KEY` (both have free tiers),
+   `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, or a model in a local Ollama. A different
+   model family from the one being checked is preferred.
+5. otherwise the checked model judges itself, with a `SelfJudgeWarning`, because judges are
+   lenient with their own mistakes.
+
+See what counterfix finds on your machine (key values are never printed):
+
+```bash
+counterfix setup          # keys, local models, and the judge that will be used
+counterfix setup --test   # also asks the judge one tiny question
+```
 
 ### Lint prompts before you send them
 
@@ -145,16 +165,21 @@ Optional extras: `openai`, `anthropic`, `litellm`, `langchain`, `llamaindex`, `o
 
 ## Roadmap
 
-1. Foundations and seed failure set ✅
-2. Core records and the `guard()` plug ✅
-3. Cheap live detectors (F1 to F3), auto-retry and the prompt linter ✅
-4. LLM-judge and sampling detectors ✅ (accuracy measurement in progress)
-5. Diagnose mode and HTML report
-6. Counterfactual engine with verified fixes
-7. Model failure profiles
-8. More plugs: decorator, Anthropic, LiteLLM, LangChain, OpenTelemetry
-9. Evaluation on public benchmarks
-10. Release and paper
+Done:
+
+- `guard()` for any OpenAI-compatible client, live checks, optional auto-retry ✅
+- Prompt linter (`counterfix lint`) ✅
+- Judge checks, `diagnose()`, bring your own key, `counterfix setup` ✅
+
+Next, in order:
+
+1. First release (v0.1.0) with a quickstart and examples
+2. Readable reports: terminal summary, JSON for logs, shareable HTML
+3. Production-safe diagnose: sample a share of traffic in the background, with a cost cap
+4. More plugs: Anthropic SDK, LiteLLM, LangChain, a decorator for any function, async
+5. Verified fixes: try a fix, re-run the call, suggest only what worked
+6. Prompt regression tests for CI (pytest plugin)
+7. OpenTelemetry export
 
 ## License
 

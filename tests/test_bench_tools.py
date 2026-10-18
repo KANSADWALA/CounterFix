@@ -181,6 +181,9 @@ def test_default_judges_follow_available_keys(monkeypatch: pytest.MonkeyPatch) -
         monkeypatch.delenv(key, raising=False)
     assert eval_judges.default_judges() == []
     monkeypatch.setenv("GEMINI_API_KEY", "x")
-    assert eval_judges.default_judges() == ["gemini:gemini-3.5-flash-lite"]
+    assert eval_judges.default_judges() == [
+        "gemini:gemini-3.5-flash-lite",
+        "gemini:gemma-4-31b-it",
+    ]
     monkeypatch.setenv("GROQ_API_KEY", "x")
     assert len(eval_judges.default_judges()) == 3

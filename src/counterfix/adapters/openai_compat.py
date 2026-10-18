@@ -105,6 +105,7 @@ class _Guard:
         self.config = config
         self.detectors = list(detectors)
         self.provider = provider
+        self.client: Any = None  # the raw client, kept so diagnose() can fall back to it
 
     def diagnose(
         self, request: dict[str, Any], response: Any, latency_ms: float
@@ -115,6 +116,7 @@ class _Guard:
                 request, response, latency_ms=latency_ms, provider=self.provider
             )
             diagnosis: Diagnosis = run_detectors(record, self.detectors, self.config)
+            diagnosis._client = self.client
             attach(response, diagnosis)
             if self.config.on_diagnosis is not None:
                 self.config.on_diagnosis(record, diagnosis)
@@ -361,4 +363,6 @@ def guard(
         from counterfix.detectors import default_detectors
 
         detectors = default_detectors()
-    return GuardedClient(client, _Guard(config or Config(), detectors, provider))
+    state = _Guard(config or Config(), detectors, provider)
+    state.client = client
+    return GuardedClient(client, state)

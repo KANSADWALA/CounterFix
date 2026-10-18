@@ -1,4 +1,4 @@
-"""Command line: ``counterfix lint FILE...``.
+"""Command line: ``counterfix lint FILE...`` and ``counterfix setup``.
 
 Accepted files:
   * .txt / .md      the whole file is one user prompt
@@ -59,17 +59,21 @@ def cmd_lint(args: argparse.Namespace) -> int:
         return 2
     judge: Judge | None = None
     if args.judge:
-        from counterfix.judges import LLMJudge
-        from counterfix.presets import load_env_file, make_caller
+        from counterfix.judges.auto import NoJudgeError, resolve_judge
+        from counterfix.presets import load_env_file
 
         load_env_file(Path.cwd() / ".env")
         try:
-            judge = LLMJudge(make_caller(args.judge))
+            judge, source = resolve_judge(None if args.judge == "auto" else args.judge)
+        except NoJudgeError as exc:
+            print(exc)
+            return 2
         except Exception as exc:
             print(f"Could not set up the judge {args.judge!r}: {exc}")
             return 2
+        print(f"Judge: {judge.name} ({source})\n")
     elif any(r in JUDGE_RULES for r in rules or []):
-        print("Rules L2, L5 and L6 need --judge provider:model (e.g. groq:openai/gpt-oss-20b)")
+        print("Rules L2, L5 and L6 need a judge: add --judge (picks one from your keys)")
         return 2
     total = warnings = flagged = 0
     for name in args.paths:
@@ -92,6 +96,78 @@ def cmd_lint(args: argparse.Namespace) -> int:
     return 1 if args.fail_on_warning and warnings else 0
 
 
+def cmd_setup(args: argparse.Namespace) -> int:
+    """Show what counterfix can use on this machine. Never prints key values."""
+    import importlib.util
+    import os
+    import time
+
+    from counterfix.judges.auto import (
+        ENV_VAR,
+        NoJudgeError,
+        detect_judges,
+        ollama_models,
+        resolve_judge,
+    )
+    from counterfix.presets import PRESETS, load_env_file
+
+    env_file = Path.cwd() / ".env"
+    load_env_file(env_file)
+    print(f"counterfix {__version__}\n")
+    print("Live checks (guard):  ready, no key needed")
+    sdk = importlib.util.find_spec("openai") is not None
+    print(
+        "OpenAI-compatible SDK: "
+        + ("installed" if sdk else 'missing  ->  pip install "counterfix[openai]"')
+    )
+    print(f".env in this folder:  {'found (loaded)' if env_file.is_file() else 'none'}")
+    print("\nAPI keys (values are never shown):")
+    for _, key_var, _ in PRESETS.values():
+        if key_var:
+            print(f"  {key_var:<20} {'set' if os.environ.get(key_var) else '-'}")
+    models = ollama_models()
+    print(f"  {'Ollama (local)':<20} " + (", ".join(models[:5]) if models else "not running"))
+    chosen = os.environ.get(ENV_VAR, "").strip()
+    print(f"  {ENV_VAR:<20} {chosen or '-'}")
+    print("\nJudge checks (counterfix.diagnose, lint --judge):")
+    if chosen:
+        print(f"  will use {chosen} ({ENV_VAR})")
+    else:
+        found = detect_judges()
+        for n, (spec, why) in enumerate(found):
+            print(f"  {'will use' if n == 0 else 'also can'} {spec}  ({why})")
+        if not found:
+            print("  no judge found. Without one, diagnose() lets the checked model judge")
+            print("  itself (with a warning). For an independent judge:")
+            print("    GROQ_API_KEY    free at https://console.groq.com/keys")
+            print("    GEMINI_API_KEY  free at https://aistudio.google.com/apikey")
+            print("    or Ollama       https://ollama.com, then: ollama pull qwen2.5:7b")
+    if not args.test:
+        print("\nRun `counterfix setup --test` to send the judge one tiny question.")
+        return 0
+    from counterfix.judges.base import JudgeTask
+
+    try:
+        judge, source = resolve_judge()
+    except NoJudgeError as exc:
+        print(f"\n{exc}")
+        return 1
+    task = JudgeTask(
+        name="setup_test",
+        instructions="Is the model answer correct?",
+        material={"user_request": "What is 2 + 2?", "model_answer": "4"},
+        labels=("correct", "incorrect"),
+    )
+    start = time.perf_counter()
+    verdict = judge.ask(task)
+    took = time.perf_counter() - start
+    if verdict.failed:
+        print(f"\nJudge test FAILED with {judge.name}: {verdict.reason}")
+        return 1
+    print(f"\nJudge test ok: {judge.name} said {verdict.label!r} in {took:.1f}s ({source})")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="counterfix", description="Find why LLM calls fail.")
     parser.add_argument("--version", action="version", version=f"counterfix {__version__}")
@@ -102,12 +178,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_lint.add_argument("--quiet", action="store_true", help="only print prompts with issues")
     p_lint.add_argument(
         "--judge",
-        help="also run L2, L5, L6 with this judge, e.g. groq:openai/gpt-oss-20b (reads .env)",
+        nargs="?",
+        const="auto",
+        help="also run L2, L5, L6. Alone it picks a judge from your keys (reads .env); "
+        "or name one, e.g. --judge groq:qwen/qwen3.8-27b",
     )
     p_lint.add_argument(
         "--fail-on-warning", action="store_true", help="exit with code 1 if any warning (for CI)"
     )
     p_lint.set_defaults(func=cmd_lint)
+    p_setup = sub.add_parser("setup", help="show which keys, local models and judge will be used")
+    p_setup.add_argument("--test", action="store_true", help="ask the judge one tiny question")
+    p_setup.set_defaults(func=cmd_setup)
     args = parser.parse_args(argv)
     result: int = args.func(args)
     return result

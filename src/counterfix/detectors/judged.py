@@ -11,10 +11,13 @@ from counterfix.core.detector import Detector, SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
+from counterfix.detectors.basic import LENGTH_REASONS
+from counterfix.detectors.instructions import extract_constraints, mentions
 from counterfix.detectors.refusal import _REFUSAL
 from counterfix.judges import tasks
 from counterfix.judges.base import Judge, JudgeTask, Verdict
 from counterfix.safe_eval import UnsafeExpression, safe_eval
+from counterfix.text import normalise_numbers
 
 _CONSTRAINT = re.compile(
     r"\b(must|never|always|do not|don't|only|exactly|at most|at least|no more than|under|"
@@ -133,29 +136,56 @@ class FalsePremiseCheck(_JudgeCheck):
         ]
 
 
+def _unmet_items(value: Any) -> list[str]:
+    """The judge's unmet list as text, tolerant of strings or {instruction, evidence}."""
+    if not isinstance(value, list):
+        return [str(value)] if value else []
+    items = []
+    for entry in value:
+        if isinstance(entry, dict):
+            instruction = str(entry.get("instruction") or "").strip()
+            evidence = str(entry.get("evidence") or "").strip()
+            if instruction:
+                items.append(f"{instruction} (answer: {evidence})" if evidence else instruction)
+        elif str(entry).strip():
+            items.append(str(entry).strip())
+    return items
+
+
 class DroppedInstructionCheck(_JudgeCheck):
-    """F6: the answer breaks an explicit instruction. Skipped when the prompt has none."""
+    """F6, the part code cannot verify: content instructions such as 'mention X' or 'never
+    mention competitors'. Countable instructions are left to ``InstructionCheck`` and any
+    judge complaint about them is discarded, because code is exact and judges miscount."""
 
     name = "judge_dropped_instruction"
     covers = (FailureType.DROPPED_INSTRUCTION,)
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        if not _CONSTRAINT.search(f"{record.system_text}\n{record.prompt_text}"):
+        request = f"{record.system_text}\n{record.prompt_text}"
+        if not _CONSTRAINT.search(request):
             raise SkipCheck("no explicit constraints in the prompt")
+        if (record.finish_reason or "").lower() in LENGTH_REASONS:
+            raise SkipCheck("the answer was cut off (see F1)")
         if not record.answer_text:
             raise SkipCheck("no answer to check")
-        verdict = self._ask(tasks.dropped_instruction(record))
+        in_code = extract_constraints(request)
+        verdict = self._ask(tasks.dropped_instruction(record, [c.description for c in in_code]))
         if verdict.label != "some_unmet":
             return []
-        unmet = verdict.extra.get("unmet") or []
-        listed = "; ".join(str(u) for u in unmet[:4]) if isinstance(unmet, list) else str(unmet)
+        unmet = [
+            item
+            for item in _unmet_items(verdict.extra.get("unmet"))
+            if not any(mentions(c, item.split(" (answer:")[0]) for c in in_code)
+        ]
+        if not unmet:  # nothing quoted, or only things code already checked
+            return []
         return [
             Finding(
                 failure_type=FailureType.DROPPED_INSTRUCTION,
                 confidence=verdict.confidence,
                 evidence=[
                     self._evidence(
-                        verdict, f"instructions not met: {listed or verdict.reason}", unmet=unmet
+                        verdict, "instructions not met: " + "; ".join(unmet[:4]), unmet=unmet
                     )
                 ],
                 prescription=Prescription(
@@ -267,15 +297,6 @@ _WORDS = {
 }
 
 
-_SEPARATORS = re.compile(r"(?<=\d)(?:\{,\}|\\,|[\u2009\u202f\u00a0_'])(?=\d)")
-
-
-def normalise_numbers(text: str) -> str:
-    """Remove digit-group separators models use: LaTeX {,} and \\, thin and narrow
-    no-break spaces, underscores and apostrophes (1{,}419{,}857 -> 1419857)."""
-    return _SEPARATORS.sub("", text)
-
-
 def answer_contains(answer: str, expected: Any) -> bool:
     """Does the answer state the expected value? Numbers match ignoring group separators
     (commas, LaTeX, thin spaces); small numbers also match as words; strings match
@@ -294,6 +315,13 @@ def answer_contains(answer: str, expected: Any) -> bool:
         found += [float(v) for w, v in _WORDS.items() if re.search(rf"\b{w}\b", lowered)]
         return any(abs(f - float(expected)) <= 1e-9 * max(1.0, abs(float(expected))) for f in found)
     return str(expected).strip().lower() in answer.lower()
+
+
+def _yes_no(answer: str) -> bool | None:
+    """True for an answer opening with yes/true, False for no/false, else None."""
+    first = re.match(r"\W*(\w+)", answer)
+    word = first.group(1).lower() if first else ""
+    return True if word in ("yes", "true") else False if word in ("no", "false") else None
 
 
 _COMPUTE_HINT = re.compile(
@@ -325,7 +353,15 @@ class ComputationCheck(_JudgeCheck):
             raise SkipCheck(f"could not evaluate the judge's expression: {exc}") from exc
         if isinstance(expected, list | tuple):
             raise SkipCheck("expression did not produce a single value")
-        if answer_contains(record.answer_text, expected):
+        if isinstance(expected, bool):
+            # A yes/no fact ('is 0.1 + 0.2 == 0.3?'). Only checkable when the answer opens
+            # with yes/no; "9.9 is larger" cannot be matched against True or False.
+            said = _yes_no(record.answer_text)
+            if said is None:
+                raise SkipCheck("a yes/no result, but the answer does not start with yes or no")
+            if said == expected:
+                return []
+        elif answer_contains(record.answer_text, expected):
             return []
         return [
             Finding(

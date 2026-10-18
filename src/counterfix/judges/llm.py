@@ -99,36 +99,72 @@ class LLMJudge:
         self,
         caller: ModelCaller,
         *,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
         json_mode: bool = True,
         temperature: float = 0.0,
+        params: dict[str, Any] | None = None,
     ):
         self.caller = caller
-        self.max_tokens = max_tokens
+        self.max_tokens = max_tokens  # generous: reasoning models think before the JSON
         self.json_mode = json_mode
         self.temperature = temperature
+        self.params = dict(params or {})  # extra request fields, e.g. reasoning_effort
+        self.system_role = True  # some models (Gemma on AI Studio) reject system messages
 
     @property
     def name(self) -> str:
         return self.caller.name
 
-    def _call(self, task: JudgeTask) -> CallRecord:
-        messages = [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": render(task)},
-        ]
-        params: dict[str, Any] = {"max_tokens": self.max_tokens, "temperature": self.temperature}
+    def _messages(self, task: JudgeTask) -> list[dict[str, str]]:
+        if self.system_role:
+            return [
+                {"role": "system", "content": SYSTEM},
+                {"role": "user", "content": render(task)},
+            ]
+        return [{"role": "user", "content": f"{SYSTEM}\n\n{render(task)}"}]
+
+    def _call_once(self, task: JudgeTask) -> CallRecord:
+        """One request with the current settings, no fallbacks."""
+        params: dict[str, Any] = {
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+            **self.params,
+        }
         if self.json_mode:
+            params["response_format"] = {"type": "json_object"}
+        return self.caller.complete(self._messages(task), **params)
+
+    def _call(self, task: JudgeTask) -> CallRecord:
+        for _ in range(3):  # at most: drop JSON mode once, drop the system role once
             try:
-                return self.caller.complete(
-                    messages, response_format={"type": "json_object"}, **params
-                )
+                return self._call_once(task)
             except Exception as exc:
-                if "response_format" not in str(exc) and "json" not in str(exc).lower():
-                    raise
-                logger.info("judge %s: JSON mode refused, retrying without it", self.name)
-                self.json_mode = False
-        return self.caller.complete(messages, **params)
+                message = str(exc).lower()
+                if (
+                    self.system_role
+                    and ("developer instruction" in message or "system" in message)
+                    and "rate" not in message
+                ):
+                    logger.info("judge %s: system messages refused, merging", self.name)
+                    self.system_role = False
+                    continue
+                if self.json_mode and ("response_format" in message or "json" in message):
+                    logger.info("judge %s: JSON mode refused, retrying without it", self.name)
+                    self.json_mode = False
+                    continue
+                # Some endpoints answer an option they do not support with a bare 500
+                # (Gemma on Google's OpenAI-compatible API does this for JSON mode).
+                if "internal" in message or "500" in message:
+                    if self.json_mode:
+                        logger.info("judge %s: server error, retrying without JSON mode", self.name)
+                        self.json_mode = False
+                        continue
+                    if self.system_role:
+                        logger.info("judge %s: server error, merging the system prompt", self.name)
+                        self.system_role = False
+                        continue
+                raise
+        return self._call_once(task)
 
     def ask(self, task: JudgeTask) -> Verdict:
         try:

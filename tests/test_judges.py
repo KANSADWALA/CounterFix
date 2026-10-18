@@ -212,7 +212,7 @@ def test_safe_eval_allows_whitelisted_expressions(expr: str, value: Any) -> None
         "__import__('os').system('echo hi')",
         "open('x')",
         "(1).__class__",
-        "[x for x in range(3)]",
+        "{1: 2}",
         "2 ** 100000",
         "'a' * 10**9",
         "lambda: 1",
@@ -282,11 +282,18 @@ def test_false_premise_check() -> None:
 
 
 def test_dropped_instruction_check_and_skip() -> None:
-    record = rec("Write exactly 3 sentences, all lowercase.", "One. Two.")
-    [f] = DroppedInstructionCheck(FixedJudge("some_unmet", unmet=["exactly 3 sentences"])).check(
-        record, CFG
-    )
-    assert "exactly 3 sentences" in f.evidence[0].detail
+    record = rec("Write exactly 3 sentences, all lowercase. Mention the price.", "One. Two.")
+    unmet = [
+        "exactly 3 sentences",  # countable: code checks it, so the judge's word is dropped
+        {"instruction": "Mention the price", "evidence": "missing"},
+    ]
+    [f] = DroppedInstructionCheck(FixedJudge("some_unmet", unmet=unmet)).check(record, CFG)
+    assert "Mention the price (answer: missing)" in f.evidence[0].detail
+    assert "sentences" not in f.evidence[0].detail
+    # a complaint only about countable instructions, or with nothing quoted, is no finding
+    only_counts = FixedJudge("some_unmet", unmet=["all lowercase"])
+    assert DroppedInstructionCheck(only_counts).check(record, CFG) == []
+    assert DroppedInstructionCheck(FixedJudge("some_unmet", unmet=[])).check(record, CFG) == []
     from counterfix import SkipCheck
 
     with pytest.raises(SkipCheck):
@@ -358,3 +365,104 @@ def test_cache_offline_mode_never_calls_the_judge(tmp_path: Path) -> None:
     assert view.ask(TASK).label == "yes"
     assert view.ask(other).failed and len(inner.asked) == 1
     assert not cached.offline  # the original still calls the judge
+
+
+def test_safe_eval_comprehensions() -> None:
+    from counterfix.safe_eval import UnsafeExpression, safe_eval
+
+    assert safe_eval("sum(int(c) for c in str(987654321987))") == 69
+    assert safe_eval("len([c for c in 'strawberry' if c == 'r'])") == 3
+    assert safe_eval("''.join(reversed('encyclopedia'))") == "aidepolcycne"
+    assert safe_eval("sum(x * x for x in range(1, 4))") == 14
+    assert safe_eval("1 < 2 <= 2 and 'a' in 'cat'") is True
+    for bad in (
+        "[x for x in range(10**9)]",
+        "[(x, y) for x in 'ab' for y in 'cd']",
+        "__import__('os')",
+        "(lambda: 1)()",
+        "x",
+    ):
+        with pytest.raises(UnsafeExpression):
+            safe_eval(bad)
+
+
+def test_llm_judge_merges_system_prompt_when_refused_and_passes_params() -> None:
+    seen: list[list[str]] = []
+
+    class NoSystem(ScriptCaller):
+        def complete(self, messages: Sequence[Any], **params: Any) -> CallRecord:
+            roles = [m["role"] for m in messages]
+            seen.append(roles)
+            if "system" in roles:
+                raise RuntimeError("400: Developer instruction is not enabled for this model")
+            return super().complete(messages, **params)
+
+    caller = NoSystem(reply("yes"))
+    judge = LLMJudge(caller, params={"reasoning_effort": "low"})
+    assert judge.ask(TASK).label == "yes" and judge.system_role is False
+    assert seen[-1] == ["user"] and caller.calls[-1]["reasoning_effort"] == "low"
+
+
+def test_retry_after_reads_headers_and_groq_messages() -> None:
+    from counterfix.core.caller import retry_after
+
+    class Limited(Exception):
+        def __init__(self, msg: str, headers: dict[str, str] | None = None):
+            super().__init__(msg)
+            self.response = type("R", (), {"headers": headers or {}})()
+
+    assert retry_after(Limited("429", {"retry-after": "12"})) == 12.0
+    assert retry_after(Limited("Rate limit reached. Please try again in 7.5s.")) == 7.5
+    assert retry_after(Limited("Please try again in 1m3.2s")) == 63.2
+    assert retry_after(Limited("Please try again in 450ms")) == 0.45
+    assert retry_after(Limited("429 too many requests")) is None
+
+
+def test_llm_judge_drops_json_mode_on_a_bare_server_error() -> None:
+    def respond(params: dict[str, Any]) -> str:
+        if "response_format" in params:
+            raise RuntimeError("Error code: 500 - Internal error encountered.")
+        return reply("yes")
+
+    judge = LLMJudge(ScriptCaller(respond))
+    assert judge.ask(TASK).label == "yes" and judge.json_mode is False
+
+
+def test_computation_yes_no_results() -> None:
+    def check(answer: str, expression: str) -> list[Any]:
+        record = rec("Answer yes or no: is 0.1 + 0.2 equal to 0.3?", answer)
+        judge = FixedJudge("computable", expression=expression)
+        return ComputationCheck(judge).check(record, CFG)
+
+    assert check("No.", "0.1 + 0.2 == 0.3") == []
+    assert len(check("Yes, exactly.", "0.1 + 0.2 == 0.3")) == 1
+    from counterfix import SkipCheck
+
+    with pytest.raises(SkipCheck):
+        check("9.9 is larger than 9.11.", "9.11 > 9.9")
+
+
+def test_rate_limited_caller_retries_a_passing_server_error() -> None:
+    from counterfix.core.caller import RateLimitedCaller
+
+    class InternalServerError(Exception):
+        pass
+
+    calls = {"n": 0}
+
+    def respond(params: dict[str, Any]) -> str:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise InternalServerError("Error code: 500")
+        return reply("yes")
+
+    limited = RateLimitedCaller(ScriptCaller(respond), 0)
+    import counterfix.core.caller as caller_module
+
+    real_sleep = caller_module.time.sleep
+    caller_module.time.sleep = lambda s: None  # type: ignore[assignment]
+    try:
+        assert limited.complete([]).response_text
+    finally:
+        caller_module.time.sleep = real_sleep  # type: ignore[assignment]
+    assert calls["n"] == 2

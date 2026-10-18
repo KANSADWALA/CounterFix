@@ -8,6 +8,7 @@ from typing import Protocol, runtime_checkable
 
 from counterfix.core.config import Config
 from counterfix.core.diagnosis import Diagnosis, Finding
+from counterfix.core.precedence import resolve
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
 
@@ -43,9 +44,11 @@ def run_detectors(
     """Run each detector on the record and collect a :class:`Diagnosis`.
 
     A detector that raises is recorded under ``errors`` and the others still run,
-    so one broken check never hides the rest or breaks the host application.
+    so one broken check never hides the rest or breaks the host application. Findings
+    about the same problem are then reduced to its root cause (see ``core.precedence``).
     """
     diagnosis = Diagnosis(record_id=record.id)
+    diagnosis._record = record
     for detector in detectors:
         name = getattr(detector, "name", type(detector).__name__)
         try:
@@ -61,4 +64,5 @@ def run_detectors(
             continue
         diagnosis.checked.append(name)
         diagnosis.findings.extend(findings)
+    diagnosis.findings, diagnosis.suppressed = resolve(diagnosis.findings)
     return diagnosis

@@ -17,6 +17,8 @@ from counterfix.core import (
     Usage,
     run_detectors,
 )
+from counterfix.diagnose import diagnose
+from counterfix.judges.auto import NoJudgeError, SelfJudgeWarning, configure
 from counterfix.lint import LintIssue, lint
 from counterfix.rules import FixRule, RuleStore
 
@@ -34,13 +36,17 @@ __all__ = [
     "GuardedClient",
     "LintIssue",
     "Message",
+    "NoJudgeError",
     "Prescription",
     "PrescriptionKind",
     "RetryAttempt",
     "RuleStore",
+    "SelfJudgeWarning",
     "SkipCheck",
     "Usage",
     "__version__",
+    "configure",
+    "diagnose",
     "get_diagnosis",
     "guard",
     "lint",
