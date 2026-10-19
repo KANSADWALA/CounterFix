@@ -10,7 +10,7 @@ call. A change counts only if it works in 2 of 3 re-runs. The change that fixes 
 failure is both the diagnosis and the prescription. We call this **counterfactual
 diagnosis**.
 
-> **Status: alpha (v0.1.1).** Everything below works today: live checks, judge checks,
+> **Status: alpha (v0.1.2).** Everything below works today: live checks, judge checks,
 > verified fixes, reports, regression tests, profiles. APIs may still change.
 >
 > **Known limits.** Verified fixes are common for cut-off answers and broken JSON, rare
@@ -23,11 +23,21 @@ diagnosis**.
 ## Install
 
 ```bash
-pip install "counterfix[openai]"
+pip install counterfix
 ```
 
-The core needs no API key. The `openai` extra is only for wrapping OpenAI-compatible
-clients (OpenAI, Groq, Gemini, OpenRouter, Ollama, vLLM, ...).
+That is all most people need: the core has 4 small dependencies and needs no API key.
+counterfix is an independent open-source project, not affiliated with any model provider.
+
+Optional extras add a provider's SDK only if you do not have it already:
+
+| You use | Install |
+| --- | --- |
+| OpenAI's SDK, or any OpenAI-compatible API through it (Groq, Gemini, OpenRouter, Ollama, vLLM, ...) | `pip install "counterfix[openai]"` |
+| Anthropic's SDK | `pip install "counterfix[anthropic]"` |
+| LiteLLM or LangChain | `pip install "counterfix[litellm]"` or `"counterfix[langchain]"` |
+
+If that SDK is already in your project, plain `pip install counterfix` is enough.
 
 ## Quickstart
 

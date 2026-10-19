@@ -2,6 +2,14 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## 0.1.2 (2026-10-19)
+
+Documentation only, no code changes.
+
+- Install instructions lead with `pip install counterfix`; the `openai`, `anthropic`,
+  `litellm` and `langchain` extras are explained as optional, so the PyPI page no longer
+  reads as if counterfix came from a model provider.
+
 ## 0.1.1 (2026-10-19)
 
 Fixes from a pre-release code review. No API was removed.

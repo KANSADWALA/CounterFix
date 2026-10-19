@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "counterfix"
-version = "0.1.1"
+version = "0.1.2"
 description = "Find why an LLM call failed and get a fix that was tested to work."
 readme = "README.md"
 license = "MIT"

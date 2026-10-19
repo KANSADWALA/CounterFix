@@ -34,7 +34,7 @@ from counterfix.lint import LintIssue, lint
 from counterfix.report import load_log, log_to
 from counterfix.rules import FixRule, RuleStore
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     "CallRecord",

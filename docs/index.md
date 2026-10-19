@@ -9,8 +9,11 @@ failure go away in 2 of 3 runs. The change that fixes the failure is both the di
 and the prescription.
 
 ```bash
-pip install "counterfix[openai]"
+pip install counterfix
 ```
+
+Add `"counterfix[openai]"` or `"counterfix[anthropic]"` only if that SDK is not in your
+project yet. counterfix is independent and not affiliated with any model provider.
 
 ## Three steps
 
