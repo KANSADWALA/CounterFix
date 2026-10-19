@@ -1,0 +1,31 @@
+name: Bug report
+description: counterfix crashed, misbehaved, or gave a wrong result
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Code or call to reproduce
+      description: The smallest code, or one call (messages, parameters, the model's answer). Remove any keys.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What counterfix printed (diagnosis.explain(), or the traceback)
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: counterfix, Python, and the provider SDK (e.g. openai 1.x)
+      placeholder: counterfix 0.1.2, Python 3.12, openai 1.54
+    validations:
+      required: true

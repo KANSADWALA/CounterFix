@@ -1,5 +1,11 @@
 # counterfix
 
+[![PyPI](https://img.shields.io/pypi/v/counterfix)](https://pypi.org/project/counterfix/)
+[![Python](https://img.shields.io/pypi/pyversions/counterfix)](https://pypi.org/project/counterfix/)
+[![CI](https://github.com/KANSADWALA/CounterFix/actions/workflows/ci.yml/badge.svg)](https://github.com/KANSADWALA/CounterFix/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-online-blue)](https://kansadwala.github.io/CounterFix/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/KANSADWALA/CounterFix/blob/main/LICENSE)
+
 **Find why an LLM call failed, and get a fix that was tested to work.**
 
 Most LLM evaluation tools tell you *that* a model failed. counterfix is built to tell you
@@ -18,7 +24,7 @@ diagnosis**.
 > premises: there counterfix says so and lists what to try instead. Shipped model profiles
 > are small (54 probes; qwen2.5:3b only partly measured). The labels behind our accuracy
 > numbers are mostly reference labels, with a small human spot check still to do. See
-> [`docs/results.md`](docs/results.md).
+> [`docs/results.md`](https://kansadwala.github.io/CounterFix/results/).
 
 ## Install
 
@@ -61,7 +67,7 @@ F6 Dropped instruction (90%)
 ```
 
 `judge=False` runs only the live checks: free, instant, no extra calls. More cases in
-[`examples/quickstart.py`](examples/quickstart.py).
+[`examples/quickstart.py`](https://github.com/KANSADWALA/CounterFix/blob/main/examples/quickstart.py).
 
 ### 2. Wrap your client (one line)
 
@@ -129,7 +135,7 @@ print(report.explain())
 
 The judge comes from your own key (a free `GROQ_API_KEY` or `GEMINI_API_KEY` is enough;
 see [Bring your own key](#bring-your-own-key)). Run `counterfix setup` to see what it
-found. Full script: [`examples/diagnose_with_judge.py`](examples/diagnose_with_judge.py).
+found. Full script: [`examples/diagnose_with_judge.py`](https://github.com/KANSADWALA/CounterFix/blob/main/examples/diagnose_with_judge.py).
 
 ### 4. Get a fix that was tested to work
 
@@ -215,9 +221,9 @@ with the explanation when counterfix finds a failure.
 | `counterfix.otel.export()`, `counterfix.otel.SpanChecker()` | send diagnoses to OpenTelemetry, or check the GenAI spans you already have |
 | `counterfix mcp` | an MCP server so coding agents can lint prompts and check calls |
 
-Full docs: `docs/` (build with `mkdocs serve`). Measured accuracy and fix rates:
-[`docs/results.md`](docs/results.md). A Colab-ready notebook on a free model:
-[`examples/quickstart.ipynb`](examples/quickstart.ipynb).
+Full docs: https://kansadwala.github.io/CounterFix/ (or build locally with `mkdocs serve`). Measured accuracy and fix rates:
+[`docs/results.md`](https://kansadwala.github.io/CounterFix/results/). A Colab-ready notebook on a free model:
+[`examples/quickstart.ipynb`](https://github.com/KANSADWALA/CounterFix/blob/main/examples/quickstart.ipynb).
 
 ## What it checks
 

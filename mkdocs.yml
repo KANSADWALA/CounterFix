@@ -1,5 +1,6 @@
 site_name: counterfix
 site_description: Find why an LLM call failed, and get a fix that was tested to work.
+site_url: https://kansadwala.github.io/CounterFix/
 repo_url: https://github.com/KANSADWALA/CounterFix
 strict: true
 

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://kansadwala.github.io/CounterFix/
+    about: Guides for guard(), diagnose(), fix() and every failure type.
