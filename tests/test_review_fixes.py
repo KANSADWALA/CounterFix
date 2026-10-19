@@ -138,14 +138,27 @@ def test_not_given_placeholders_are_dropped() -> None:
     assert "temperature" not in counterfix.get_diagnosis(r).record.params
 
 
-def test_deeply_nested_json_is_a_format_finding_not_a_crash() -> None:
+def test_deeply_nested_json_is_never_a_crash(monkeypatch: pytest.MonkeyPatch) -> None:
+    from counterfix.detectors import fmt
+
     record = CallRecord(
         messages=[Message(role="user", content="Return ONLY JSON.")],
         response_text="[" * 5000 + "]" * 5000,
         finish_reason="stop",
     )
     d = counterfix.diagnose(record, judge=False, config=Config(fail_open=False))
-    assert d.findings[0].failure_type is FailureType.FORMAT_BREAK
+    # It is valid JSON: Python 3.12+ reads it (nothing to report), while 3.10 and 3.11 hit
+    # the recursion limit, which must become a format finding rather than an error.
+    assert not d.errors
+    assert [f.failure_type for f in d.findings] in ([], [FailureType.FORMAT_BREAK])
+
+    def too_deep(*args: Any, **kwargs: Any) -> Any:
+        raise RecursionError("maximum recursion depth exceeded")
+
+    monkeypatch.setattr(fmt.json, "loads", too_deep)  # the limit, on every Python version
+    found = fmt.FormatDetector().check(record, Config())
+    assert found[0].failure_type is FailureType.FORMAT_BREAK
+    assert "nested too deeply" in found[0].evidence[0].detail
 
 
 # --- re-runs with async clients and streams (fix() used to report false passes) ----------
