@@ -19,3 +19,11 @@ bench/results/raw/
 Thumbs.db
 bench/cache/
 site/
+
+# Personal working files: kept locally, never published
+CLAUDE.md
+LLM Failure Debugger Build Plan.md
+drafts/
+tmp_unused/
+bench/results/judges_run1_before_fixes.*
+bench/results/judges_run2.*
