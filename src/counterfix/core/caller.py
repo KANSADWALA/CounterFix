@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from typing import Any, Protocol, runtime_checkable
 
 from counterfix.core.record import CallRecord, Message
+from counterfix.core.sync import rerun_params, resolve
 
 
 @runtime_checkable
@@ -40,8 +41,10 @@ class OpenAICompatibleCaller:
         provider: str | None = None,
         defaults: dict[str, Any] | None = None,
     ):
+        from counterfix.core.sync import sync_client
+
         unwrapped = getattr(client, "unwrapped", None)
-        self.client = unwrapped if unwrapped is not None else client
+        self.client = sync_client(unwrapped if unwrapped is not None else client)
         self.model = model
         self.provider = provider
         self.defaults = dict(defaults or {})
@@ -58,9 +61,9 @@ class OpenAICompatibleCaller:
         ]
         request: dict[str, Any] = {"model": self.model, "messages": payload}
         request.update(self.defaults)
-        request.update(params)
+        request.update(rerun_params(params))
         start = time.perf_counter()
-        response = self.client.chat.completions.create(**request)
+        response = resolve(self.client.chat.completions.create(**request))
         latency = (time.perf_counter() - start) * 1000
         return record_from_openai(request, response, latency_ms=latency, provider=self.provider)
 

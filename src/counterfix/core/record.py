@@ -90,8 +90,9 @@ class CallRecord(BaseModel):
         """The visible answer, with inline reasoning removed.
 
         Handles the tag styles models use for inline thinking: <think> (Qwen, DeepSeek),
-        <thought> (Gemma) and <thinking>. An unclosed tag (cut off mid-thought) removes
-        everything after it.
+        <thought> (Gemma) and <thinking>, when they open the response. An unclosed tag
+        there (cut off mid-thought) removes everything after it; a tag mentioned later in
+        the answer is kept as text.
         """
         return _THINK.sub("", self.response_text or "").strip()
 
@@ -115,5 +116,7 @@ class CallRecord(BaseModel):
 
 
 _TAGS = r"(think|thought|thinking)"
-_THINK = re.compile(rf"<{_TAGS}>.*?(</\1>|$)", re.DOTALL | re.IGNORECASE)
+# Only reasoning blocks at the very start count: models put their thinking first, and an
+# answer may well mention "<think>" later on (e.g. when explaining these tags).
+_THINK = re.compile(rf"\A(?:\s*<{_TAGS}>.*?(?:</\1>|\Z))+", re.DOTALL | re.IGNORECASE)
 _THINK_OPEN = re.compile(rf"<{_TAGS}>", re.IGNORECASE)

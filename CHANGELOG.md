@@ -2,6 +2,34 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## 0.1.1 (2026-10-19)
+
+Fixes from a pre-release code review. No API was removed.
+
+- `fix()` with an async client (`AsyncOpenAI`, `AsyncAnthropic`) or on a streamed call
+  reported "a plain retry passes too": the re-run was never awaited, or came back as a
+  stream, and an unreadable re-run counted as a pass. Re-runs now use a sync twin of the
+  client (or await it), never stream, and a re-run that returns nothing readable is an
+  error, never a pass. The same applies to judge calls that fall back to your client.
+- `with guard(OpenAI()) as client:` and `async with` raised `AttributeError`; they work.
+- `client.with_options(...)` and `client.copy(...)` returned an unguarded client; the copy
+  is guarded now. `chat.completions.parse()` (structured outputs) is checked too.
+- `guard()` is typed as returning the client you passed, so editors keep completions.
+  `guard(guarded, config=...)` applies the new settings instead of ignoring them.
+- The provider is read from the client's base URL (Groq, Gemini, OpenAI, OpenRouter,
+  Ollama), so `fix` and exported regression tests can re-run logged calls without
+  `--caller`.
+- Logs (`log_to`) mask secret-looking headers and keys (`Authorization`, `api_key`, ...),
+  and a call with a parameter JSON cannot hold (`NOT_GIVEN`, a timeout object, a pydantic
+  class) is still logged instead of silently dropped. "Not given" placeholders are no
+  longer stored as parameters.
+- An answer that mentions `<think>` mid-text was cut there before checking; only reasoning
+  blocks that open the response are removed now.
+- `@watch` on a method read `self` as the prompt; it takes the first string or list
+  argument.
+- Deeply nested JSON (thousands of levels) is reported as a format failure instead of
+  crashing the check; the background hourly cap and the response registry are thread-safe.
+
 ## 0.1.0 (2026-10-19)
 
 First real release.

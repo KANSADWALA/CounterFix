@@ -31,6 +31,7 @@ stats = {"queued": 0, "judged": 0, "dropped_full": 0, "dropped_cap": 0, "errors"
 _queue: queue.Queue[tuple[CallRecord, Config, Any]] = queue.Queue(QUEUE_SIZE)
 _worker: threading.Thread | None = None
 _start_lock = threading.Lock()
+_cap_lock = threading.Lock()
 _judged_at: deque[float] = deque()  # ponytail: one cap for the process, per-Config if needed
 
 
@@ -43,19 +44,20 @@ def wants(diagnosis: Diagnosis, config: Config) -> bool:
 
 def submit(record: CallRecord, config: Config, client: Any = None) -> bool:
     """Queue one call for judge checks. Never blocks; returns False if it was dropped."""
-    now = time.monotonic()
-    while _judged_at and now - _judged_at[0] > 3600:
-        _judged_at.popleft()
-    if len(_judged_at) >= config.max_judged_per_hour:
-        stats["dropped_cap"] += 1
-        return False
-    try:
-        _queue.put_nowait((record, config, client))
-    except queue.Full:
-        stats["dropped_full"] += 1
-        return False
-    _judged_at.append(now)
-    stats["queued"] += 1
+    with _cap_lock:  # many request threads may submit at once; the cap must hold
+        now = time.monotonic()
+        while _judged_at and now - _judged_at[0] > 3600:
+            _judged_at.popleft()
+        if len(_judged_at) >= config.max_judged_per_hour:
+            stats["dropped_cap"] += 1
+            return False
+        try:
+            _queue.put_nowait((record, config, client))
+        except queue.Full:
+            stats["dropped_full"] += 1
+            return False
+        _judged_at.append(now)
+        stats["queued"] += 1
     _ensure_worker()
     return True
 

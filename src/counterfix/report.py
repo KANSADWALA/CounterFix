@@ -11,22 +11,57 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import threading
 from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from counterfix.core.config import DiagnosisHook
 from counterfix.core.diagnosis import Diagnosis
 from counterfix.core.record import CallRecord
 
+_SECRET = re.compile(r"auth|key|token|secret|password|cookie|signature", re.IGNORECASE)
+_HEADER_PARAMS = ("extra_headers", "headers", "default_headers")
+
+
+def _redacted(params: dict[str, Any]) -> dict[str, Any]:
+    """Request parameters safe to write to disk: secret-looking headers and keys masked."""
+    out = dict(params)
+    for name in _HEADER_PARAMS:
+        if isinstance(out.get(name), dict):
+            out[name] = {k: "***" if _SECRET.search(str(k)) else v for k, v in out[name].items()}
+    for name in list(out):
+        if name not in _HEADER_PARAMS and _SECRET.search(name) and isinstance(out[name], str):
+            out[name] = "***"
+    return out
+
 
 def log_line(record: CallRecord, diagnosis: Diagnosis) -> str:
-    """One JSON line holding the call and what counterfix found."""
+    """One JSON line holding the call and what counterfix found. Secret-looking headers
+    are masked, and values JSON cannot hold (SDK objects) are written as text, so a line
+    is never lost to an odd parameter."""
+    data = record.model_dump(mode="python")
+    data["params"] = _redacted(data.get("params") or {})
     return json.dumps(
-        {"record": record.model_dump(mode="json"), "diagnosis": diagnosis.model_dump(mode="json")},
+        {"record": data, "diagnosis": diagnosis.model_dump(mode="json")},
         ensure_ascii=False,
+        default=_as_text,
     )
+
+
+def _as_text(value: Any) -> Any:
+    """json.dumps fallback: pydantic models as dicts, everything else as its repr."""
+    dump = getattr(value, "model_dump", None)
+    if callable(dump):
+        try:
+            return dump(mode="json")
+        except Exception:
+            pass
+    if isinstance(value, type):
+        return value.__name__  # e.g. response_format=MyModel from parse()
+    return repr(value)
 
 
 def log_to(path: str | Path) -> DiagnosisHook:
@@ -50,7 +85,12 @@ def load_log(path: str | Path) -> list[CallRecord]:
             continue
         try:
             obj = json.loads(line)
-            records.append(CallRecord.model_validate(obj.get("record", obj)))
+            record = CallRecord.model_validate(obj.get("record", obj))
+            for name in _HEADER_PARAMS:  # masked secrets: let the client send its own
+                headers = record.params.get(name)
+                if isinstance(headers, dict):
+                    record.params[name] = {k: v for k, v in headers.items() if v != "***"}
+            records.append(record)
         except Exception as exc:
             raise ValueError(f"{path}:{n}: not a call record ({exc})") from exc
     return records

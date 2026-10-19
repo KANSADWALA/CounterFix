@@ -4,11 +4,12 @@
 ... def ask(prompt: str) -> str:
 ...     return my_local_model(prompt)
 
-The function's first argument (or its ``prompt`` / ``messages`` keyword) is read as the
-request: a string is one user message, a list is chat messages. Its return value is read
-as the answer: a string, or an OpenAI-shaped response. Results come back unchanged; the
-diagnosis is on ``ask.last_diagnosis``, on ``response.diagnosis`` for response objects,
-and goes to ``Config.on_diagnosis`` and background judge checks like ``guard()``'s.
+The function's first string or list argument (or its ``prompt`` / ``messages`` keyword)
+is read as the request, so methods work too: a string is one user message, a list is chat
+messages. Its return value is read as the answer: a string, or an OpenAI-shaped response.
+Results come back unchanged; the diagnosis is on ``ask.last_diagnosis``, on
+``response.diagnosis`` for response objects, and goes to ``Config.on_diagnosis`` and
+background judge checks like ``guard()``'s.
 Sync and async functions both work.
 """
 
@@ -29,7 +30,10 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def _messages(args: tuple[Any, ...], kwargs: dict[str, Any]) -> list[dict[str, Any]]:
-    request = kwargs.get("messages", kwargs.get("prompt", args[0] if args else None))
+    # The prompt: a `messages` / `prompt` keyword, else the first string or list argument
+    # (so methods work too: `self` is skipped).
+    positional = next((a for a in args if isinstance(a, str | list)), None)
+    request = kwargs.get("messages", kwargs.get("prompt", positional))
     if isinstance(request, str):
         return [{"role": "user", "content": request}]
     if isinstance(request, list):

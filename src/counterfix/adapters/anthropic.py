@@ -16,6 +16,7 @@ from typing import Any
 
 from counterfix.adapters.openai_compat import _get, _to_dict
 from counterfix.core.record import CallRecord, Message, Usage
+from counterfix.core.sync import clean_params, rerun_params, resolve
 
 # Retries may only change these request fields (other fixes are OpenAI parameters).
 ANTHROPIC_RETRY_PARAMS = frozenset({"max_tokens"})
@@ -37,7 +38,9 @@ def record_from_anthropic(
     system = request.get("system")
     if system:
         messages.insert(0, Message(role="system", content=system))
-    params = {k: v for k, v in request.items() if k not in ("messages", "model", "system")}
+    params = clean_params(
+        {k: v for k, v in request.items() if k not in ("messages", "model", "system")}
+    )
 
     blocks = _blocks(response)
     text = "".join(b.get("text") or "" for b in blocks if b.get("type") == "text")
@@ -79,8 +82,10 @@ class AnthropicCaller:
     """A ModelCaller over an Anthropic client (``messages.create``), for re-runs."""
 
     def __init__(self, client: Any, model: str, *, provider: str = "anthropic"):
+        from counterfix.core.sync import sync_client
+
         unwrapped = getattr(client, "unwrapped", None)
-        self.client = unwrapped if unwrapped is not None else client
+        self.client = sync_client(unwrapped if unwrapped is not None else client)
         self.model, self.provider = model, provider
 
     @property
@@ -98,11 +103,11 @@ class AnthropicCaller:
             "model": self.model,
             "messages": [m for m in payload if m["role"] != "system"],
             "max_tokens": 1024,
-            **params,
+            **rerun_params(params),
         }
         if system:
             request["system"] = system
         start = time.perf_counter()
-        response = self.client.messages.create(**request)
+        response = resolve(self.client.messages.create(**request))
         ms = (time.perf_counter() - start) * 1000
         return record_from_anthropic(request, response, latency_ms=ms, provider=self.provider)

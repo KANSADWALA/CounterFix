@@ -84,10 +84,16 @@ class FormatDetector:
             text, fenced = match.group(1), True
         try:
             value = json.loads(text)
-        except json.JSONDecodeError as exc:
-            repaired = repair_json(text, return_objects=True)
-            repairable = repaired not in ("", None)
-            detail = f"expected JSON ({source}) but it does not parse: {exc.msg} at char {exc.pos}"
+        except (json.JSONDecodeError, RecursionError) as exc:
+            if isinstance(exc, RecursionError):
+                repairable, why = False, "it is nested too deeply to read"
+            else:
+                try:
+                    repairable = repair_json(text, return_objects=True) not in ("", None)
+                except RecursionError:
+                    repairable = False
+                why = f"{exc.msg} at char {exc.pos}"
+            detail = f"expected JSON ({source}) but it does not parse: {why}"
             if repairable:
                 detail += "; a tolerant parser can repair it"
             return Finding(
@@ -159,11 +165,12 @@ class FormatDetector:
             raw = function.get("arguments")
             try:
                 args = json.loads(raw) if isinstance(raw, str) else raw
-            except json.JSONDecodeError as exc:
+            except (json.JSONDecodeError, RecursionError) as exc:
+                why = exc.msg if isinstance(exc, json.JSONDecodeError) else "nested too deeply"
                 problems.append(
                     Evidence(
                         detector=self.name,
-                        detail=f"tool {name!r}: arguments are not JSON ({exc.msg})",
+                        detail=f"tool {name!r}: arguments are not JSON ({why})",
                     )
                 )
                 continue

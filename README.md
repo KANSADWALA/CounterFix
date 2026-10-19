@@ -10,7 +10,7 @@ call. A change counts only if it works in 2 of 3 re-runs. The change that fixes 
 failure is both the diagnosis and the prescription. We call this **counterfactual
 diagnosis**.
 
-> **Status: alpha (v0.1.0).** Everything below works today: live checks, judge checks,
+> **Status: alpha (v0.1.1).** Everything below works today: live checks, judge checks,
 > verified fixes, reports, regression tests, profiles. APIs may still change.
 >
 > **Known limits.** Verified fixes are common for cut-off answers and broken JSON, rare
@@ -73,6 +73,13 @@ Any OpenAI-compatible endpoint works, for example a local Ollama server:
 ```python
 client = counterfix.guard(OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"))
 ```
+
+The guarded client behaves like the original: sync or `AsyncOpenAI`, `stream=True`,
+`chat.completions.parse()`, `with` / `async with`, and `with_options()` all work and stay
+checked. Your type checker sees the client you passed. Two things differ:
+`isinstance(client, OpenAI)` is False (pass `client.unwrapped` where a library insists on
+the real object), and type checkers do not know `response.diagnosis`, so typed code can use
+`counterfix.get_diagnosis(response)`.
 
 The Anthropic SDK works the same way (`messages.create`, sync or async; `tool_use`
 arguments are checked against each tool's `input_schema`):

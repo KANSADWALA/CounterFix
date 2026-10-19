@@ -420,7 +420,9 @@ def fix(
             attempt.runs += 1
             try:
                 new = rerun.complete(messages, **attempt.params)
-            except Exception as exc:
+                if new.response_text is None and not new.tool_calls and not new.finish_reason:
+                    raise ValueError("the re-run returned no readable answer")
+            except Exception as exc:  # a run that cannot be read is never counted as a pass
                 attempt.errors.append(f"{type(exc).__name__}: {exc}")
                 if len(attempt.errors) == attempt.runs:  # nothing got through yet
                     result.unreachable = attempt.errors[0]

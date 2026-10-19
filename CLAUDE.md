@@ -73,7 +73,13 @@ python -m counterfix profile groq:qwen/qwen3.8-27b --judge gemini:gemini-3.5-fla
   in `bench/labels/history/`), `eval_judges.py` (writes `bench/results/judges.md`),
   cache `bench/cache/judges.jsonl` (git-ignored). Treat the eval as a **regression gate**.
 
-## Status (2026-10-19, night)
+## Status (2026-10-19)
+
+- 0.1.0 is on PyPI. 0.1.1 = fixes from a senior code review (see CHANGELOG): async and
+  streamed re-runs in fix(), with/async with, with_options, parse(), provider from
+  base_url, log redaction, think-tag parsing, @watch on methods. Tests in
+  tests/test_review_fixes.py. Needs: commit, push, CI green, PyPI upload of 0.1.1.
+
 
 - All work up to 9dfa635 is committed (engine, regression tests, profiles, OTel, MCP, F7,
   docs). After it, release fixes from an outside review: `fix()` stops when the model is

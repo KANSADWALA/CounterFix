@@ -12,18 +12,29 @@ import inspect
 import logging
 import time
 from collections.abc import Callable, Sequence
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, cast
 
 from counterfix.adapters._attach import attach
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector, run_detectors
 from counterfix.core.diagnosis import Diagnosis, Finding, RetryAttempt
 from counterfix.core.record import CallRecord, Message, Usage
+from counterfix.core.sync import clean_params
 from counterfix.core.types import PrescriptionKind
 
 logger = logging.getLogger("counterfix")
+ClientT = TypeVar("ClientT")
 
 _CREATE_PATH = ("chat", "completions", "create")
+# Every call that returns a chat completion: create, and structured outputs (parse).
+_OPENAI_PATHS = (
+    _CREATE_PATH,
+    ("chat", "completions", "parse"),
+    ("beta", "chat", "completions", "parse"),
+)
+_ANTHROPIC_PATHS = (("messages", "create"),)
+# Client methods that return a new client of the same kind: the copy stays guarded.
+_CLIENT_COPIES = frozenset({"with_options", "copy"})
 
 
 def _get(obj: Any, key: str, default: Any = None) -> Any:
@@ -72,7 +83,7 @@ def record_from_openai(
 ) -> CallRecord:
     """Build a :class:`CallRecord` from chat-completions kwargs and the response."""
     messages = [Message.model_validate(_to_dict(m)) for m in request.get("messages") or []]
-    params = {k: v for k, v in request.items() if k not in ("messages", "model")}
+    params = clean_params({k: v for k, v in request.items() if k not in ("messages", "model")})
 
     choices = _get(response, "choices") or []
     first = choices[0] if len(choices) > 0 else None
@@ -108,7 +119,7 @@ class _Guard:
         provider: str | None,
         *,
         to_record: Callable[..., CallRecord] | None = None,
-        create_path: tuple[str, ...] = _CREATE_PATH,
+        create_paths: tuple[tuple[str, ...], ...] = _OPENAI_PATHS,
         retry_params: frozenset[str] | None = None,
     ):
         self.config = config
@@ -116,7 +127,8 @@ class _Guard:
         self.provider = provider
         self.client: Any = None  # the raw client, kept so diagnose() can fall back to it
         self.to_record = to_record or record_from_openai
-        self.create_path = create_path
+        self.create_paths = create_paths
+        self.anthropic = create_paths == _ANTHROPIC_PATHS
         self.retry_params = retry_params  # request fields retries may change; None = any
 
     def diagnose(
@@ -249,7 +261,7 @@ class _Guard:
         """Pass a stream through chunk by chunk; check the whole answer when it ends."""
         from counterfix.adapters.streams import GuardedStream
 
-        anthropic = self.create_path == ("messages", "create")
+        anthropic = self.anthropic
 
         def done(response: Any) -> Diagnosis | None:
             return self.diagnose(kwargs, response, (time.perf_counter() - start) * 1000)
@@ -354,8 +366,13 @@ class _Guard:
 
 class GuardedClient:
     """A transparent proxy: everything behaves like the wrapped client, except that its
-    create call (``chat.completions.create``, or ``messages.create`` for Anthropic) also
-    produces a diagnosis."""
+    calls that return a chat completion (``chat.completions.create`` / ``.parse``, or
+    ``messages.create`` for Anthropic) also produce a diagnosis.
+
+    ``with guard(OpenAI()) as client:`` and ``async with`` work, and ``with_options()`` /
+    ``copy()`` return a guarded client. ``isinstance(client, OpenAI)`` is False: use
+    ``client.unwrapped`` where a library needs the real client object.
+    """
 
     __slots__ = ("_cf_guard", "_cf_path", "_cf_target")
 
@@ -369,10 +386,16 @@ class GuardedClient:
         guard = object.__getattribute__(self, "_cf_guard")
         path = (*object.__getattribute__(self, "_cf_path"), name)
         value = getattr(target, name)
-        if path == guard.create_path and callable(value):
+        if path in guard.create_paths and callable(value):
             return guard.wrap_create(value)
-        if path == guard.create_path[: len(path)]:
+        if any(path == p[: len(path)] for p in guard.create_paths):
             return GuardedClient(value, guard, path)
+        if len(path) == 1 and name in _CLIENT_COPIES and callable(value):
+
+            def guarded_copy(*args: Any, **kwargs: Any) -> Any:
+                return GuardedClient(value(*args, **kwargs), guard)
+
+            return guarded_copy
         return value
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -381,6 +404,24 @@ class GuardedClient:
     def __repr__(self) -> str:
         return f"counterfix.guard({object.__getattribute__(self, '_cf_target')!r})"
 
+    def __dir__(self) -> list[str]:
+        return sorted({*dir(object.__getattribute__(self, "_cf_target")), "unwrapped"})
+
+    # Python looks these up on the type, not through __getattr__, so they are spelled out.
+    def __enter__(self) -> GuardedClient:
+        object.__getattribute__(self, "_cf_target").__enter__()
+        return self
+
+    def __exit__(self, *exc: Any) -> Any:
+        return object.__getattribute__(self, "_cf_target").__exit__(*exc)
+
+    async def __aenter__(self) -> GuardedClient:
+        await object.__getattribute__(self, "_cf_target").__aenter__()
+        return self
+
+    async def __aexit__(self, *exc: Any) -> Any:
+        return await object.__getattribute__(self, "_cf_target").__aexit__(*exc)
+
     @property
     def unwrapped(self) -> Any:
         """The original client."""
@@ -388,12 +429,12 @@ class GuardedClient:
 
 
 def guard(
-    client: Any,
+    client: ClientT,
     *,
     config: Config | None = None,
     detectors: Sequence[Detector] | None = None,
     provider: str | None = None,
-) -> Any:
+) -> ClientT:
     """Wrap an LLM client so every call is checked: an OpenAI-compatible client
     (``chat.completions.create``) or an Anthropic client (``messages.create``), sync or async.
 
@@ -402,11 +443,16 @@ def guard(
     >>> r = client.chat.completions.create(model="gpt-4o-mini", messages=[...])  # doctest: +SKIP
     >>> r.diagnosis.summary()              # doctest: +SKIP
 
-    ``detectors`` defaults to the built-in live detectors. ``provider`` is an optional
-    label stored on each record (e.g. "groq", "ollama").
+    ``detectors`` defaults to the built-in live detectors. ``provider`` labels each record
+    (e.g. "groq"); when not given it is read from the client's base URL where known, so
+    ``fix()`` and exported regression tests can re-run the call later. The result is typed
+    as the client you passed, so editors keep their completions.
     """
     if isinstance(client, GuardedClient):
-        return client
+        if config is None and detectors is None and provider is None:
+            return client
+        client = client.unwrapped  # re-wrap with the new settings
+    provider = provider or provider_from_url(getattr(client, "base_url", None))
     if detectors is None:
         from counterfix.detectors import default_detectors
 
@@ -419,10 +465,26 @@ def guard(
             detectors,
             provider or "anthropic",
             to_record=record_from_anthropic,
-            create_path=("messages", "create"),
+            create_paths=_ANTHROPIC_PATHS,
             retry_params=ANTHROPIC_RETRY_PARAMS,
         )
     else:
         state = _Guard(config or Config(), detectors, provider)
     state.client = client
-    return GuardedClient(client, state)
+    return cast(ClientT, GuardedClient(client, state))
+
+
+_HOSTS = {
+    "api.openai.com": "openai",
+    "api.groq.com": "groq",
+    "generativelanguage.googleapis.com": "gemini",
+    "openrouter.ai": "openrouter",
+    "localhost:11434": "ollama",
+    "127.0.0.1:11434": "ollama",
+}
+
+
+def provider_from_url(base_url: Any) -> str | None:
+    """'https://api.groq.com/openai/v1' -> 'groq'; None for hosts we have no preset for."""
+    text = str(base_url or "")
+    return next((name for host, name in _HOSTS.items() if host in text), None)
