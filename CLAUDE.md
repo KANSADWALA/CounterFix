@@ -75,10 +75,11 @@ python -m counterfix profile groq:qwen/qwen3.8-27b --judge gemini:gemini-3.5-fla
 
 ## Status (2026-10-19, night)
 
-- Committed up to 1137bdb (plugs). Uncommitted since then (ask before commit): the engine
-  (`fix()`), `counterfix fix` / `export-tests` / `profile` / `compare` / `drift` / `route` /
-  `mcp`, streams, `context()`, OTel, F7 FragilityCheck, docs site, notebook, drift
-  workflow example, `bench/fix_seed.py`, `bench/gen_failure_pages.py`.
+- All work up to 9dfa635 is committed (engine, regression tests, profiles, OTel, MCP, F7,
+  docs). After it, release fixes from an outside review: `fix()` stops when the model is
+  unreachable, `--counterfix-caller` / fail-in-CI for exported tests, CLI `--caller`
+  wording, README status + known limits, changelog dated 2026-10-19 (ask before commit).
+- Release still needs the owner: push, check CI on GitHub, PyPI upload of 0.1.0.
 - Seed fix run (bench/results/fixes.md): cause right and retry did not pass -> verified
   fix 18/23 (78%); plain retry passed 7/38; 3.7 re-runs per failure. The first
   `raise_max_tokens` (4x) never worked on seed truncations (64-token limits): profiles fix

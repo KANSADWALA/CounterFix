@@ -4,14 +4,21 @@
 
 Most LLM evaluation tools tell you *that* a model failed. counterfix is built to tell you
 *why*, and to hand back a fix it has already checked. When a call fails, it changes one
-thing at a time (adds context, removes a false premise, rewords the prompt, gives the
-model a tool, raises `max_tokens`) and re-runs the call. The change that fixes the
+thing at a time (raises `max_tokens`, asks for bare JSON, adds the source text, tells the
+model to check the question's premises, repeats a missed instruction) and re-runs the
+call. A change counts only if it works in 2 of 3 re-runs. The change that fixes the
 failure is both the diagnosis and the prescription. We call this **counterfactual
 diagnosis**.
 
-> **Status: alpha (v0.1.0).** `guard()`, the live checks, auto-retry, `diagnose()` with
-> judge checks and the prompt linter work today. The counterfactual engine (fixes that are
-> re-run and verified) is next. APIs may still change.
+> **Status: alpha (v0.1.0).** Everything below works today: live checks, judge checks,
+> verified fixes, reports, regression tests, profiles. APIs may still change.
+>
+> **Known limits.** Verified fixes are common for cut-off answers and broken JSON, rare
+> for invented facts (3 of 14 on our seed set) and none yet for over-refusals or false
+> premises: there counterfix says so and lists what to try instead. Shipped model profiles
+> are small (54 probes; qwen2.5:3b only partly measured). The labels behind our accuracy
+> numbers are mostly reference labels, with a small human spot check still to do. See
+> [`docs/results.md`](docs/results.md).
 
 ## Install
 

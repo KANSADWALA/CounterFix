@@ -73,3 +73,45 @@ def counterfix_caller():
     pytester.syspathinsert(Path(__file__).parent)
     result = pytester.runpytest("--counterfix-runs", "1")  # plugin loads from its entry point
     result.assert_outcomes(passed=1)
+
+
+def test_cases_that_cannot_run_skip_locally_and_fail_in_ci(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out = tmp_path / "test_regressions.py"
+    export_tests(_fixed_rows(), out)
+    case = load_cases(out.with_suffix(".json"))[0]
+    case["spec"] = None  # e.g. a call to a company endpoint
+    monkeypatch.delenv("CI", raising=False)
+    with pytest.raises(pytest.skip.Exception, match="--counterfix-caller"):
+        run_case(case)
+    with pytest.raises(pytest.fail.Exception, match="--counterfix-caller"):
+        run_case(case, strict=True)
+    monkeypatch.setenv("CI", "true")
+    with pytest.raises(pytest.fail.Exception):
+        run_case(case)
+
+
+def test_counterfix_caller_option_runs_cases_on_a_named_model(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from counterfix import testing
+
+    out = pytester.path / "test_regressions.py"
+    export_tests(_fixed_rows(), out)
+    cases = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
+    cases[0]["spec"] = None
+    out.with_suffix(".json").write_text(json.dumps(cases), encoding="utf-8")
+    seen: list[str] = []
+
+    def fake_spec(spec: str) -> Any:
+        seen.append(spec)
+        return Scripted(lambda m, p: ("A, B.", "stop"))
+
+    monkeypatch.setattr(testing, "caller_from_spec", fake_spec)
+    monkeypatch.delenv("CI", raising=False)
+    result = pytester.runpytest_inprocess(
+        "--counterfix-caller", "my-model@http://localhost:8000/v1", "--counterfix-runs", "1"
+    )
+    result.assert_outcomes(passed=1)
+    assert seen == ["my-model@http://localhost:8000/v1"]

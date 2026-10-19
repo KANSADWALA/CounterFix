@@ -169,8 +169,12 @@ def cmd_fix(args: argparse.Namespace) -> int:
             continue
         try:
             result = fix(report, judge=judge, caller=caller, max_runs=args.max_runs)
-        except ValueError as exc:
-            print(f"{n}: {exc}")
+        except ValueError:
+            print(
+                f"Call {n} ({record.model or 'unknown model'}) cannot be re-run: the log does "
+                "not say which provider served it. Add --caller provider:model, e.g. "
+                "--caller groq:qwen/qwen3.8-27b"
+            )
             return 2
         fixed += result.fix is not None
         print(f"--- call {n} ({record.model})\n{result.explain()}\n")

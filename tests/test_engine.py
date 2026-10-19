@@ -64,7 +64,7 @@ def test_one_lucky_pass_is_not_a_fix_and_escalation_is_listed() -> None:
         [("x", "length")] * 2  # retry: two fails, settled
         + [("Mercury ... Neptune.", "stop"), ("x", "length"), ("x", "length")]
     )
-    model = Scripted(lambda m, p: next(replies))
+    model = Scripted(lambda m, p: next(replies, ("x", "length")))
     result = counterfix.fix(cut_off(), judge=False, caller=model)
     assert result.fix is None and result.attempts[0].passed == 1
     assert "ask for a shorter answer" in result.escalation
@@ -128,3 +128,33 @@ def test_fragility_check_and_its_fix() -> None:
 
     result = counterfix.fix(report, judge=False, caller=Scripted(fragile), check_retry=False)
     assert result.fix is not None and result.fix.name == "fixed_answer_format"
+
+
+def test_unreachable_model_stops_at_once_without_advice() -> None:
+    class Down:
+        name = "down"
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def complete(self, messages: Any, **params: Any) -> CallRecord:
+            self.calls += 1
+            raise ConnectionError("Connection refused")
+
+    down = Down()
+    result = counterfix.fix(cut_off(), judge=False, caller=down)
+    assert down.calls == 1 and result.calls == 1
+    assert result.fix is None and result.escalation == []
+    assert result.unreachable and "Connection refused" in result.unreachable
+    assert "could not reach the model" in result.explain()
+
+    flaky = iter([ConnectionError("blip"), ("Mercury ... Neptune.", "stop"), ("x", "length")])
+
+    def once_down(m: list[Message], p: dict[str, Any]) -> tuple[str, str]:
+        item = next(flaky, ("Mercury ... Neptune.", "stop"))
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    later = counterfix.fix(cut_off(), judge=False, caller=Scripted(once_down), check_retry=False)
+    assert later.unreachable is not None  # the very first call failed: treated as down

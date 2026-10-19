@@ -2,7 +2,7 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-19)
 
 First real release.
 
@@ -32,6 +32,11 @@ First real release.
 - OpenTelemetry: `counterfix.otel.export()` and `counterfix.otel.SpanChecker()`.
 - MCP server: `counterfix mcp` (`pip install "counterfix[mcp]"`).
 - Docs site (`mkdocs.yml`, `docs/`) and a Colab notebook (`examples/quickstart.ipynb`).
+- `fix()` stops after the first failed call when the model cannot be reached and says so
+  (`result.unreachable`) instead of advising untested changes. Daily quota limits fail
+  fast with `DailyLimitError`.
+- Regression tests: `--counterfix-caller SPEC` / `COUNTERFIX_CALLER` (including
+  `MODEL@http://host/v1` for your own server); cases that cannot run fail in CI.
 - Bring your own judge key: `configure()`, `COUNTERFIX_JUDGE`, detected Groq / Gemini /
   OpenAI / OpenRouter keys or local Ollama; voting panels.
 - `counterfix setup [--test]` and `counterfix lint` (rules L1 to L7).

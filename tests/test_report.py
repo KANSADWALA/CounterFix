@@ -81,3 +81,13 @@ def test_context_block_attaches_source_and_reference(tmp_path: Path) -> None:
     assert seen[0].metadata[CONTEXT_KEY] == "Refunds within 21 days."
     assert seen[0].metadata[REFERENCE_KEY] == "21"
     assert CONTEXT_KEY not in seen[1].metadata
+
+
+def test_cli_fix_without_a_provider_names_the_caller_flag(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = tmp_path / "calls.jsonl"
+    log.write_text(_cut_off().model_dump_json() + "\n", encoding="utf-8")
+    assert main(["fix", str(log)]) == 2
+    out = capsys.readouterr().out
+    assert "--caller provider:model" in out and "caller=" not in out

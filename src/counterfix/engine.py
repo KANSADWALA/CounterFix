@@ -302,6 +302,8 @@ class FixResult(BaseModel):
     escalation: list[str] = Field(default_factory=list)
     calls: int = 0
     """Calls made to the model being fixed (judge calls not counted)."""
+    unreachable: str | None = None
+    """The error, when the model could not be called at all (nothing was tested)."""
     stopped: str = ""
 
     def explain(self) -> str:
@@ -312,6 +314,10 @@ class FixResult(BaseModel):
             mark = "VERIFIED" if a.verified else "no"
             still = f" (still: {', '.join(sorted(set(a.seen)))})" if a.seen else ""
             lines.append(f"tried {a.name}: passed {a.passed}/{a.runs} -> {mark}{still}")
+            if a.errors:
+                lines.append(f"  {len(a.errors)} call(s) failed, e.g. {a.errors[0][:120]}")
+        if self.unreachable:
+            lines.append(f"could not reach the model: {self.unreachable[:200]}")
         if self.fix is not None:
             lines.append(f"fix: {self.fix.description}")
             if self.fix.changed:
@@ -320,6 +326,12 @@ class FixResult(BaseModel):
             lines.append("no verified fix; next: " + "; ".join(self.escalation))
         lines.append(f"{self.calls} re-run(s); {self.stopped}")
         return "\n".join(lines)
+
+
+def _unreachable(result: FixResult) -> FixResult:
+    result.stopped = "stopped: the model could not be called, so no fix was tested"
+    result.escalation = []  # advice would be a guess: nothing ran
+    return result
 
 
 def _caller_for(record: CallRecord, client: Any) -> ModelCaller:
@@ -410,6 +422,9 @@ def fix(
                 new = rerun.complete(messages, **attempt.params)
             except Exception as exc:
                 attempt.errors.append(f"{type(exc).__name__}: {exc}")
+                if len(attempt.errors) == attempt.runs:  # nothing got through yet
+                    result.unreachable = attempt.errors[0]
+                    break
                 continue
             new.metadata = {**record.metadata, **new.metadata}
             after = run_detectors(new, checks, Config())
@@ -427,6 +442,8 @@ def fix(
     if check_retry:
         retry = FixAttempt(name="plain_retry", description="Re-run unchanged", params=record.params)
         result.retry = trial(retry, top, record.messages)
+        if result.unreachable:
+            return _unreachable(result)
         if retry.verified:
             result.stopped = "a plain retry passes too, so no change is claimed as the fix"
             return result
@@ -457,6 +474,8 @@ def fix(
                 changed={k: v for k, v in params.items() if record.params.get(k) != v},
             )
             result.attempts.append(trial(attempt, finding.failure_type, messages))
+            if result.unreachable:
+                return _unreachable(result)
             if attempt.verified:
                 result.fix = attempt
                 patch: dict[str, Any] = dict(attempt.changed)

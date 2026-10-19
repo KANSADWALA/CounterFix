@@ -31,10 +31,23 @@ gone in 2 of 3 runs.
 | --- | --- |
 | `--counterfix-judge [SPEC]` | add judge checks (live checks only by default) |
 | `--counterfix-runs N` | runs per case (default 3; a majority must pass) |
+| `--counterfix-caller SPEC` | the model to run cases on (or set `COUNTERFIX_CALLER`) |
+| `--counterfix-strict` | fail cases that cannot run (on by default when `CI` is set) |
 
 Cases re-run on the provider named in the case, with keys from the environment or a
-`.env` file; a case whose provider has no key is skipped, not failed. To run them through
-your own client, override the fixture:
+`.env` file. For another model, or your own server, name it:
+
+```bash
+pytest tests/test_prompt_regressions.py --counterfix-caller groq:qwen/qwen3.8-27b
+pytest tests/test_prompt_regressions.py --counterfix-caller my-model@http://localhost:8000/v1
+```
+
+`openai:MODEL` also works and honours `OPENAI_BASE_URL`; the `MODEL@URL` form uses
+`OPENAI_API_KEY` if it is set. A case that cannot run (no key, or it came from a custom
+server and no caller was named) is skipped on your machine, but **fails in CI**, so a
+green build means the cases really ran.
+
+To run them through your own client object instead, override the fixture:
 
 ```python
 # conftest.py
@@ -48,4 +61,5 @@ def counterfix_caller():
 ```
 
 The plugin registers itself when counterfix is installed; it only adds these options and
-the `counterfix_caller`, `counterfix_judge` and `counterfix_runs` fixtures.
+the `counterfix_caller`, `counterfix_judge`, `counterfix_runs` and `counterfix_strict`
+fixtures.

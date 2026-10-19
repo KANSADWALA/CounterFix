@@ -29,7 +29,9 @@ fix: Raise max_tokens a lot (long answers, or reasoning that uses the budget)
    calls come on top).
 
 When nothing passes, `result.escalation` lists what is left outside the prompt:
-retrieval, a larger model, a code tool, a clarifying question.
+retrieval, a larger model, a code tool, a clarifying question. When the model cannot be
+called at all (endpoint down, bad key), `fix()` stops after the first failed call and
+says so in `result.unreachable` instead of giving advice it never tested.
 
 ## Using the fix
 

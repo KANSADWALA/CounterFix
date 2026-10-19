@@ -6,8 +6,8 @@ same response shape works (``content`` blocks, ``stop_reason``, ``usage``).
 
 Tool calls are stored in the OpenAI shape the detectors read; F2 checks ``tool_use``
 arguments against each tool's ``input_schema``. Thinking blocks are
-recorded as reasoning text. Streams and the ``messages.stream()`` helper pass through
-unchecked for now.
+recorded as reasoning text. ``stream=True`` calls are checked when the stream ends;
+the ``messages.stream()`` helper is not intercepted.
 """
 
 from __future__ import annotations
