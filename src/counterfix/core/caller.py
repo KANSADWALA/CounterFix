@@ -68,6 +68,13 @@ class OpenAICompatibleCaller:
         return f"OpenAICompatibleCaller({self.name!r})"
 
 
+class DailyLimitError(RuntimeError):
+    """The provider's daily quota for this model is used up; waiting minutes will not help."""
+
+
+_DAILY = re.compile(r"per[ _]?day|\((?:TPD|RPD)\)|daily", re.IGNORECASE)
+
+
 class RateLimitedCaller:
     """Wraps a caller to stay under a requests-per-minute limit, and waits and retries
     when the provider answers 429 (rate limited). Thread-safe, so a panel can share it."""
@@ -99,6 +106,11 @@ class RateLimitedCaller:
                 return self.caller.complete(messages, **params)
             except Exception as exc:
                 limited = type(exc).__name__ == "RateLimitError" or "429" in str(exc)
+                if limited and _DAILY.search(str(exc)):
+                    raise DailyLimitError(
+                        f"{self.name}: the daily limit is used up. Try another model or "
+                        f"provider, or wait for the reset. Provider said: {str(exc)[:200]}"
+                    ) from exc
                 flaky = _server_error(exc) and attempt < self.server_retries
                 if not (limited or flaky) or attempt == self.retries:
                     raise

@@ -24,3 +24,13 @@ jobs:
         run: mypy --cache-dir /tmp/mypy-cache
       - name: Tests (no live API calls)
         run: pytest
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Build the docs (fails on broken links)
+        run: uv pip install --system -e ".[docs]" && mkdocs build --strict

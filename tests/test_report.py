@@ -65,3 +65,19 @@ def test_cli_diagnose_writes_json_and_html(
     assert json.loads(out_json.read_text(encoding="utf-8"))["diagnosis"]["findings"]
     assert "F1" in out_html.read_text(encoding="utf-8")
     assert main(["diagnose", str(log), "--fail-on-failure"]) == 1
+
+
+def test_context_block_attaches_source_and_reference(tmp_path: Path) -> None:
+    from counterfix.judges.tasks import CONTEXT_KEY, REFERENCE_KEY
+
+    seen: list[CallRecord] = []
+    client = counterfix.guard(
+        FakeClient(FakeCompletions(make_response("21 days."))),
+        config=Config(on_diagnosis=lambda r, d: seen.append(r)),
+    )
+    with counterfix.context(source="Refunds within 21 days."), counterfix.context(reference="21"):
+        client.chat.completions.create(model="m", messages=[{"role": "user", "content": "?"}])
+    client.chat.completions.create(model="m", messages=[{"role": "user", "content": "?"}])
+    assert seen[0].metadata[CONTEXT_KEY] == "Refunds within 21 days."
+    assert seen[0].metadata[REFERENCE_KEY] == "21"
+    assert CONTEXT_KEY not in seen[1].metadata

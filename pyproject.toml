@@ -38,6 +38,8 @@ cache = ["diskcache>=5.6"]
 cli = ["typer>=0.12", "rich>=13.7"]
 report = ["jinja2>=3.1"]
 jev = ["typesafe-sdk>=0.7"]
+mcp = ["mcp>=2.0"]
+docs = ["mkdocs-material>=9.5"]
 dev = [
   "pytest>=8.0",
   "pytest-recording>=0.13",
@@ -49,6 +51,9 @@ dev = [
 [project.scripts]
 counterfix = "counterfix.cli:main"
 
+[project.entry-points.pytest11]
+counterfix = "counterfix.testing"
+
 [project.urls]
 Homepage = "https://github.com/KANSADWALA/CounterFix"
 Issues = "https://github.com/KANSADWALA/CounterFix/issues"
@@ -58,7 +63,7 @@ packages = ["src/counterfix"]
 
 # Only these files go into the source upload on PyPI (never .env, bench data or local files).
 [tool.hatch.build.targets.sdist]
-only-include = ["src", "README.md", "LICENSE", "pyproject.toml"]
+only-include = ["src", "README.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]
 
 [tool.ruff]
 line-length = 100
@@ -81,7 +86,9 @@ packages = ["counterfix"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["openai", "openai.*", "typesafe_sdk", "typesafe_sdk.*", "litellm.*", "langchain_core.*"]
+module = ["openai", "openai.*", "typesafe_sdk", "typesafe_sdk.*", "litellm.*", "langchain_core.*",
+  "opentelemetry", "opentelemetry.*", "mcp", "mcp.*",
+]
 ignore_missing_imports = true
 
 # The frameworks are optional: installed locally, missing in CI, so the ignores differ.

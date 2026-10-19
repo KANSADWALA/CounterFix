@@ -8,6 +8,7 @@ from __future__ import annotations
 from counterfix.core.detector import Detector
 from counterfix.detectors.basic import EmptyOutputDetector, ProviderFilterDetector
 from counterfix.detectors.fmt import FormatDetector, expected_format
+from counterfix.detectors.fragility import FragilityCheck
 from counterfix.detectors.instructions import InstructionCheck, extract_constraints
 from counterfix.detectors.judged import (
     AmbiguityCheck,
@@ -41,6 +42,7 @@ __all__ = [
     "EmptyOutputDetector",
     "FalsePremiseCheck",
     "FormatDetector",
+    "FragilityCheck",
     "HallucinationCheck",
     "InstructionCheck",
     "OverRefusalCheck",

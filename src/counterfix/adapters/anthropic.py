@@ -4,8 +4,8 @@
 ``chat`` is treated as an Anthropic client. The SDK is never imported; anything with the
 same response shape works (``content`` blocks, ``stop_reason``, ``usage``).
 
-Tool calls and tool schemas are stored in the OpenAI shape the detectors read, so F2
-checks ``tool_use`` arguments against each tool's ``input_schema``. Thinking blocks are
+Tool calls are stored in the OpenAI shape the detectors read; F2 checks ``tool_use``
+arguments against each tool's ``input_schema``. Thinking blocks are
 recorded as reasoning text. Streams and the ``messages.stream()`` helper pass through
 unchecked for now.
 """
@@ -25,19 +25,6 @@ def _blocks(response: Any) -> list[dict[str, Any]]:
     return [_to_dict(b) for b in _get(response, "content") or []]
 
 
-def _tools(tools: Any) -> list[Any]:
-    """Anthropic tool definitions in the OpenAI ``{"function": {...}}`` shape."""
-    out: list[Any] = []
-    for tool in tools or []:
-        t = _to_dict(tool)
-        if "input_schema" in t:
-            function = {"name": t.get("name"), "parameters": t["input_schema"]}
-            out.append({"type": "function", "function": function})
-        else:  # server tools (web search, code execution) have no schema to check
-            out.append(t)
-    return out
-
-
 def record_from_anthropic(
     request: dict[str, Any],
     response: Any,
@@ -51,8 +38,6 @@ def record_from_anthropic(
     if system:
         messages.insert(0, Message(role="system", content=system))
     params = {k: v for k, v in request.items() if k not in ("messages", "model", "system")}
-    if "tools" in params:
-        params["tools"] = _tools(params["tools"])
 
     blocks = _blocks(response)
     text = "".join(b.get("text") or "" for b in blocks if b.get("type") == "text")
@@ -88,3 +73,36 @@ def record_from_anthropic(
         latency_ms=latency_ms,
         metadata={"stop_details": _to_dict(sd)} if (sd := _get(response, "stop_details")) else {},
     )
+
+
+class AnthropicCaller:
+    """A ModelCaller over an Anthropic client (``messages.create``), for re-runs."""
+
+    def __init__(self, client: Any, model: str, *, provider: str = "anthropic"):
+        unwrapped = getattr(client, "unwrapped", None)
+        self.client = unwrapped if unwrapped is not None else client
+        self.model, self.provider = model, provider
+
+    @property
+    def name(self) -> str:
+        return f"{self.provider}:{self.model}"
+
+    def complete(self, messages: Any, **params: Any) -> CallRecord:
+        import time
+
+        payload = [
+            m.model_dump(exclude_none=True) if isinstance(m, Message) else dict(m) for m in messages
+        ]
+        system = "\n".join(Message.model_validate(m).text for m in payload if m["role"] == "system")
+        request: dict[str, Any] = {
+            "model": self.model,
+            "messages": [m for m in payload if m["role"] != "system"],
+            "max_tokens": 1024,
+            **params,
+        }
+        if system:
+            request["system"] = system
+        start = time.perf_counter()
+        response = self.client.messages.create(**request)
+        ms = (time.perf_counter() - start) * 1000
+        return record_from_anthropic(request, response, latency_ms=ms, provider=self.provider)

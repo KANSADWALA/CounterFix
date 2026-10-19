@@ -97,12 +97,14 @@ def test_disabled_config_skips_everything() -> None:
     assert detector.seen == [] and get_diagnosis(response) is None
 
 
-def test_streaming_is_passed_through() -> None:
+def test_streaming_passes_chunks_through_and_checks_at_the_end() -> None:
     detector = FlagAll()
     stream = iter(["chunk"])
     client = guard(FakeClient(FakeCompletions(response=stream)), detectors=[detector])
-    assert client.chat.completions.create(model="m", messages=[], stream=True) is stream
-    assert detector.seen == []
+    wrapped = client.chat.completions.create(model="m", messages=[], stream=True)
+    assert detector.seen == []  # nothing checked before the stream ends
+    assert list(wrapped) == ["chunk"]
+    assert len(detector.seen) == 1 and wrapped.diagnosis is not None
 
 
 def test_async_client() -> None:

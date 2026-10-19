@@ -18,3 +18,4 @@ bench/results/raw/
 .DS_Store
 Thumbs.db
 bench/cache/
+site/

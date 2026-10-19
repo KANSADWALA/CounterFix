@@ -1,6 +1,6 @@
 """counterfix: find why an LLM call failed and get a fix that was tested to work."""
 
-from counterfix import background
+from counterfix import background, otel
 from counterfix.adapters import (
     GuardedClient,
     get_diagnosis,
@@ -10,6 +10,7 @@ from counterfix.adapters import (
     record_from_openai,
     watch,
 )
+from counterfix.context import context
 from counterfix.core import (
     CallRecord,
     Config,
@@ -27,6 +28,7 @@ from counterfix.core import (
     run_detectors,
 )
 from counterfix.diagnose import diagnose
+from counterfix.engine import FixAttempt, FixResult, fix
 from counterfix.judges.auto import NoJudgeError, SelfJudgeWarning, configure
 from counterfix.lint import LintIssue, lint
 from counterfix.report import load_log, log_to
@@ -42,6 +44,8 @@ __all__ = [
     "Evidence",
     "FailureType",
     "Finding",
+    "FixAttempt",
+    "FixResult",
     "FixRule",
     "GuardedClient",
     "LintIssue",
@@ -57,7 +61,9 @@ __all__ = [
     "__version__",
     "background",
     "configure",
+    "context",
     "diagnose",
+    "fix",
     "get_diagnosis",
     "guard",
     "langchain_callback",
@@ -65,6 +71,7 @@ __all__ = [
     "litellm_callback",
     "load_log",
     "log_to",
+    "otel",
     "record_from_openai",
     "run_detectors",
     "watch",

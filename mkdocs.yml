@@ -1,0 +1,46 @@
+site_name: counterfix
+site_description: Find why an LLM call failed, and get a fix that was tested to work.
+repo_url: https://github.com/KANSADWALA/CounterFix
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Plug it in: plugs.md
+      - Diagnose a call: diagnose.md
+      - Verified fixes: fixes.md
+      - In production: production.md
+      - Prompt regression tests: testing.md
+      - Model profiles: profiles.md
+      - Prompt linter: lint.md
+      - MCP server: mcp.md
+      - Command line: cli.md
+  - Failure types:
+      - F1 Truncation: failures/F1.md
+      - F2 Format break: failures/F2.md
+      - F3 Over-refusal: failures/F3.md
+      - F4 Hallucination: failures/F4.md
+      - F5 False premise: failures/F5.md
+      - F6 Dropped instruction: failures/F6.md
+      - F7 Prompt fragility: failures/F7.md
+      - F8 Computation error: failures/F8.md
+      - F9 Ambiguous request: failures/F9.md
+  - Measured results: results.md

@@ -137,7 +137,9 @@ class _Guard:
     def check(self, record: CallRecord, response: Any) -> Diagnosis | None:
         """Run detectors on a record, attach the result, call hooks. Never raises if fail_open."""
         try:
-            diagnosis: Diagnosis = run_detectors(record, self.detectors, self.config)
+            from counterfix.context import apply
+
+            diagnosis: Diagnosis = run_detectors(apply(record), self.detectors, self.config)
             diagnosis._client = self.client
             attach(response, diagnosis)
             if self.config.on_diagnosis is not None:
@@ -230,10 +232,9 @@ class _Guard:
         def guarded_create(*args: Any, **kwargs: Any) -> Any:
             if not guard.config.enabled:
                 return create(*args, **kwargs)
-            if kwargs.get("stream"):
-                # Streams are passed through untouched for now; buffering comes later.
-                return create(*args, **kwargs)
             start = time.perf_counter()
+            if kwargs.get("stream"):
+                return guard.wrap_stream(create(*args, **kwargs), kwargs, start)
             result = create(*args, **kwargs)  # the user's own errors propagate unchanged
             if inspect.isawaitable(result):
                 return guard._finish_async(create, args, result, kwargs, start)
@@ -243,6 +244,23 @@ class _Guard:
         guarded_create.__doc__ = create.__doc__
         guarded_create.__wrapped__ = create  # type: ignore[attr-defined]
         return guarded_create
+
+    def wrap_stream(self, result: Any, kwargs: dict[str, Any], start: float) -> Any:
+        """Pass a stream through chunk by chunk; check the whole answer when it ends."""
+        from counterfix.adapters.streams import GuardedStream
+
+        anthropic = self.create_path == ("messages", "create")
+
+        def done(response: Any) -> Diagnosis | None:
+            return self.diagnose(kwargs, response, (time.perf_counter() - start) * 1000)
+
+        if inspect.isawaitable(result):
+
+            async def opened() -> Any:
+                return GuardedStream(await result, anthropic, done)
+
+            return opened()
+        return GuardedStream(result, anthropic, done)
 
     def _retry_sync(
         self,

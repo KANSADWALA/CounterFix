@@ -83,3 +83,11 @@ def messages() -> list[dict[str, str]]:
         {"role": "system", "content": "You are terse."},
         {"role": "user", "content": "Say hello."},
     ]
+
+
+@pytest.fixture(autouse=True)
+def _isolated_home(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Profiles and other stored state go to a temp folder, never the real home."""
+    monkeypatch.setenv("COUNTERFIX_HOME", str(tmp_path_factory.mktemp("cfhome")))

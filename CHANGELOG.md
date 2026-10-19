@@ -18,6 +18,20 @@ First real release.
   `stop_reason="refusal"` counts as a provider filter, not F3.
 - `litellm_callback()` and `langchain_callback()`: observe-only live checks for apps already
   on LiteLLM or LangChain.
+- `counterfix.fix()`: the counterfactual engine. Tries one change per cause, re-runs the
+  call, and returns a fix only if it passes 2 of 3 re-runs; a plain retry runs first, and
+  `max_runs` caps the cost. Unverified causes get an escalation list.
+- Streams: `stream=True` calls are checked when the stream ends, chunks pass through.
+- `counterfix.context(source=..., reference=...)`: the RAG hook for every plug.
+- Prompt regression tests: `counterfix fix LOG --out`, `counterfix export-tests`, a pytest
+  plugin (`--counterfix-judge`, `--counterfix-runs`, `counterfix_caller` fixture) and
+  `counterfix.testing.assert_ok()`.
+- Model profiles: `counterfix profile`, `compare` (profiles, or a log re-run on a new
+  model), `drift`, `route`; `fix()` orders interventions by the model's profile; measured
+  profiles ship with the package.
+- OpenTelemetry: `counterfix.otel.export()` and `counterfix.otel.SpanChecker()`.
+- MCP server: `counterfix mcp` (`pip install "counterfix[mcp]"`).
+- Docs site (`mkdocs.yml`, `docs/`) and a Colab notebook (`examples/quickstart.ipynb`).
 - Bring your own judge key: `configure()`, `COUNTERFIX_JUDGE`, detected Groq / Gemini /
   OpenAI / OpenRouter keys or local Ollama; voting panels.
 - `counterfix setup [--test]` and `counterfix lint` (rules L1 to L7).

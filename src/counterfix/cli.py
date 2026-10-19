@@ -139,6 +139,214 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
     return 1 if args.fail_on_failure and any(not d.ok for d in reports) else 0
 
 
+def cmd_fix(args: argparse.Namespace) -> int:
+    """Run the counterfactual engine on every flagged call in a log; save what worked."""
+    from counterfix.core.caller import RateLimitedCaller
+    from counterfix.diagnose import diagnose
+    from counterfix.engine import fix
+    from counterfix.presets import load_env_file, make_caller, rpm_for
+    from counterfix.report import load_log
+
+    load_env_file(Path.cwd() / ".env")
+    try:
+        records = load_log(args.log)
+    except (OSError, ValueError) as exc:
+        print(exc)
+        return 2
+    judge: Judge | bool = False
+    if args.judge:
+        found = _cli_judge(args.judge)
+        if found is None:
+            return 2
+        judge = found
+    caller = None
+    if args.caller:
+        caller = RateLimitedCaller(make_caller(args.caller), rpm_for(args.caller))
+    rows, fixed = [], 0
+    for n, record in enumerate(records, 1):
+        report = diagnose(record, judge=judge)
+        if not report.model_failures:
+            continue
+        try:
+            result = fix(report, judge=judge, caller=caller, max_runs=args.max_runs)
+        except ValueError as exc:
+            print(f"{n}: {exc}")
+            return 2
+        fixed += result.fix is not None
+        print(f"--- call {n} ({record.model})\n{result.explain()}\n")
+        rows.append(
+            {
+                "record": record.model_dump(mode="json"),
+                "fix": None if result.fix is None else result.fix.model_dump(mode="json"),
+                "result": result.model_dump(mode="json", exclude={"diagnosis"}),
+            }
+        )
+    print(f"{len(rows)} flagged call(s), {fixed} with a verified fix.")
+    if args.out:
+        lines = [json.dumps(r, ensure_ascii=False) for r in rows]
+        Path(args.out).write_text("\n".join(lines) + "\n" if lines else "", encoding="utf-8")
+        print(f"Saved to {args.out}; make tests with: counterfix export-tests {args.out}")
+    return 0
+
+
+def cmd_export_tests(args: argparse.Namespace) -> int:
+    from counterfix.testing import export_tests
+
+    path = Path(args.fixes)
+    if not path.is_file():
+        print(f"Not a file: {path}")
+        return 2
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    n = export_tests(rows, Path(args.out))
+    print(f"Wrote {n} case(s) to {Path(args.out).with_suffix('.json')} and the test to {args.out}")
+    return 0
+
+
+def _rerun_caller(spec: str) -> Any:
+    from counterfix.core.caller import RateLimitedCaller
+    from counterfix.presets import load_env_file, make_caller, rpm_for
+
+    load_env_file(Path.cwd() / ".env")
+    return RateLimitedCaller(make_caller(spec, timeout=120), rpm_for(spec))
+
+
+def _judge_arg(choice: str | None) -> Judge | bool | None:
+    """False for no judge, a judge, or None when --judge was given but none could be set up."""
+    if not choice:
+        return False
+    return _cli_judge(choice)
+
+
+def cmd_profile(args: argparse.Namespace) -> int:
+    """Run the probe suite on one model and save its profile."""
+    from counterfix import profiles
+
+    judge = _judge_arg(args.judge)
+    if judge is None:
+        return 2
+    caller = _rerun_caller(args.spec)
+
+    def progress(n: int, total: int, probe_id: str) -> None:
+        print(f"\rprobe {n}/{total} {probe_id}   ", end="", file=sys.stderr, flush=True)
+
+    profile = profiles.build_profile(
+        caller, judge=judge, probes=args.probes, fix=args.fix, progress=progress
+    )
+    print(file=sys.stderr)
+    profile.spec = args.spec
+    profile.cost_per_mtok = args.cost
+    path = profiles.save(profile, args.out)
+    print(profiles.table(profile))
+    print(f"\nSaved {path}")
+    return 0
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    """Two profiles side by side, or a log of calls re-run on another model."""
+    from counterfix import profiles
+
+    if args.model is None:
+        if len(args.items) != 2:
+            print("Give two profiles (files or model names), or a log with --model SPEC")
+            return 2
+        old, new = (profiles.load(x) for x in args.items)
+        if old is None or new is None:
+            print(
+                "Profile not found: "
+                + ", ".join(x for x, p in zip(args.items, (old, new), strict=True) if p is None)
+            )
+            return 2
+        print(profiles.compare(old, new))
+        return 0
+    from counterfix.diagnose import diagnose
+    from counterfix.report import load_log
+
+    judge = _judge_arg(args.judge)
+    if judge is None:
+        return 2
+    caller = _rerun_caller(args.model)
+    counts = {"fixed": 0, "still failing": 0, "new failure": 0, "ok": 0}
+    for path in args.items:
+        for record in load_log(path):
+            before = {f.failure_type.value for f in diagnose(record, judge=judge).model_failures}
+            new_record = caller.complete(record.messages, **record.params)
+            new_record.metadata = {**record.metadata, **new_record.metadata}
+            after = {f.failure_type.value for f in diagnose(new_record, judge=judge).model_failures}
+            kind = (
+                "new failure"
+                if after - before
+                else "still failing"
+                if after
+                else "fixed"
+                if before
+                else "ok"
+            )
+            counts[kind] += 1
+            if kind != "ok":
+                was = ",".join(sorted(before)) or "-"
+                now = ",".join(sorted(after)) or "-"
+                print(f"{kind:<14} {was:>8} -> {now:<8} {_short_prompt(record)}")
+    print("\n" + ", ".join(f"{v} {k}" for k, v in counts.items()) + f" on {args.model}")
+    return 0
+
+
+def _short_prompt(record: Any) -> str:
+    text = " ".join(record.prompt_text.split())
+    return text if len(text) <= 60 else text[:57] + "..."
+
+
+def cmd_drift(args: argparse.Namespace) -> int:
+    """Re-run the probes; exit 1 when a task's failure rate moved since the stored profile."""
+    from counterfix import profiles
+
+    old = profiles.load(args.spec)
+    if old is None:
+        print(f"No stored profile for {args.spec}: run `counterfix profile {args.spec}` first")
+        return 2
+    judge = _judge_arg(args.judge)
+    if judge is None:
+        return 2
+    new = profiles.build_profile(_rerun_caller(args.spec), judge=judge, probes=args.probes)
+    new.spec, new.cost_per_mtok, new.fixes = args.spec, old.cost_per_mtok, old.fixes
+    moved = profiles.drift(old, new, args.threshold)
+    print(profiles.compare(old, new))
+    if not args.no_save:
+        previous = profiles.profile_path(new.model).with_suffix(".prev.json")
+        profiles.save(old, previous)
+        profiles.save(new)
+    if moved:
+        print("\nDrift: " + "; ".join(moved))
+        return 1
+    print("\nNo drift beyond the threshold.")
+    return 0
+
+
+def cmd_route(args: argparse.Namespace) -> int:
+    """The cheapest model per task, from profiles (cheapest first, or by cost_per_mtok)."""
+    from counterfix import profiles
+
+    loaded = [profiles.load(x) for x in args.profiles]
+    missing = [x for x, p in zip(args.profiles, loaded, strict=True) if p is None]
+    if missing:
+        print("Profile not found: " + ", ".join(missing))
+        return 2
+    found = [p for p in loaded if p is not None]
+    for task, model in profiles.route(found, args.max_failure).items():
+        print(f"{task} {profiles.TASKS.get(task, ''):<36} {model or 'none passes'}")
+    return 0
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:
+    """Run the MCP server on stdio (needs the mcp extra)."""
+    try:
+        from counterfix.mcp_server import main as serve
+    except ImportError:
+        print('The MCP server needs: pip install "counterfix[mcp]"')
+        return 2
+    serve()
+    return 0
+
+
 def cmd_setup(args: argparse.Namespace) -> int:
     """Show what counterfix can use on this machine. Never prints key values."""
     import importlib.util
@@ -246,6 +454,47 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--fail-on-failure", action="store_true", help="exit with code 1 if any call failed (CI)"
     )
     p_diag.set_defaults(func=cmd_diagnose)
+    p_fix = sub.add_parser("fix", help="find verified fixes for the failed calls in a log")
+    p_fix.add_argument("log", help="JSONL log of calls")
+    p_fix.add_argument("--judge", nargs="?", const="auto", help="also fix judge-found failures")
+    p_fix.add_argument(
+        "--caller", metavar="SPEC", help="re-run on this model, e.g. groq:qwen/qwen3.8-27b"
+    )
+    p_fix.add_argument("--max-runs", type=int, default=15, help="re-runs per call (default 15)")
+    p_fix.add_argument("--out", metavar="PATH", help="save results as JSON lines")
+    p_fix.set_defaults(func=cmd_fix)
+    p_export = sub.add_parser("export-tests", help="turn verified fixes into pytest cases")
+    p_export.add_argument("fixes", help="JSON lines from counterfix fix --out")
+    p_export.add_argument(
+        "--out", default="tests/test_prompt_regressions.py", help="pytest file to write"
+    )
+    p_export.set_defaults(func=cmd_export_tests)
+    p_prof = sub.add_parser("profile", help="measure a model on the probe suite")
+    p_prof.add_argument("spec", help="provider:model, e.g. groq:qwen/qwen3.8-27b")
+    p_prof.add_argument("--judge", nargs="?", const="auto", help="add judge checks")
+    p_prof.add_argument("--fix", action="store_true", help="also learn which fixes work")
+    p_prof.add_argument("--probes", help="your own probes (.jsonl, same format)")
+    p_prof.add_argument("--cost", type=float, help="price per million tokens, for route")
+    p_prof.add_argument("--out", help="where to save (default ~/.counterfix/profiles)")
+    p_prof.set_defaults(func=cmd_profile)
+    p_cmp = sub.add_parser("compare", help="compare two profiles, or re-run a log on a model")
+    p_cmp.add_argument("items", nargs="+", help="two profiles, or JSONL logs with --model")
+    p_cmp.add_argument("--model", metavar="SPEC", help="re-run the logged calls on this model")
+    p_cmp.add_argument("--judge", nargs="?", const="auto", help="add judge checks")
+    p_cmp.set_defaults(func=cmd_compare)
+    p_drift = sub.add_parser("drift", help="re-run the probes and alert on changes")
+    p_drift.add_argument("spec", help="provider:model with a stored profile")
+    p_drift.add_argument("--threshold", type=float, default=0.15, help="default 0.15")
+    p_drift.add_argument("--judge", nargs="?", const="auto", help="add judge checks")
+    p_drift.add_argument("--probes", help="your own probes (.jsonl)")
+    p_drift.add_argument("--no-save", action="store_true", help="keep the stored profile")
+    p_drift.set_defaults(func=cmd_drift)
+    p_route = sub.add_parser("route", help="cheapest model per task from profiles")
+    p_route.add_argument("profiles", nargs="+", help="profiles (files or model names)")
+    p_route.add_argument("--max-failure", type=float, default=0.2, help="default 0.2")
+    p_route.set_defaults(func=cmd_route)
+    p_mcp = sub.add_parser("mcp", help="run the MCP server for coding agents (stdio)")
+    p_mcp.set_defaults(func=cmd_mcp)
     p_setup = sub.add_parser("setup", help="show which keys, local models and judge will be used")
     p_setup.add_argument("--test", action="store_true", help="ask the judge one tiny question")
     p_setup.set_defaults(func=cmd_setup)

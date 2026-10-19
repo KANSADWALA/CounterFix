@@ -1,0 +1,73 @@
+{
+  "model": "qwen2.5:3b",
+  "spec": "ollama:qwen2.5:3b",
+  "created": "2026-10-18T20:56:39.387036+00:00",
+  "judge": null,
+  "cost_per_mtok": null,
+  "categories": {
+    "F1": [
+      6,
+      6
+    ],
+    "F2": [
+      1,
+      6
+    ],
+    "F3": [
+      2,
+      6
+    ],
+    "F6": [
+      3,
+      6
+    ],
+    "F7": [
+      3,
+      6
+    ]
+  },
+  "fixes": {
+    "F1": {
+      "raise_max_tokens": [
+        0,
+        6
+      ],
+      "raise_max_tokens_more": [
+        6,
+        6
+      ]
+    },
+    "F2": {
+      "json_only_prompt": [
+        1,
+        1
+      ]
+    },
+    "F8": {
+      "work_it_out": [
+        2,
+        4
+      ]
+    },
+    "F5": {
+      "check_premises": [
+        0,
+        1
+      ]
+    },
+    "F4": {
+      "allow_unknown": [
+        1,
+        2
+      ]
+    },
+    "F9": {
+      "add_detail": [
+        1,
+        1
+      ]
+    }
+  },
+  "errors": 0,
+  "judge_skips": 0
+}

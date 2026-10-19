@@ -107,7 +107,34 @@ The judge comes from your own key (a free `GROQ_API_KEY` or `GEMINI_API_KEY` is 
 see [Bring your own key](#bring-your-own-key)). Run `counterfix setup` to see what it
 found. Full script: [`examples/diagnose_with_judge.py`](examples/diagnose_with_judge.py).
 
-### 4. Log calls, then report on them
+### 4. Get a fix that was tested to work
+
+```python
+result = counterfix.fix(response)  # a guarded response, its diagnosis, or a CallRecord
+print(result.explain())
+```
+
+```text
+found: F1 Truncation (95%)
+plain retry: passed 0/2
+tried raise_max_tokens: passed 0/2 -> no (still: F1 Truncation)
+tried raise_max_tokens_more: passed 2/3 -> VERIFIED
+fix: Raise max_tokens a lot (long answers, or reasoning that uses the budget)
+  change: {'max_tokens': 4096}
+7 re-run(s); stopped at the first verified fix
+```
+
+For each failure, counterfix changes one thing (raise `max_tokens`, ask for bare JSON,
+check the question's premises, repeat missed instructions, add the source text, ...),
+re-runs the call, and re-checks it. A change counts as the fix only if the failure is
+gone, with no new failure, in 2 of 3 re-runs, so luck does not count. It first re-runs
+the call unchanged: if a plain retry already passes, no change is claimed. The verified
+change is in `result.fix` (`changed` params, or full new `messages`) and on the finding's
+prescription (`verified=True`). `max_runs` caps the re-runs (15); judge calls come on top.
+When nothing passes, `result.escalation` lists what is left (retrieval, a larger model, a
+code tool, a clarifying question).
+
+### 5. Log calls, then report on them
 
 ```python
 client = counterfix.guard(
@@ -126,7 +153,7 @@ type, then each call with its prompt, answer, why it was flagged and the suggest
 The JSON lines (`{"record": ..., "diagnosis": ...}`) suit log pipelines, and can be read
 back with `counterfix diagnose` or `counterfix.load_log()`.
 
-### 5. Judge checks on production traffic, without slowing it down
+### 6. Judge checks on production traffic, without slowing it down
 
 ```python
 config = counterfix.Config(
@@ -141,6 +168,32 @@ Judge checks run on one background thread, so your call returns as fast as befor
 queue fills up, new calls are skipped rather than waited on; `counterfix.background.stats`
 counts what was judged and skipped. Call `counterfix.background.flush()` before a short
 script exits if you want the queued checks to finish.
+
+### 7. Keep fixed failures fixed (pytest)
+
+```bash
+counterfix fix calls.jsonl --judge --out fixes.jsonl
+counterfix export-tests fixes.jsonl --out tests/test_prompt_regressions.py
+pytest tests/test_prompt_regressions.py
+```
+
+Each verified fix becomes a test case that fails if the failure comes back after a prompt
+edit or a model change. In your own tests, `counterfix.testing.assert_ok(response)` fails
+with the explanation when counterfix finds a failure.
+
+### More
+
+| | |
+| --- | --- |
+| Streams (`stream=True`) | every chunk passes straight through; the whole answer is checked at the end |
+| `with counterfix.context(source=..., reference=...)` | tell the checks what the model was given (RAG) or the right answer |
+| `counterfix profile / compare / drift / route` | measure models, compare an upgrade on your own calls, alert on drift, pick the cheapest safe model per task |
+| `counterfix.otel.export()`, `counterfix.otel.SpanChecker()` | send diagnoses to OpenTelemetry, or check the GenAI spans you already have |
+| `counterfix mcp` | an MCP server so coding agents can lint prompts and check calls |
+
+Full docs: `docs/` (build with `mkdocs serve`). Measured accuracy and fix rates:
+[`docs/results.md`](docs/results.md). A Colab-ready notebook on a free model:
+[`examples/quickstart.ipynb`](examples/quickstart.ipynb).
 
 ## What it checks
 
@@ -290,13 +343,16 @@ Done:
 - Background judge checks on a sample of traffic, with a cost cap ✅
 - `@counterfix.watch` decorator for any function, sync or async ✅
 - Anthropic SDK in `guard()`, LiteLLM and LangChain callbacks ✅
+- Verified fixes: `counterfix.fix()` (counterfactual re-runs, 2 of 3 must pass) ✅
+- Prompt regression tests: `counterfix export-tests` and a pytest plugin ✅
+- Model profiles, `compare`, `drift`, `route`; fixes ordered by what worked per model ✅
+- OpenTelemetry export and GenAI span reader; streams; RAG context; MCP server ✅
 
-Next, in order:
+Next:
 
 1. First release on PyPI (v0.1.0)
-2. Verified fixes: try a fix, re-run the call, suggest only what worked
-3. Prompt regression tests for CI (pytest plugin)
-4. OpenTelemetry export
+2. A larger probe suite from public datasets (after a licence check per dataset)
+3. A public dataset of diagnosed failures with their verified fixes
 
 ## License
 

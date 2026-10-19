@@ -136,7 +136,7 @@ def test_rate_limited_caller_spaces_calls() -> None:
     start = time.monotonic()
     for _ in range(3):
         caller.complete([])
-    assert time.monotonic() - start >= 0.19
+    assert time.monotonic() - start >= 0.17  # 2 gaps of 0.1 s, less one Windows clock tick
 
 
 def test_suggestions_are_objective_only() -> None:
@@ -187,3 +187,24 @@ def test_default_judges_follow_available_keys(monkeypatch: pytest.MonkeyPatch) -
     ]
     monkeypatch.setenv("GROQ_API_KEY", "x")
     assert len(eval_judges.default_judges()) == 3
+
+
+def test_daily_limit_fails_fast_instead_of_waiting() -> None:
+    import pytest
+
+    from counterfix.core.caller import DailyLimitError
+
+    class RateLimitError(Exception):
+        pass
+
+    groq = RateLimitError(
+        "Error code: 429 - Rate limit reached for model `qwen/qwen3.8-27b` on tokens per day "
+        "(TPD): Limit 200000, Used 199934. Please try again in 2m32.9s."
+    )
+    flaky = Flaky(5, groq)
+    start = time.monotonic()
+    with pytest.raises(DailyLimitError, match="daily limit"):
+        RateLimitedCaller(flaky, rpm=600).complete([])
+    assert flaky.calls == 1 and time.monotonic() - start < 1
+    minute = RateLimitError("429 Rate limit reached on tokens per minute. Try again in 0.01s")
+    assert RateLimitedCaller(Flaky(1, minute), rpm=600).complete([]).response_text == "ok"

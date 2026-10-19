@@ -150,6 +150,8 @@ class FormatDetector:
             function = tool.get("function", {}) if isinstance(tool, dict) else {}
             if isinstance(function, dict) and "name" in function:
                 schemas[function["name"]] = function.get("parameters")
+            elif isinstance(tool, dict) and "input_schema" in tool:  # Anthropic tool shape
+                schemas[tool.get("name", "?")] = tool["input_schema"]
         problems: list[Evidence] = []
         for call in record.tool_calls:
             function = call.get("function") or {}
