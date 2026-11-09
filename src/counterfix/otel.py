@@ -154,6 +154,9 @@ class SpanChecker:
     def on_start(self, span: Any, parent_context: Any = None) -> None:
         pass
 
+    def _on_ending(self, span: Any) -> None:
+        pass  # called by newer SDKs (1.4x) just before on_end; nothing to do here
+
     def on_end(self, span: Any) -> None:
         attrs = dict(getattr(span, "attributes", None) or {})
         if "gen_ai.output.messages" not in attrs and "gen_ai.completion.0.content" not in attrs:

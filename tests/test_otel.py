@@ -74,3 +74,12 @@ def test_export_and_span_checker_with_the_sdk() -> None:
         span.set_attribute("gen_ai.completion.0.content", "The sky is blue on a clear day.")
     assert checker.last_diagnosis is not None
     assert checker.last_diagnosis.top.failure_type is FailureType.DROPPED_INSTRUCTION
+
+
+def test_span_checker_has_every_hook_the_installed_sdk_calls() -> None:
+    pytest.importorskip("opentelemetry.sdk")
+    from opentelemetry.sdk.trace import SpanProcessor
+
+    hooks = [n for n in dir(SpanProcessor) if not n.startswith("__")]
+    missing = [n for n in hooks if not callable(getattr(SpanChecker, n, None))]
+    assert not missing, f"SpanChecker lacks SpanProcessor hooks: {missing}"

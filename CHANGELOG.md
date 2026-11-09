@@ -2,6 +2,15 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## 0.1.3 (2026-11-09)
+
+- Fix: `counterfix.otel.SpanChecker` crashed inside `span.end()` on newer OpenTelemetry
+  SDKs (1.4x), which call a `_on_ending` hook on every span processor. A test now checks
+  `SpanChecker` against every hook the installed SDK defines.
+- README roadmap: the PyPI release moved to "Done".
+- First release published by the Release workflow (trusted publishing), with a GitHub
+  Release entry.
+
 ## 0.1.2 (2026-10-19)
 
 Documentation only, no code changes.

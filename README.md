@@ -377,12 +377,12 @@ Done:
 - Prompt regression tests: `counterfix export-tests` and a pytest plugin ✅
 - Model profiles, `compare`, `drift`, `route`; fixes ordered by what worked per model ✅
 - OpenTelemetry export and GenAI span reader; streams; RAG context; MCP server ✅
+- Released on PyPI (`pip install counterfix`), docs site, releases by trusted publishing ✅
 
 Next:
 
-1. First release on PyPI (v0.1.0)
-2. A larger probe suite from public datasets (after a licence check per dataset)
-3. A public dataset of diagnosed failures with their verified fixes
+1. A larger probe suite from public datasets (after a licence check per dataset)
+2. A public dataset of diagnosed failures with their verified fixes
 
 ## License
 
