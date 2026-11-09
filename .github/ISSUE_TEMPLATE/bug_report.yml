@@ -25,7 +25,7 @@ body:
     id: versions
     attributes:
       label: Versions
-      description: counterfix, Python, and the provider SDK (e.g. openai 1.x)
-      placeholder: counterfix 0.1.2, Python 3.12, openai 1.54
+      description: Output of `counterfix --version`, your Python version, and the provider SDK version
+      placeholder: counterfix X.Y.Z, Python 3.12, openai 1.54
     validations:
       required: true

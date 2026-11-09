@@ -16,7 +16,7 @@ call. A change counts only if it works in 2 of 3 re-runs. The change that fixes 
 failure is both the diagnosis and the prescription. We call this **counterfactual
 diagnosis**.
 
-> **Status: alpha (v0.1.2).** Everything below works today: live checks, judge checks,
+> **Status: alpha** (latest version in the PyPI badge above). Everything below works today: live checks, judge checks,
 > verified fixes, reports, regression tests, profiles. APIs may still change.
 >
 > **Known limits.** Verified fixes are common for cut-off answers and broken JSON, rare
