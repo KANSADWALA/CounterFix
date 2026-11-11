@@ -132,7 +132,7 @@ for ft in [t for t in FailureType if t.is_model_failure]:
         ]
         lines += [f"| `{i.name}` | {i.description} |" for i in ivs]
     else:
-        lines.append("None yet: no prompt-level change is verified for this type in v0.1.")
+        lines.append("None yet: no prompt-level change is verified for this type so far.")
     esc = ESCALATION.get(ft, [])
     if esc:
         lines += ["", "## When no fix verifies", "", *[f"- {e[0].upper()}{e[1:]}" for e in esc]]

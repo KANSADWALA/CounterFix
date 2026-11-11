@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag like v0.1.3 and this workflow tests, builds and publishes it to PyPI, then
+# Push a tag like vX.Y.Z (matching pyproject.toml) and this workflow tests, builds and publishes it to PyPI, then
 # creates the GitHub Release with that version's CHANGELOG section. No token needed:
 # PyPI trusts this workflow ("trusted publishing"). One-time setup on pypi.org:
 #   counterfix -> Manage -> Publishing -> Add a GitHub publisher:
