@@ -119,7 +119,7 @@ packages = ["counterfix"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["openai", "openai.*", "typesafe_sdk", "typesafe_sdk.*", "litellm.*", "langchain_core.*",
+module = ["openai", "openai.*", "anthropic", "anthropic.*", "typesafe_sdk", "typesafe_sdk.*", "litellm.*", "langchain_core.*",
   "opentelemetry", "opentelemetry.*", "mcp", "mcp.*", "sacrebleu", "sentence_transformers",
   "bert_score", "yaml", "rouge_score", "rouge_score.*", "evalplus", "evalplus.*",
   "lm_eval", "lm_eval.*", "datasets", "torch", "torch.*", "transformers", "transformers.*",

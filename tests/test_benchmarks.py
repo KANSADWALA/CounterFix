@@ -113,6 +113,8 @@ def test_ifeval_official_checks() -> None:
 
 
 def test_evalplus_scorer(monkeypatch: pytest.MonkeyPatch) -> None:
+    if sys.platform == "win32":
+        pytest.skip("EvalPlus's scorer is Unix-only (signals, resource limits)")
     pytest.importorskip("evalplus")
     monkeypatch.delitem(sys.modules, "datasets")  # EvalPlus has its own loader
     monkeypatch.setenv("COUNTERFIX_ALLOW_CODE", "1")

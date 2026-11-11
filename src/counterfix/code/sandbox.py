@@ -86,6 +86,8 @@ def _limits(memory_mb: int, cpu_s: int):  # type: ignore[no-untyped-def]
     """A preexec function that caps memory, CPU time and file size (POSIX only)."""
 
     def apply() -> None:
+        if sys.platform == "win32":  # never called there; this tells mypy as well
+            return
         import resource
 
         mem = memory_mb * 1024 * 1024
@@ -158,7 +160,7 @@ def _run_subprocess(program: str, timeout: float, memory_mb: int) -> RunResult:
 
 def _kill(proc: subprocess.Popen[str]) -> None:
     """Kill the program and anything it started."""
-    if os.name == "posix":
+    if sys.platform != "win32":  # same as os.name == "posix", but mypy understands it
         import signal
 
         try:

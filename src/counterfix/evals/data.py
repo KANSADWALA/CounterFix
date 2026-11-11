@@ -208,7 +208,7 @@ def load_suite(path: str | Path) -> dict[str, Any]:
             import yaml
         except ImportError as exc:
             raise ImportError('YAML suites need PyYAML: pip install "counterfix[eval]"') from exc
-        suite = yaml.safe_load(text)
+        suite = yaml.safe_load(text)  # type: ignore[no-untyped-call, unused-ignore]
     else:
         suite = json.loads(text)
     if not isinstance(suite, dict) or "data" not in suite:
