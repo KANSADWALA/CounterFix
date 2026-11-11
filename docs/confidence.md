@@ -13,8 +13,11 @@ counterfix eval qa.jsonl --model openai:gpt-4o-mini --param logprobs=true --metr
 On a guarded call, read it from the response:
 
 ```python
+import counterfix
 from counterfix import confidence
+from openai import OpenAI
 
+client = counterfix.guard(OpenAI())
 r = client.chat.completions.create(model="gpt-4o-mini", messages=messages, logprobs=True)
 confidence.mean_probability(r)  # 0.87, or None when the provider sent no logprobs
 confidence.describe(r)  # 'token confidence 0.87 over 12 tokens; least likely: ...'
