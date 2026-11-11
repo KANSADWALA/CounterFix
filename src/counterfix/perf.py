@@ -230,9 +230,15 @@ class SpeedAttempt(BaseModel):
     passed: int = 0
     latencies_ms: list[float] = Field(default_factory=list)
     verified: bool = False
+    p_value: float | None = None
+    """For a change: the one-sided Fisher exact p-value against the plain retry."""
     errors: list[str] = Field(default_factory=list)
     seen: list[str] = Field(default_factory=list)
     """New failures that made a fast run not count, e.g. ["F1 Truncation"]."""
+
+    @property
+    def observed(self) -> int:
+        return self.runs - len(self.errors)
 
     @property
     def median_ms(self) -> float | None:
@@ -253,7 +259,9 @@ class SpeedFixResult(BaseModel):
             med = f", median {a.median_ms:.0f} ms" if a.median_ms is not None else ""
             mark = "VERIFIED" if a.verified else "no"
             still = f" (new failures: {', '.join(sorted(set(a.seen)))})" if a.seen else ""
-            under = f"under {self.target_ms:.0f} ms in {a.passed}/{a.runs}"
+            under = f"under {self.target_ms:.0f} ms in {a.passed}/{a.observed}"
+            if a.p_value is not None:
+                under += f" (p={a.p_value:.3f})"
             return f"{a.name}: {under}{med} -> {mark}{still}"
 
         lines = []
@@ -286,10 +294,11 @@ def speed_fix(
     *,
     caller: ModelCaller | None = None,
     alternatives: Sequence[ModelCaller] = (),
-    runs: int = 3,
-    need: int = 2,
-    max_runs: int = 15,
+    runs: int = 6,
+    need: int | None = None,
+    max_runs: int = 30,
     check_retry: bool = True,
+    alpha: float = 0.05,
 ) -> SpeedFixResult:
     """Find a verified change that brings a slow call under ``target_ms``.
 
@@ -298,7 +307,22 @@ def speed_fix(
     in order: lower reasoning effort (for reasoning models), a concise-answer instruction,
     then each caller in ``alternatives`` (other models you would accept). ``caller``
     re-runs the original model (default: the provider preset named on the record).
+
+    A change is verified when it meets the target clearly more often than the plain
+    retry, by the same test as :func:`counterfix.fix` (see :mod:`counterfix.verify`).
+    ``need`` is no longer used and only warns.
     """
+    import warnings
+
+    from counterfix.verify import beatable, level, p_value, settled
+
+    if need is not None:
+        warnings.warn(
+            "speed_fix(need=...) is ignored: a change is now verified when it beats the "
+            "plain retry (see counterfix.verify)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     from counterfix.detectors import default_detectors
     from counterfix.engine import _caller_for
 
@@ -309,7 +333,13 @@ def speed_fix(
     }
     checks = default_detectors()
 
-    def trial(attempt: SpeedAttempt, who: ModelCaller, messages: list[Message]) -> SpeedAttempt:
+    tests = 2 + len(alternatives)  # lower effort (when it applies), concise, alternatives
+    at = level(alpha, tests)
+    base = [0, runs if not check_retry else 0]
+
+    def trial(
+        attempt: SpeedAttempt, who: ModelCaller, messages: list[Message], is_retry: bool = False
+    ) -> SpeedAttempt:
         for _ in range(runs):
             if result.calls >= max_runs:
                 break
@@ -328,16 +358,31 @@ def speed_fix(
                 attempt.passed += 1
             elif fast:
                 attempt.seen += [f"{t.value} {t.label}" for t in sorted(left - before, key=str)]
-            if attempt.passed >= need or attempt.runs - attempt.passed > runs - need:
+            if is_retry:
+                if not beatable(attempt.passed, attempt.observed, runs, at):
+                    break
+            elif settled(
+                base[0],
+                base[1],
+                attempt.passed,
+                attempt.observed,
+                attempt.observed + (runs - attempt.runs),
+                at,
+            ):
                 break
-        attempt.verified = attempt.passed >= need
+        if is_retry:
+            attempt.verified = not beatable(attempt.passed, attempt.observed, runs, at)
+        else:
+            attempt.p_value = p_value(base[0], base[1], attempt.passed, attempt.observed)
+            attempt.verified = attempt.passed > 0 and attempt.p_value <= at
         return attempt
 
     if check_retry:
         retry = SpeedAttempt(
             name="plain_retry", description="Re-run unchanged", params=record.params
         )
-        result.retry = trial(retry, rerun, record.messages)
+        result.retry = trial(retry, rerun, record.messages, is_retry=True)
+        base[0], base[1] = retry.passed, retry.observed
         if retry.verified:
             result.stopped = "a plain retry is fast enough too: the slow call was a one-off"
             return result
@@ -393,7 +438,7 @@ def speed_fix(
             result.fix = attempt
             result.stopped = "stopped at the first verified fix"
             return result
-    result.stopped = "no change met the target often enough"
+    result.stopped = "no change met the target clearly more often than a plain retry"
     return result
 
 

@@ -311,7 +311,7 @@ def test_fix_search_reports_progress_on_every_re_run() -> None:
         progress=lambda n, total, label: seen.append(label),
     )  # fmt: skip
     runs = [s for s in seen if s.startswith("fix search q4: re-run")]
-    assert runs and runs[0] == "fix search q4: re-run 1/9 (plain_retry)"
+    assert runs and runs[0] == "fix search q4: re-run 1/30 (plain_retry)"
     assert any("raise_max_tokens_more" in s for s in runs)
 
 

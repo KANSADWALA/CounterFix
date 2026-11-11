@@ -150,7 +150,7 @@ def build_profile(
     judge: Any = False,
     probes: str | Path | None = None,
     fix: bool = False,
-    max_runs: int = 9,
+    max_runs: int = 30,
     progress: Any = None,
 ) -> Profile:
     """Run the probe suite on one model and measure it (``fix=True`` also learns fixes)."""

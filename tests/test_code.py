@@ -160,7 +160,7 @@ class _Coder:
 
 def test_eval_finds_f12_and_verifies_error_feedback() -> None:
     rows = [{"id": "he0", "prompt": HUMANEVAL["prompt"], "reference": HUMANEVAL}]
-    result = evaluate(rows, model=_Coder(), metrics=["tests"], fix=1, max_runs=6)
+    result = evaluate(rows, model=_Coder(), metrics=["tests"], fix=1, max_runs=20)
     item = result.items[0]
     assert not item.passed and item.causes[0] == "F12"
     assert result.code_causes == {"wrong_output": 1}

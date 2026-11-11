@@ -2,7 +2,8 @@
 
 Only literals, arithmetic, comparisons, slicing, simple comprehensions (one ``for``, e.g.
 ``sum(int(c) for c in str(987))``) and a short whitelist of functions and string methods
-are allowed. Nothing is passed to Python's eval(); the AST is walked by hand.
+are allowed. Nothing is passed to Python's eval(); the AST is walked by hand, and the walk
+stops after ``MAX_STEPS`` node evaluations, so nested comprehensions cannot run for minutes.
 """
 
 from __future__ import annotations
@@ -74,6 +75,16 @@ _COMPARE: dict[type[ast.cmpop], Callable[[Any, Any], bool]] = {
 }
 MAX_LEN = 10_000
 MAX_EXPONENT = 1_000
+MAX_STEPS = 100_000
+"""Node evaluations allowed for one expression (a loop over range(10000) uses about 60,000)."""
+_STEPS = "<steps>"  # not a valid Python name, so an expression can never read or set it
+
+
+class _Counter:
+    __slots__ = ("left",)
+
+    def __init__(self, steps: int) -> None:
+        self.left = steps
 
 
 def _check_size(value: Any) -> Any:
@@ -85,7 +96,12 @@ def _check_size(value: Any) -> Any:
 
 
 def _eval(node: ast.AST, env: dict[str, Any] | None = None) -> Any:
-    env = env or {}
+    env = env if env is not None else {_STEPS: _Counter(MAX_STEPS)}
+    counter = env.get(_STEPS)
+    if isinstance(counter, _Counter):
+        counter.left -= 1
+        if counter.left < 0:
+            raise UnsafeExpression(f"too much work (over {MAX_STEPS:,} steps)")
     if isinstance(node, ast.Expression):
         return _eval(node.body, env)
     if isinstance(node, ast.Constant) and isinstance(node.value, int | float | str):
@@ -125,7 +141,7 @@ def _eval(node: ast.AST, env: dict[str, Any] | None = None) -> Any:
             owner = _eval(func.value, env)
             if isinstance(owner, str):
                 return _check_size(getattr(owner, func.attr)(*args))
-    if isinstance(node, ast.Name) and node.id in env:
+    if isinstance(node, ast.Name) and node.id in env and node.id != _STEPS:
         return env[node.id]
     if isinstance(node, ast.Compare):
         left = _eval(node.left, env)
@@ -174,4 +190,4 @@ def safe_eval(expression: str) -> Any:
         tree = ast.parse(expression.strip(), mode="eval")
     except SyntaxError as exc:
         raise UnsafeExpression(f"not a valid expression: {exc.msg}") from exc
-    return _eval(tree)
+    return _eval(tree, {_STEPS: _Counter(MAX_STEPS)})

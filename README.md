@@ -12,7 +12,8 @@ Most LLM evaluation tools tell you *that* a model failed. counterfix also looks 
 *why*: it names the likely failure type (F1 to F14), then tests fixes. When a call fails,
 it changes one thing at a time (raises `max_tokens`, asks for bare JSON, adds the source
 text, tells the model to check the question's premises, repeats a missed instruction) and
-re-runs the call. A change counts only if it works in 2 of 3 re-runs; when none does,
+re-runs the call. A change counts only if it passes clearly more often than re-running
+the call unchanged (a Fisher exact test against a plain retry); when none does,
 counterfix says so and lists what to try next. A change that makes the failure go away is
 both the diagnosis and the prescription. We call this **counterfactual diagnosis**.
 
@@ -157,21 +158,25 @@ print(result.explain())
 
 ```text
 found: F1 Truncation (95%)
-plain retry: passed 0/2
-tried raise_max_tokens: passed 0/2 -> no (still: F1 Truncation)
-tried raise_max_tokens_more: passed 2/3 -> VERIFIED
+plain retry: passed 0/6
+tried raise_max_tokens: passed 0/2 vs retry 0/6, p=1.000 -> no (still: F1 Truncation)
+tried raise_max_tokens_more: passed 5/5 vs retry 0/6, p=0.002 -> VERIFIED
 fix: Raise max_tokens a lot (long answers, or reasoning that uses the budget)
   change: {'max_tokens': 4096}
-7 re-run(s); stopped at the first verified fix
+13 re-run(s); stopped at the first verified fix
 ```
 
 For each failure, counterfix changes one thing (raise `max_tokens`, ask for bare JSON,
 check the question's premises, repeat missed instructions, add the source text, ...),
-re-runs the call, and re-checks it. A change counts as the fix only if the failure is
-gone, with no new failure, in 2 of 3 re-runs, so luck does not count. It first re-runs
-the call unchanged: if a plain retry already passes, no change is claimed. The verified
-change is in `result.fix` (`changed` params, or full new `messages`) and on the finding's
-prescription (`verified=True`). `max_runs` caps the re-runs (15); judge calls come on top.
+re-runs the call, and re-checks it. It first re-runs the call unchanged, up to 6 times.
+A change counts as the fix only if it passes (failure gone, no new failure) clearly more
+often than that plain retry: a one-sided Fisher exact test at 5%, divided by the number of
+changes it may try. On a model that fails at random, so that no change can help, this
+called a change verified in under 1% of searches in our tests (the earlier 2-of-3 rule:
+up to a third). "Verified" means the change beat asking again *on this call*; it is not
+proof that it works on other prompts. The verified change is in `result.fix` (`changed`
+params, or full new `messages`) and on the finding's prescription (`verified=True`).
+`max_runs` caps the re-runs (30); judge calls come on top.
 When nothing passes, `result.escalation` lists what is left (retrieval, a larger model, a
 code tool, a clarifying question).
 
@@ -471,7 +476,7 @@ Done:
 - Background judge checks on a sample of traffic, with a cost cap ✅
 - `@counterfix.watch` decorator for any function, sync or async ✅
 - Anthropic SDK in `guard()`, LiteLLM and LangChain callbacks ✅
-- Verified fixes: `counterfix.fix()` (counterfactual re-runs, 2 of 3 must pass) ✅
+- Verified fixes: `counterfix.fix()` (counterfactual re-runs; a change must beat a plain retry) ✅
 - Prompt regression tests: `counterfix export-tests` and a pytest plugin ✅
 - Model profiles, `compare`, `drift`, `route`; fixes ordered by what worked per model ✅
 - OpenTelemetry export and GenAI span reader; streams; RAG context; MCP server ✅

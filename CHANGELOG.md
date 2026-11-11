@@ -2,6 +2,41 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## Unreleased
+
+"Verified" now has a stated error rate.
+
+- **A change must beat a plain retry to count as a fix.** The plain retry and each change
+  are re-run up to 6 times; a change is verified only if a one-sided Fisher exact test
+  says it passed clearly more often (p at or below 0.05 divided by the number of changes
+  the search may try). The old rule (2 of 3 re-runs) called a change that does nothing
+  "verified" in 11% to 36% of searches on a model that fails at random; the new one in
+  under 1%. Applies to `fix()`, `speed_fix()` and the fix search in `counterfix eval`.
+  The statistics live in `counterfix.verify`.
+- `explain()` shows the retry's count, each change's count and its p-value; attempts gain
+  `p_value`, and `FixResult.level` is the bar each change had to reach.
+- Default `max_runs` is now 30 (was 15 for `fix()` and 9 for `eval`, MCP and profiles):
+  a deterministic fix such as a larger `max_tokens` now takes about 13 re-runs instead of
+  6. Intermittent failures cost about the same, because the retry stops early once it
+  passes too often for any change to beat.
+- `need=` on `fix()`, `speed_fix()` and `fix_item()` is ignored with a
+  `DeprecationWarning`. `check_retry=False` now assumes the plain retry never passes.
+- Fixed: `counterfix fix --caller MODEL@http://host/v1` (and `compare`, `profile`,
+  `drift`) crashed with "unknown provider"; they now take every spec `eval` takes, and an
+  unusable spec prints one line and exits 2. `counterfix fix` also shows the real reason a
+  call cannot be re-run instead of always blaming the log.
+- Fixed: the F8 expression evaluator had no bound on nested loops (one expression ran for
+  over two minutes); it now stops after 100,000 steps.
+- Docs: "so luck does not count" and similar claims replaced by what the test does and
+  does not show.
+- Re-measured on the 38 seed failures (`bench/results/fixes_v022.md`): 14 verified fixes
+  (cause right and retry not passing: 14 of 22, 64%), against 18 (18 of 23, 78%) under the
+  old rule. The 5 that dropped out (`allow_unknown`, `work_it_out`) were on failures that,
+  re-run more often, did not repeat reliably. 6.8 re-runs per failure (was 3.7).
+- `bench/fix_seed.py`: `--learn` counts only the change the engine verified (it counted
+  any attempt with 2 passes), and the report counts "plain retry passes" from where the
+  engine stopped, not from a pass count.
+
 ## 0.2.1 (2026-11-11)
 
 Wording that claims no more than counterfix does.

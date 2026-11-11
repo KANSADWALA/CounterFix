@@ -71,7 +71,8 @@ tool result, including an error), `missing_step`, `gave_up`, `wrong_answer`.
 
 ## Fixes it verifies
 
-On single calls, each fix is re-run and kept only if the call is right in 2 of 3 re-runs:
+On single calls, each fix is re-run and kept only if the call is right clearly more often than on a
+plain retry ([how](fixes.md#what-verified-means)):
 
 | Intervention | Change |
 | --- | --- |

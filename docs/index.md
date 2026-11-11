@@ -4,7 +4,8 @@
 
 Most LLM tools tell you *that* a call failed. counterfix also looks for *why* (one of
 fourteen failure types, F1 to F14), then tests fixes: it changes one thing at a time,
-re-runs the call, and keeps only a change that made the failure go away in 2 of 3 runs.
+re-runs the call, and keeps only a change that made the failure go away clearly more
+often than re-running the call unchanged.
 When no change passes, it says so and lists what to try next. A change that works is both
 the diagnosis and the prescription.
 
@@ -48,8 +49,8 @@ print(result.explain())  # what was tried, what passed, the change to make
 - **Engineers shipping LLM features**: one line to add, nothing to run or host.
 - **Low cost**: live checks make no extra calls; judge checks and fixes run only when
   you ask, on a sample of traffic, or with an hourly cap.
-- **Fixes you can trust**: nothing is called a fix unless it passed on re-run, and a
-  plain retry is tried first so luck is never sold as a fix.
+- **Fixes you can check**: a change is called a fix only if it beats a plain retry on
+  re-run, by a stated statistical test ([how](fixes.md#what-verified-means)).
 - **Your data stays yours**: no telemetry; the judge can be a local Ollama model.
 
 It plugs into OpenAI-compatible clients (OpenAI, Groq, Gemini, OpenRouter, Ollama, vLLM),

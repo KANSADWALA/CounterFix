@@ -76,7 +76,8 @@ fix: Lower the reasoning effort (reasoning_effort='low')
 The same rules as the fix engine: a plain retry first (a slow call that is fast on retry
 was a one-off), then one change at a time: lower reasoning effort (reasoning models), a
 concise-answer instruction, then each model in `alternatives`. A change counts only when
-the call is under the target in 2 of 3 re-runs **and** the live checks find no new failure,
+the call is under the target, with no new failure from the live checks, clearly more often
+than on a plain retry ([how](fixes.md#what-verified-means)),
 so a fast answer that is cut off is not a fix.
 
 In an eval, gate on speed with the `latency:MS` and `ttft:MS` metrics.

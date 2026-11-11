@@ -86,7 +86,9 @@ def report(rows: list[dict]) -> str:
     ok = [r for r in rows if "error" not in r]
     found = [r for r in ok if r["found"]]
     right = [r for r in found if r["cause_right"]]
-    retry_ok = [r for r in ok if r["retry"] and r["retry"][0] >= 2]
+    # the engine stopped at the retry: it passed too often for any change to beat it
+    # ("a plain retry passed ..."; rows from 0.2.1 and earlier say "a plain retry passes")
+    retry_ok = [r for r in ok if "plain retry pass" in r.get("stopped", "")]
     fixed = [r for r in ok if r["fix"]]
     fixed_right = [r for r in fixed if r["fix_type"] in r["truth"]]
     needs_fix = [r for r in right if r not in retry_ok]
@@ -99,8 +101,9 @@ def report(rows: list[dict]) -> str:
         "# Counterfactual engine on the seed failures",
         "",
         f"{len(rows)} labelled failures ({len(rows) - len(ok)} errors). Judges: "
-        f"{', '.join(JUDGES)} (panel). A fix counts only if the failure is gone, with no new "
-        "failure, in 2 of 3 re-runs; a plain retry runs first.",
+        f"{', '.join(JUDGES)} (panel). A run passes when the failure is gone with no new "
+        "failure; a change counts as a fix only if it passes clearly more often than a plain "
+        "retry (one-sided Fisher exact test, see counterfix.verify).",
         "",
         "| Measure | Result |",
         "| --- | --- |",
@@ -170,10 +173,11 @@ def learn(rows: list[dict]) -> list[Path]:
             by_model[model] = load(model) or Profile(model=model)
             by_model[model].fixes = {}
         profile = by_model[model]
-        for name, passed, _runs in r.get("attempts", []):
+        for name, _passed, _runs in r.get("attempts", []):
             stats = profile.fixes.setdefault(kind[name], {})
             verified, tried = stats.get(name, [0, 0])
-            stats[name] = [verified + (passed >= 2), tried + 1]
+            # only the change the engine verified counts (it stops at the first one)
+            stats[name] = [verified + (name == r.get("fix")), tried + 1]
     return [save(p, SHIPPED / profile_path(m).name) for m, p in by_model.items()]
 
 

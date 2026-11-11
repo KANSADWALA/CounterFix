@@ -4,13 +4,15 @@
 >>> print(result.explain())                    # doctest: +SKIP
 >>> result.fix.params, result.fix.messages     # the change to apply, if one was verified
 
-For each failure found (most confident first), the engine tries the interventions for
-that cause, one at a time. Each is re-run ``runs`` times (3) and counts as a verified
-fix only if the failure is gone, with no new failure, in at least ``need`` runs (2), so
-luck does not count. Before any intervention it re-runs the call unchanged: if a plain
-retry already passes, no change is claimed as the fix. Runs stop early once the outcome
-is settled, the engine stops at the first verified fix, and ``max_runs`` caps the calls
-to the model being fixed (judge calls come on top).
+First the engine re-runs the call unchanged (the plain retry), up to ``runs`` times (6).
+Then, for each failure found (most confident first), it tries the interventions for that
+cause, one at a time, each re-run up to ``runs`` times. A run passes when the failure is
+gone and no new failure appears. A change counts as a verified fix only if it passes
+clearly more often than the plain retry: a one-sided Fisher exact test at ``alpha``
+(0.05) divided by the number of changes the search may try (see :mod:`counterfix.verify`).
+If the plain retry passes so often that no change could be shown to do better, no change
+is claimed. Runs stop once the outcome is settled, the engine stops at the first verified
+fix, and ``max_runs`` caps the calls to the model being fixed (judge calls come on top).
 
 When nothing is verified, ``escalation`` lists what is left to try outside the prompt.
 """
@@ -18,6 +20,7 @@ When nothing is verified, ``escalation`` lists what is left to try outside the p
 from __future__ import annotations
 
 import copy
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -31,6 +34,7 @@ from counterfix.core.diagnosis import Diagnosis, Finding, Prescription
 from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType, PrescriptionKind
 from counterfix.judges.tasks import CONTEXT_KEY
+from counterfix.verify import DEFAULT_ALPHA, DEFAULT_RUNS, beatable, level, p_value, settled
 
 F = FailureType
 Change = tuple[list[Message], dict[str, Any]]
@@ -712,9 +716,19 @@ class FixAttempt(BaseModel):
     runs: int = 0
     passed: int = 0
     verified: bool = False
+    """For a change: it passed clearly more often than the plain retry (see
+    :mod:`counterfix.verify`). For the plain retry: it passed so often that no change
+    could be shown to do better."""
+    p_value: float | None = None
+    """For a change: the one-sided Fisher exact p-value against the plain retry."""
     seen: list[str] = Field(default_factory=list)
     """What the failed runs still showed, e.g. ["F1 Truncation"]."""
     errors: list[str] = Field(default_factory=list)
+
+    @property
+    def observed(self) -> int:
+        """Runs that returned a readable answer (calls that errored are not evidence)."""
+        return self.runs - len(self.errors)
 
 
 class FixResult(BaseModel):
@@ -731,11 +745,13 @@ class FixResult(BaseModel):
     unreachable: str | None = None
     """The error, when the model could not be called at all (nothing was tested)."""
     stopped: str = ""
+    level: float | None = None
+    """The p-value a change had to reach (``alpha`` over the number of changes)."""
 
     def explain(self) -> str:
         lines = [f"found: {self.diagnosis.summary()}"]
         if self.retry is not None:
-            lines.append(f"plain retry: passed {self.retry.passed}/{self.retry.runs}")
+            lines.append(f"plain retry: passed {self.retry.passed}/{self.retry.observed}")
         for a in self.attempts:
             mark = "VERIFIED" if a.verified else "no"
             still = ""
@@ -750,7 +766,13 @@ class FixResult(BaseModel):
                     [f"new: {', '.join(new)}"] if new else []
                 )
                 still = f" ({'; '.join(parts)})"
-            lines.append(f"tried {a.name}: passed {a.passed}/{a.runs} -> {mark}{still}")
+            vs = ""
+            if self.retry is not None and a.p_value is not None:
+                base = f"{self.retry.passed}/{self.retry.observed}"
+                vs = f" vs retry {base}, p={a.p_value:.3f}"
+            elif a.p_value is not None:
+                vs = f", p={a.p_value:.3f}"
+            lines.append(f"tried {a.name}: passed {a.passed}/{a.observed}{vs} -> {mark}{still}")
             if a.errors:
                 lines.append(f"  {len(a.errors)} call(s) failed, e.g. {a.errors[0][:120]}")
         if self.unreachable:
@@ -796,18 +818,32 @@ def fix(
     *,
     judge: Any = None,
     caller: ModelCaller | None = None,
-    runs: int = 3,
-    need: int = 2,
-    max_runs: int = 15,
+    runs: int = DEFAULT_RUNS,
+    need: int | None = None,
+    max_runs: int = 30,
     check_retry: bool = True,
     profile: Any = "auto",
+    alpha: float = DEFAULT_ALPHA,
 ) -> FixResult:
     """Find a verified fix for one failed call. ``target`` is a guarded response, its
     Diagnosis or a CallRecord; ``judge`` is chosen as in :func:`counterfix.diagnose`
     (``judge=False`` for live checks only); ``caller`` re-runs the call (default: the
     guarded client, or the provider preset named on the record). ``profile`` orders the
     interventions by what worked before on this model: "auto" loads the stored profile
-    for the record's model if there is one, None keeps the default order."""
+    for the record's model if there is one, None keeps the default order.
+
+    ``runs`` is how often the plain retry and each change are re-run; ``alpha`` the
+    chance, across the search, of calling a useless change verified. ``check_retry=False``
+    skips the plain retry and assumes it never passes: use it only for failures you know
+    repeat every time (a fixed token limit), or "verified" means less. ``need`` is no
+    longer used (it was the old "2 of 3" rule) and only warns."""
+    if need is not None:
+        warnings.warn(
+            "fix(need=...) is ignored: a change is now verified when it beats the plain "
+            "retry (see counterfix.verify)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     from counterfix.detectors import default_detectors, judge_detectors
     from counterfix.diagnose import _target, diagnose
     from counterfix.judges.auto import resolve_judge
@@ -848,7 +884,26 @@ def fix(
         result.stopped = "no check can confirm a fix for these failures without a judge"
         return result
 
-    def trial(attempt: FixAttempt, kind: FailureType, messages: list[Message]) -> FixAttempt:
+    tests = sum(1 for f in failures for i in INTERVENTIONS if i.failure_type is f.failure_type)
+    at = level(alpha, tests)
+    result.level = at
+    base = [0, runs if not check_retry else 0]  # plain retry: passed, observed
+
+    def done(attempt: FixAttempt, is_retry: bool) -> bool:
+        if is_retry:  # the retry runs in full unless it already passes too often
+            return not beatable(attempt.passed, attempt.observed, runs, at)
+        return settled(
+            base[0],
+            base[1],
+            attempt.passed,
+            attempt.observed,
+            attempt.observed + (runs - attempt.runs),
+            at,
+        )
+
+    def trial(
+        attempt: FixAttempt, kind: FailureType, messages: list[Message], is_retry: bool = False
+    ) -> FixAttempt:
         checks = checks_for(kind)
         for _ in range(runs):
             if result.calls >= max_runs:
@@ -872,19 +927,27 @@ def fix(
                 attempt.passed += 1
             else:
                 attempt.seen += [f"{t.value} {t.label}" for t in sorted(left, key=str)]
-            if attempt.passed >= need or attempt.runs - attempt.passed > runs - need:
+            if done(attempt, is_retry):
                 break  # settled either way
-        attempt.verified = attempt.passed >= need
+        if is_retry:
+            attempt.verified = not beatable(attempt.passed, attempt.observed, runs, at)
+        else:
+            attempt.p_value = p_value(base[0], base[1], attempt.passed, attempt.observed)
+            attempt.verified = attempt.passed > 0 and attempt.p_value <= at
         return attempt
 
     top = failures[0].failure_type
     if check_retry:
         retry = FixAttempt(name="plain_retry", description="Re-run unchanged", params=record.params)
-        result.retry = trial(retry, top, record.messages)
+        result.retry = trial(retry, top, record.messages, is_retry=True)
         if result.unreachable:
             return _unreachable(result)
+        base[0], base[1] = retry.passed, retry.observed
         if retry.verified:
-            result.stopped = "a plain retry passes too, so no change is claimed as the fix"
+            result.stopped = (
+                f"a plain retry passed {retry.passed}/{retry.observed}: too often for any "
+                "change to be shown to do better, so none is claimed"
+            )
             return result
     if profile == "auto":
         from counterfix.profiles import load
@@ -927,5 +990,5 @@ def fix(
                 result.stopped = "stopped at the first verified fix"
                 return result
     result.escalation = [s for f in failures for s in ESCALATION.get(f.failure_type, [])]
-    result.stopped = result.stopped or "no intervention passed often enough"
+    result.stopped = result.stopped or "no change beat the plain retry clearly enough"
     return result

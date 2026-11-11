@@ -82,7 +82,8 @@ passage the cause. Details: [F10](failures/F10.md), [F11](failures/F11.md).
 | F11 | `quote_then_answer`: quote the passage, then answer from it | a prompt change |
 
 Passage changes apply to prompts counterfix built from (question, passages). A change
-counts only when the item passes its metrics in 2 of 3 re-runs with no new failure.
+counts only when the item passes its metrics with no new failure clearly more often than
+on a plain retry ([how](fixes.md#what-verified-means)).
 
 ## Your own pipeline
 

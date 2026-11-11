@@ -54,7 +54,8 @@ failing assert. The report groups failed code by cause.
 | `one_code_block` | ask for the whole program in one code block |
 
 Cut-off code gets the F1 fixes (raise the token limit). As everywhere in counterfix, a fix
-counts only when the re-runs pass the tests in 2 of 3 tries.
+counts only when the re-runs pass the tests clearly more often than a plain retry
+([how](fixes.md#what-verified-means)).
 
 ## pass@k
 

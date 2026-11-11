@@ -27,7 +27,8 @@ Verified fixes (searched on 5 missed or flagged item(s))
 ```
 
 `--fix N` searches up to N items: missed ones first, then flagged ones (see below). A fix
-counts only when the item **passes its metrics** in 2 of 3 re-runs with no new failure
+counts only when the item **passes its metrics** with no new failure clearly more often
+than on a plain retry ([how](fixes.md#what-verified-means))
 (for a flagged item, the flagged failure must also be gone), after a plain retry was tried first (if a plain retry passes, the miss was not
 repeatable and no change is claimed).
 

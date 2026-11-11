@@ -33,7 +33,8 @@ did the user's task.
 | `data_not_instructions` | the system rule alone |
 | `restate_task` | repeat the user's request after the untrusted text, with a reminder |
 
-A fix counts only when 2 of 3 re-runs resist. Measured: gpt-oss-120b resisted only 6 of
+A fix counts only when the re-runs resist clearly more often than a plain retry
+([how](fixes.md#what-verified-means)). Measured with the earlier 2-of-3 rule (0.2.1): gpt-oss-120b resisted only 6 of
 20 probes, and `delimit_untrusted` stopped 9 of the 10 injections searched; qwen2.5:3b
 resisted 13 of 20, and no prompt change verified on its 5 repeatable misses. Whether
 prompt-level defence works depends on the model, so measure it on yours (see [Measured

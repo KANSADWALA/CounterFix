@@ -466,3 +466,17 @@ def test_rate_limited_caller_retries_a_passing_server_error() -> None:
     finally:
         caller_module.time.sleep = real_sleep  # type: ignore[assignment]
     assert calls["n"] == 2
+
+
+def test_safe_eval_stops_runaway_work() -> None:
+    import time
+
+    import pytest
+
+    from counterfix.safe_eval import UnsafeExpression, safe_eval
+
+    start = time.perf_counter()
+    with pytest.raises(UnsafeExpression, match="too much work"):
+        safe_eval("[[y for y in range(10000)] for x in range(10000)]")
+    assert time.perf_counter() - start < 5  # it ran for minutes before the step cap
+    assert safe_eval("sum(x for x in range(10000))") == 49995000

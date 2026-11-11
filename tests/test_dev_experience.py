@@ -156,3 +156,15 @@ def test_untested_suggestions_say_try_and_verified_ones_say_fix():
 
     assert "  try: Raise max_tokens" in diag(False) and "fix" not in diag(False).lower()
     assert "  fix (verified): Raise max_tokens" in diag(True)
+
+
+def test_rerun_caller_takes_every_documented_spec() -> None:
+    import pytest
+
+    from counterfix.cli import _rerun_caller
+
+    caller = _rerun_caller("my-model@http://127.0.0.1:9/v1")  # no call is made here
+    assert "my-model" in caller.name
+    with pytest.raises(SystemExit) as stop:
+        _rerun_caller("nope:model")
+    assert stop.value.code == 2

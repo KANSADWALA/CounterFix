@@ -59,20 +59,32 @@ every misjudged item: `bench/results/judges.md` and `judges.json`.
 
 ## Verified fixes
 
-The engine on all 38 labelled failures, re-run on the model that produced them, judged
-by a two-judge panel:
+Measured on 2026-11-12 with the current rule: a change counts only if it passes clearly
+more often than a plain retry (one-sided Fisher exact test,
+[how](fixes.md#what-verified-means)). The engine on all 38 labelled failures, re-run on
+the model that produced them, judged by a two-judge panel:
 
 | Measure | Result |
 | --- | --- |
-| Top cause matches the label | 28 of 38 (74%) |
+| Top cause matches the label | 27 of 38 (71%) |
 | A plain retry already passed (no fix claimed) | 7 of 38 (18%) |
-| **Verified fix, when the cause was right and a retry did not pass** | **18 of 23 (78%)** |
-| Re-runs of the target model | 3.7 per failure |
+| **Verified fix, when the cause was right and a retry did not pass** | **14 of 22 (64%)** |
+| Verified fix, of all 38 failures | 14 of 38 (37%) |
+| Re-runs of the target model | 6.8 per failure |
 
-Fixes that verified: `raise_max_tokens_more` 11, `allow_unknown` 3, `work_it_out` 2,
-`json_only_prompt` 1, `add_detail` 1. Most misses were detection misses (the two-judge
-panel did not re-find 8 hallucinations), not fixes that failed. Item by item:
-`bench/results/fixes.md`.
+Fixes that verified: `raise_max_tokens_more` 11, `json_only_prompt` 1, `check_premises` 1,
+`add_detail` 1. So far, verified fixes are mostly parameter changes for truncation;
+no prompt change beat a plain retry on the hallucination (F4) or computation (F8)
+failures. Item by item: `bench/results/fixes_v022.md`.
+
+**Compared with the earlier rule** (2 of 3 re-runs, up to 0.2.1; `bench/results/fixes.md`):
+it reported 18 verified fixes, 18 of 23 (78%) on the same measure. The 5 it no longer
+counts (`allow_unknown` 3, `work_it_out` 2) were all on failures that, re-run more often,
+did not repeat reliably: the plain retry passed in some of its runs (from 1 of 6 to 2 of 2),
+and the change did no better. For example, gpt-oss-120b F4-003 was "fixed" by
+`allow_unknown` after a 0/2 retry, and now passes on a plain retry 2 of 2.
+`check_premises` on qwen2.5:3b F5-001 is new (4 of 6 against 0 of 6). Small sets: one or a
+few failures per type outside F1 and F4, so read these as rough.
 
 ## Model profiles
 

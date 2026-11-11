@@ -45,8 +45,11 @@ def test_raising_max_tokens_is_verified_and_written_back() -> None:
     result = counterfix.fix(cut_off(), judge=False, caller=model)
     assert result.retry is not None and result.retry.passed == 0
     assert result.fix is not None and result.fix.name == "raise_max_tokens"
-    assert result.fix.changed == {"max_tokens": 80} and result.fix.passed == 2
-    assert result.calls == 2 + 2  # retry settled after 2 fails, fix after 2 passes
+    assert result.fix.changed == {"max_tokens": 80} and result.fix.passed == 5
+    # the retry runs in full (6 fails); the change is settled after 5 passes, because
+    # 5/6 against 0/6 wins even if the sixth run fails
+    assert result.calls == 6 + 5
+    assert result.fix.p_value is not None and result.fix.p_value <= result.level
     finding = result.diagnosis.findings[0]
     assert finding.prescription is not None and finding.prescription.verified
     assert "VERIFIED" in result.explain()
@@ -56,17 +59,20 @@ def test_a_plain_retry_that_passes_claims_no_fix() -> None:
     model = Scripted(lambda m, p: ("Mercury ... Neptune.", "stop"))
     result = counterfix.fix(cut_off(), judge=False, caller=model)
     assert result.fix is None and result.retry is not None and result.retry.verified
-    assert "plain retry passes" in result.stopped
+    assert result.retry.passed == 2 and result.calls == 2  # no change could beat 2 passes
+    assert "plain retry passed 2/2" in result.stopped
 
 
 def test_one_lucky_pass_is_not_a_fix_and_escalation_is_listed() -> None:
     replies = iter(
-        [("x", "length")] * 2  # retry: two fails, settled
+        [("x", "length")] * 6  # retry: six fails
+        # one pass, then two fails: 4/6 at best now, not enough against 0/6
         + [("Mercury ... Neptune.", "stop"), ("x", "length"), ("x", "length")]
     )
     model = Scripted(lambda m, p: next(replies, ("x", "length")))
     result = counterfix.fix(cut_off(), judge=False, caller=model)
     assert result.fix is None and result.attempts[0].passed == 1
+    assert result.attempts[0].runs == 3
     assert "ask for a shorter answer" in result.escalation
 
 
@@ -158,3 +164,51 @@ def test_unreachable_model_stops_at_once_without_advice() -> None:
 
     later = counterfix.fix(cut_off(), judge=False, caller=Scripted(once_down), check_retry=False)
     assert later.unreachable is not None  # the very first call failed: treated as down
+
+
+def test_a_change_that_cannot_help_is_rarely_called_verified() -> None:
+    """A model that fails at random, whatever the request says: no change can help, so
+    every verified fix would be a false one. The old 2-of-3 rule called one verified in
+    roughly a third of searches at a 50% failure rate."""
+    import random
+
+    rng = random.Random(1)
+    record = CallRecord(
+        model="m",
+        messages=[Message(role="user", content="Return ONLY JSON with keys name and age.")],
+        response_text='Sure: {"name": "Priya", "age": ',
+        finish_reason="stop",
+    )
+
+    def coin(m: list[Message], p: dict[str, Any]) -> tuple[str, str]:
+        if rng.random() < 0.5:
+            return 'Sure: {"name": "Priya", "age": ', "stop"
+        return '{"name": "Priya", "age": 29}', "stop"
+
+    searches = 300
+    false = sum(
+        counterfix.fix(record, judge=False, caller=Scripted(coin), profile=None).fix is not None
+        for _ in range(searches)
+    )
+    assert false / searches < 0.05
+
+
+def test_verification_statistics() -> None:
+    from counterfix.verify import beatable, level, p_value, wins
+
+    at = level(0.05, 3)
+    assert round(p_value(0, 6, 6, 6), 4) == 0.0011
+    assert round(p_value(0, 6, 5, 6), 4) == 0.0076
+    assert round(p_value(0, 6, 4, 6), 4) == 0.0303
+    assert wins(0, 6, 5, 6, at) and not wins(0, 6, 4, 6, at)
+    assert wins(1, 6, 6, 6, at) and not wins(2, 6, 6, 6, at)
+    assert beatable(1, 6, 6, at) and not beatable(2, 2, 6, at)
+    assert not wins(0, 6, 0, 6, at)
+
+
+def test_need_is_ignored_with_a_warning() -> None:
+    import pytest
+
+    model = Scripted(lambda m, p: ("Mercury ... Neptune.", "stop"))
+    with pytest.warns(DeprecationWarning, match="need"):
+        counterfix.fix(cut_off(), judge=False, caller=model, need=2)

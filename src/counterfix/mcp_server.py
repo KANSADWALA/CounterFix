@@ -124,11 +124,12 @@ def fix_call(
     max_tokens: int | None = None,
     finish_reason: str | None = None,
     judge: bool = True,
-    max_runs: int = 9,
+    max_runs: int = 30,
 ) -> dict[str, Any]:
     """Search for a fix that works on re-run: re-run the call (model as provider:model, e.g.
     groq:openai/gpt-oss-120b) with one change at a time; a fix counts only if it passes
-    2 of 3 re-runs. Makes real model calls with your keys."""
+    clearly more often than re-running the call unchanged. Makes real model calls with
+    your keys."""
     from counterfix.engine import fix
     from counterfix.presets import load_env_file
 

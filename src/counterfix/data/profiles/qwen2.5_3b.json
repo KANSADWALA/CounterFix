@@ -28,10 +28,6 @@
   },
   "fixes": {
     "F1": {
-      "raise_max_tokens": [
-        0,
-        6
-      ],
       "raise_max_tokens_more": [
         6,
         6
@@ -45,25 +41,31 @@
     },
     "F8": {
       "work_it_out": [
-        2,
+        0,
         4
       ]
     },
     "F5": {
       "check_premises": [
-        0,
-        1
-      ]
-    },
-    "F4": {
-      "allow_unknown": [
         1,
         2
+      ]
+    },
+    "F3": {
+      "state_purpose": [
+        0,
+        1
       ]
     },
     "F9": {
       "add_detail": [
         1,
+        1
+      ]
+    },
+    "F4": {
+      "allow_unknown": [
+        0,
         1
       ]
     }

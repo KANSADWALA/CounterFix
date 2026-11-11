@@ -9,7 +9,8 @@ Every item is checked with the free live checks. Items that miss a metric are al
 diagnosed (with the judge when ``judge`` is set), so the report groups the misses by
 cause. With ``fix=N``, up to N missed items get a counterfactual fix search: a plain
 retry first, then one targeted change at a time, and a change counts only when the item
-passes its metrics in 2 of 3 re-runs with no new failure.
+passes its metrics with no new failure clearly more often than a plain retry (the test
+in :mod:`counterfix.verify`).
 """
 
 from __future__ import annotations
@@ -48,12 +49,19 @@ class FixTry(BaseModel):
     runs: int = 0
     passed: int = 0
     verified: bool = False
+    p_value: float | None = None
+    """For a change: the one-sided Fisher exact p-value against the plain retry."""
+    errors: int = 0
     changed: dict[str, Any] = Field(default_factory=dict)
     messages: list[Message] | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     why_not: list[str] = Field(default_factory=list)
     """Why runs that did not pass failed, one entry per reason per run, e.g.
     "latency over 5000" or "still F1"."""
+
+    @property
+    def observed(self) -> int:
+        return self.runs - self.errors
 
     def reasons(self) -> str:
         """The reasons, counted: 'latency over 5000 in 3/3, still F1 in 1/3'."""
@@ -289,15 +297,18 @@ def fix_item(
     diagnosis: Diagnosis,
     caller: ModelCaller,
     *,
-    runs: int = 3,
-    need: int = 2,
-    max_runs: int = 9,
+    runs: int = 6,
+    need: int | None = None,
+    max_runs: int = 30,
     must_clear: set[FailureType] | None = None,
     on_run: Callable[[int, str], None] | None = None,
+    alpha: float = 0.05,
 ) -> ItemFix:
-    """Search for a change that makes this item pass (2 of 3 re-runs).
+    """Search for a change that makes this item pass clearly more often than a plain
+    retry (see :mod:`counterfix.verify`; ``need`` is no longer used).
 
-    A plain retry runs first; if it already passes, no change is claimed. Then the
+    A plain retry runs first; if it passes too often for any change to beat, no change
+    is claimed. Then the
     engine's interventions for each cause found, most confident cause first. A run
     counts only when every metric passes and the live checks find nothing new; with
     ``must_clear`` (a flagged item, whose metrics already pass) those failure types must
@@ -305,12 +316,18 @@ def fix_item(
     """
     from counterfix.detectors import default_detectors
     from counterfix.engine import INTERVENTIONS
+    from counterfix.verify import beatable, level, p_value, settled
 
     result = ItemFix()
     checks = default_detectors()
     before = {f.failure_type for f in diagnosis.model_failures}
+    causes = {f.failure_type for f in diagnosis.model_failures}
+    at = level(alpha, sum(1 for i in INTERVENTIONS if i.failure_type in causes))
+    base = [0, 0]
 
-    def trial(attempt: FixTry, messages: list[Message], params: dict[str, Any]) -> FixTry:
+    def trial(
+        attempt: FixTry, messages: list[Message], params: dict[str, Any], is_retry: bool = False
+    ) -> FixTry:
         for _ in range(runs):
             if result.calls >= max_runs:
                 break
@@ -324,7 +341,8 @@ def fix_item(
                 raise
             except Exception as exc:
                 attempt.why_not.append(f"call failed ({type(exc).__name__})")
-                continue  # an unreadable run never counts as a pass
+                attempt.errors += 1
+                continue  # an unreadable run is not evidence either way
             new.metadata = {**record.metadata, **new.metadata, **attempt.metadata}
             left = {f.failure_type for f in run_detectors(new, checks, Config()).model_failures}
             still = (must_clear or set()) & left
@@ -335,14 +353,41 @@ def fix_item(
                 attempt.why_not += [_metric_miss(r) for r in results if r.passed is False]
                 attempt.why_not += [f"still {t.value}" for t in sorted(still, key=str)]
                 attempt.why_not += [f"new {t.value}" for t in sorted(left - before, key=str)]
-            if attempt.passed >= need or attempt.runs - attempt.passed > runs - need:
+            if is_retry:
+                if not beatable(attempt.passed, attempt.observed, runs, at):
+                    break
+            elif settled(
+                base[0],
+                base[1],
+                attempt.passed,
+                attempt.observed,
+                attempt.observed + (runs - attempt.runs),
+                at,
+            ):
                 break
-        attempt.verified = attempt.passed >= need
+        if is_retry:
+            attempt.verified = not beatable(attempt.passed, attempt.observed, runs, at)
+        else:
+            attempt.p_value = p_value(base[0], base[1], attempt.passed, attempt.observed)
+            attempt.verified = attempt.passed > 0 and attempt.p_value <= at
         return attempt
 
+    if need is not None:
+        import warnings
+
+        warnings.warn(
+            "fix_item(need=...) is ignored: a change is now verified when it beats the "
+            "plain retry (see counterfix.verify)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     result.retry = trial(
-        FixTry(name="plain_retry", description="Re-run unchanged"), record.messages, record.params
+        FixTry(name="plain_retry", description="Re-run unchanged"),
+        record.messages,
+        record.params,
+        is_retry=True,
     )
+    base[0], base[1] = result.retry.passed, result.retry.observed
     if result.retry.verified:
         result.note = "a plain retry passes: the failure was not repeatable"
         return result
@@ -373,7 +418,7 @@ def fix_item(
                 result.fix = attempt
                 result.note = "stopped at the first verified fix"
                 return result
-    result.note = result.note or "no change passed often enough"
+    result.note = result.note or "no change beat the plain retry clearly enough"
     return result
 
 
@@ -546,7 +591,7 @@ def evaluate(
     if judge is False and suite.get("judge") is not None:
         judge = suite["judge"]
     fix = fix or int(suite.get("fix") or 0)
-    max_runs = int(pick("max_runs", max_runs) or 9)
+    max_runs = int(pick("max_runs", max_runs) or 30)
     if isinstance(data, (str, Path)):
         rows: Sequence[Any] = read_rows(data)
         name = name or suite.get("name") or Path(data).stem

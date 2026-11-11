@@ -142,10 +142,9 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
 
 def cmd_fix(args: argparse.Namespace) -> int:
     """Run the counterfactual engine on every flagged call in a log; save what worked."""
-    from counterfix.core.caller import RateLimitedCaller
     from counterfix.diagnose import diagnose
     from counterfix.engine import fix
-    from counterfix.presets import load_env_file, make_caller, rpm_for
+    from counterfix.presets import load_env_file
     from counterfix.report import load_log
 
     load_env_file(Path.cwd() / ".env")
@@ -160,9 +159,7 @@ def cmd_fix(args: argparse.Namespace) -> int:
         if found is None:
             return 2
         judge = found
-    caller = None
-    if args.caller:
-        caller = RateLimitedCaller(make_caller(args.caller), rpm_for(args.caller))
+    caller = _rerun_caller(args.caller) if args.caller else None
     rows, fixed = [], 0
     for n, record in enumerate(records, 1):
         report = diagnose(record, judge=judge)
@@ -170,12 +167,20 @@ def cmd_fix(args: argparse.Namespace) -> int:
             continue
         try:
             result = fix(report, judge=judge, caller=caller, max_runs=args.max_runs)
-        except ValueError:
-            print(
-                f"Call {n} ({record.model or 'unknown model'}) cannot be re-run: the log does "
-                "not say which provider served it. Add --caller provider:model, e.g. "
-                "--caller groq:qwen/qwen3.8-27b"
+        except ValueError as exc:
+            # the API's own message mentions caller=...; say it in command-line terms
+            why = str(exc)
+            if "caller=" in why:
+                why = "the log does not say which provider served it"
+            hint = (
+                ""
+                if args.caller
+                else (
+                    " Add --caller provider:model or --caller MODEL@http://host/v1,"
+                    " e.g. --caller groq:qwen/qwen3.8-27b"
+                )
             )
+            print(f"Call {n} ({record.model or 'unknown model'}) cannot be re-run: {why}.{hint}")
             return 2
         fixed += result.fix is not None
         print(f"--- call {n} ({record.model})\n{result.explain()}\n")
@@ -402,11 +407,16 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
 
 def _rerun_caller(spec: str) -> Any:
+    """A paced caller for any model spec the CLI takes (provider:model, anthropic:model,
+    MODEL@http://host/v1); prints the problem and exits 2 on a spec it cannot use."""
     from counterfix.core.caller import RateLimitedCaller
-    from counterfix.presets import load_env_file, make_caller, rpm_for
+    from counterfix.presets import caller_for, pace_for
 
-    load_env_file(Path.cwd() / ".env")
-    return RateLimitedCaller(make_caller(spec, timeout=120), rpm_for(spec))
+    try:
+        return RateLimitedCaller(caller_for(spec, timeout=120), pace_for(spec))
+    except ValueError as exc:
+        print(f"cannot use the model {spec!r}: {exc}")
+        raise SystemExit(2) from None
 
 
 def _judge_arg(choice: str | None) -> Judge | bool | None:
@@ -677,9 +687,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_fix.add_argument("log", help="JSONL log of calls")
     p_fix.add_argument("--judge", nargs="?", const="auto", help="also fix judge-found failures")
     p_fix.add_argument(
-        "--caller", metavar="SPEC", help="re-run on this model, e.g. groq:qwen/qwen3.8-27b"
+        "--caller",
+        metavar="SPEC",
+        help="re-run on this model: provider:model, anthropic:MODEL or MODEL@http://host/v1",
     )
-    p_fix.add_argument("--max-runs", type=int, default=15, help="re-runs per call (default 15)")
+    p_fix.add_argument("--max-runs", type=int, default=30, help="re-runs per call (default 30)")
     p_fix.add_argument("--out", metavar="PATH", help="save results as JSON lines")
     p_fix.set_defaults(func=cmd_fix)
     p_export = sub.add_parser("export-tests", help="turn verified fixes into pytest cases")
@@ -741,7 +753,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_eval.add_argument("--limit", type=int, help="only the first N items")
     p_eval.add_argument("--judge", nargs="?", const="auto", help="diagnose misses with a judge")
     p_eval.add_argument("--fix", type=int, default=0, help="search fixes on up to N misses")
-    p_eval.add_argument("--max-runs", type=int, help="re-runs per fix search (default 9)")
+    p_eval.add_argument("--max-runs", type=int, help="re-runs per fix search (default 30)")
     p_eval.add_argument("--out", metavar="PATH", help="keep answers here; resumes a stopped run")
     p_eval.add_argument("--json", metavar="PATH", help="write the full result as JSON")
     p_eval.add_argument("--html", metavar="PATH", help="write a shareable HTML report")
@@ -770,7 +782,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_bench.add_argument("--param", action="append", help="request field, e.g. max_tokens=4096")
     p_bench.add_argument("--judge", nargs="?", const="auto", help="diagnose misses with a judge")
     p_bench.add_argument("--fix", type=int, default=0, help="search fixes on up to N misses")
-    p_bench.add_argument("--max-runs", type=int, help="re-runs per fix search (default 9)")
+    p_bench.add_argument("--max-runs", type=int, help="re-runs per fix search (default 30)")
     p_bench.add_argument("--samples", type=int, metavar="N", help="answers per question (pass@k)")
     p_bench.add_argument("--concurrency", type=int, metavar="N", help="N questions at once")
     p_bench.add_argument("--allow-code", action="store_true", help="run code (HumanEval+, MBPP+)")
