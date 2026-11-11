@@ -11,13 +11,19 @@ from counterfix.core.types import FailureType as F
 
 SUPERSEDES: dict[F, tuple[F, ...]] = {
     # a cut-off answer naturally breaks its format and its instructions
-    F.TRUNCATION: (F.FORMAT_BREAK, F.DROPPED_INSTRUCTION),
+    F.TRUNCATION: (F.FORMAT_BREAK, F.DROPPED_INSTRUCTION, F.CODE_FAILURE),
     # a refusal has no claims to check and follows no instructions
     F.OVER_REFUSAL: (F.FORMAT_BREAK, F.DROPPED_INSTRUCTION, F.HALLUCINATION),
     # a wrong calculation, verified in code, is not also a hallucination
     F.COMPUTATION: (F.HALLUCINATION,),
     # going along with a false premise produces false claims: the premise is the cause
-    F.FALSE_PREMISE: (F.HALLUCINATION,),
+    # and a request built on a false premise is not ambiguous: the premise is the cause
+    F.FALSE_PREMISE: (F.HALLUCINATION, F.AMBIGUITY),
+    # RAG: an unsupported claim is the symptom; the missing or ignored passage is the cause
+    F.RETRIEVAL_MISS: (F.HALLUCINATION, F.CONTEXT_IGNORED),
+    F.CONTEXT_IGNORED: (F.HALLUCINATION,),
+    # following a planted instruction: the dropped task or false text is the symptom
+    F.INJECTION_FOLLOWED: (F.HALLUCINATION, F.DROPPED_INSTRUCTION, F.CONTEXT_IGNORED),
 }
 MIN_CONFIDENCE = 0.5
 """A finding must be at least this confident to suppress another one."""

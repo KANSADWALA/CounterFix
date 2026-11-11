@@ -24,9 +24,33 @@ _current: ContextVar[dict[str, Any] | None] = ContextVar("counterfix_context", d
 
 
 @contextmanager
-def context(*, source: str | None = None, reference: str | None = None) -> Iterator[None]:
-    """Attach a retrieved source and/or a reference answer to the calls in this block."""
-    extra = {k: v for k, v in ((CONTEXT_KEY, source), (REFERENCE_KEY, reference)) if v}
+def context(
+    *,
+    source: str | None = None,
+    reference: str | None = None,
+    chunks: Any = None,
+    relevant: Any = None,
+) -> Iterator[None]:
+    """Attach a retrieved source and/or a reference answer to the calls in this block.
+
+    ``chunks`` are the retrieved passages in rank order (strings, dicts, LangChain
+    Documents, LlamaIndex nodes or a LlamaIndex Response); they also become ``source``.
+    ``relevant`` are gold labels (ids or passage texts) for the retrieval metrics.
+    """
+    extra: dict[str, Any] = {
+        k: v for k, v in ((CONTEXT_KEY, source), (REFERENCE_KEY, reference)) if v
+    }
+    if chunks is not None:
+        from counterfix.rag import CHUNKS_KEY, joined, to_chunks
+
+        found = to_chunks(chunks)
+        extra[CHUNKS_KEY] = [c.model_dump() for c in found]
+        if found:
+            extra.setdefault(CONTEXT_KEY, joined(found))
+    if relevant is not None:
+        from counterfix.rag import RELEVANT_KEY
+
+        extra[RELEVANT_KEY] = relevant
     token = _current.set({**(_current.get() or {}), **extra})
     try:
         yield

@@ -39,10 +39,11 @@ def test_builtin_rules_and_apply() -> None:
     store = RuleStore()
     rule = store.find(FailureType.TRUNCATION, "any-model")
     assert rule is not None
-    assert rule.apply({"max_tokens": 40}) == {"max_tokens": 160}
+    assert rule.apply({"max_tokens": 40}) == {"max_tokens": 1024}  # at least 1024
+    assert rule.apply({"max_tokens": 500}) == {"max_tokens": 2000}  # 4x above the floor
     assert rule.apply({}) == {"max_tokens": 4096}  # default for a missing limit
     assert rule.apply({"max_tokens": 20000}) == {"max_tokens": 32768}  # capped
-    assert rule.changes({"max_tokens": 40, "temperature": 0}) == {"max_tokens": 160}
+    assert rule.changes({"max_tokens": 40, "temperature": 0}) == {"max_tokens": 1024}
     assert store.find(FailureType.FALSE_PREMISE, "m") is None
 
 
@@ -113,11 +114,11 @@ def test_retry_fixes_truncation_and_returns_better_response() -> None:
     fake = Scripted(needs_tokens(100))
     client = guard(FakeClient(fake), config=Config(mode="retry"))  # type: ignore[arg-type]
     response = client.chat.completions.create(model="m", messages=[], max_tokens=40)
-    assert [c["max_tokens"] for c in fake.calls] == [40, 160]
+    assert [c["max_tokens"] for c in fake.calls] == [40, 1024]  # 4x, at least 1024
     assert response.choices[0].message.content.endswith("finished.")
     assert response.diagnosis.ok
     [attempt] = response.diagnosis.retries
-    assert attempt.outcome == "fixed" and attempt.changes == {"max_tokens": 160}
+    assert attempt.outcome == "fixed" and attempt.changes == {"max_tokens": 1024}
     assert attempt.source == "prescription"
     assert [f.failure_type for f in response.diagnosis.retried_from] == [FailureType.TRUNCATION]
 
@@ -139,8 +140,8 @@ def test_retry_respects_budget_and_can_chain() -> None:
         config=Config(mode="retry", max_extra_calls=3),  # type: ignore[arg-type]
     )
     response = client.chat.completions.create(model="m", messages=[], max_tokens=40)
-    # 40 -> 160 (still cut: no_better, stop). Chaining continues only after an improvement.
-    assert [c["max_tokens"] for c in fake.calls] == [40, 160]
+    # 40 -> 1024 (still cut: no_better, stop). Chaining continues only after an improvement.
+    assert [c["max_tokens"] for c in fake.calls] == [40, 1024]
     assert response.diagnosis.retries[0].outcome == "no_better"
 
 

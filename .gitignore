@@ -27,3 +27,7 @@ drafts/
 tmp_unused/
 bench/results/judges_run1_before_fixes.*
 bench/results/judges_run2.*
+bench/results/lm_eval_parity_*_answers.jsonl
+bench/results/lm_eval_parity_*.json
+bench/results/lm_eval_parity/
+bench/results/lm_eval_parity_last.md

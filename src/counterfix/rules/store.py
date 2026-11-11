@@ -16,13 +16,15 @@ from pydantic import BaseModel, Field
 from counterfix.core.types import FailureType
 
 DEFAULTS_FOR_MISSING: dict[str, float] = {"max_tokens": 1024}
+_LIMIT_ALIASES = ("max_completion_tokens", "max_output_tokens")
 
 
 class FixRule(BaseModel):
     """A parameter change that fixes one failure type for models matching ``model``.
 
     ``model`` is a glob pattern (``*`` matches anything, e.g. ``openai/gpt-oss-*``).
-    ``set`` replaces parameters; ``multiply`` scales numeric ones (capped by ``cap``).
+    ``set`` replaces parameters; ``multiply`` scales numeric ones (at least ``floor``,
+    at most ``cap``).
     """
 
     failure_type: FailureType
@@ -31,6 +33,7 @@ class FixRule(BaseModel):
     set: dict[str, Any] = Field(default_factory=dict)
     multiply: dict[str, float] = Field(default_factory=dict)
     cap: dict[str, float] = Field(default_factory=dict)
+    floor: dict[str, float] = Field(default_factory=dict)
     source: str = "builtin"
 
     def matches(self, failure_type: FailureType, model: str | None) -> bool:
@@ -46,11 +49,23 @@ class FixRule(BaseModel):
         new = dict(params)
         new.update(self.set)
         for key, factor in self.multiply.items():
-            base = new.get(key, DEFAULTS_FOR_MISSING.get(key))
+            if key == "max_tokens" and key not in new:  # the limit under its newer name
+                key = next((k for k in _LIMIT_ALIASES if k in new), key)
+            base = new.get(
+                key, DEFAULTS_FOR_MISSING.get("max_tokens" if key in _LIMIT_ALIASES else key)
+            )
             if isinstance(base, int | float) and not isinstance(base, bool):
                 value = base * factor
-                if key in self.cap:
-                    value = min(value, self.cap[key])
+                cap = self.cap.get(
+                    key, self.cap.get("max_tokens") if key in _LIMIT_ALIASES else None
+                )
+                floor = self.floor.get(
+                    key, self.floor.get("max_tokens") if key in _LIMIT_ALIASES else None
+                )
+                if floor is not None:
+                    value = max(value, floor)
+                if cap is not None:
+                    value = min(value, cap)
                 new[key] = int(value) if isinstance(base, int) else value
         return new
 
@@ -63,8 +78,11 @@ class FixRule(BaseModel):
 BUILTIN_RULES: tuple[FixRule, ...] = (
     FixRule(
         failure_type=FailureType.TRUNCATION,
-        description="Raise max_tokens 4x (capped at 32768)",
+        # a small first raise (5 -> 20) rarely helps, and reasoning models spend the
+        # budget before answering; a limit is a ceiling, so a short answer costs no more
+        description="Raise max_tokens 4x, to at least 1024 (at most 32768)",
         multiply={"max_tokens": 4},
+        floor={"max_tokens": 1024},
         cap={"max_tokens": 32768},
     ),
     FixRule(

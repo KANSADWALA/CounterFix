@@ -20,8 +20,20 @@ American spelling, banned words, "end with a question", "only the number" and si
 ## One mistake, one cause
 
 A wrong calculation is reported as F8, not also as an invented fact (F4); a cut-off answer
-as F1, not also as dropped instructions (F6). Findings set aside are kept in
-`report.suppressed`.
+as F1, not also as dropped instructions (F6) or failing code (F12). The full rules, root
+cause first:
+
+| Root cause | Sets aside |
+| --- | --- |
+| F1 truncation | F2, F6, F12 |
+| F3 over-refusal | F2, F4, F6 |
+| F5 false premise | F4, F9 |
+| F8 computation | F4 |
+| F10 retrieval miss | F4, F11 |
+| F11 context ignored | F4 |
+| F13 followed an injection | F4, F6, F11 |
+
+Findings set aside are kept in `report.suppressed`.
 
 The F8 check never trusts the judge's arithmetic: the judge writes one expression and
 counterfix evaluates it with a small whitelist-only evaluator.

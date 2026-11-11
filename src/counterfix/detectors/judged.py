@@ -386,6 +386,10 @@ class ComputationCheck(_JudgeCheck):
 
 def judge_detectors(judge: Judge) -> list[Detector]:
     """All judge-based checks, sharing one judge (a single LLM or a panel)."""
+    from counterfix.detectors.injection import InjectionCheck
+    from counterfix.detectors.rag import ContextUseCheck
+    from counterfix.detectors.tools import AgentTaskCheck
+
     return [
         OverRefusalCheck(judge),
         HallucinationCheck(judge),
@@ -393,4 +397,7 @@ def judge_detectors(judge: Judge) -> list[Detector]:
         DroppedInstructionCheck(judge),
         ComputationCheck(judge),
         AmbiguityCheck(judge),
+        ContextUseCheck(judge),  # skips calls without retrieved passages (no judge call)
+        InjectionCheck(judge),  # skips calls without retrieved text or tool results
+        AgentTaskCheck(judge),  # skips calls that are not agent runs
     ]

@@ -81,7 +81,7 @@ class Diagnosis(BaseModel):
 
     @property
     def model_failures(self) -> list[Finding]:
-        """Findings of type F1 to F9 (excludes infrastructure, filter and empty output)."""
+        """Findings of type F1 to F12 (excludes infrastructure, filter and empty output)."""
         return [f for f in self.findings if f.failure_type.is_model_failure]
 
     @property

@@ -59,14 +59,14 @@ class TruncationDetector:
                     "Raise max_tokens (reasoning counts against it), or lower reasoning "
                     "effort if the provider supports it"
                 ),
-                patch={"max_tokens": _raised_limit(limit, 8)},
+                patch={record.limit_key: _raised_limit(limit, 8)},
             )
         else:
             detail = f"the answer stopped at the max_tokens limit ({limit})"
             fix = Prescription(
                 kind=PrescriptionKind.PARAM_CHANGE,
                 description="Raise max_tokens, or ask for a shorter answer",
-                patch={"max_tokens": _raised_limit(limit, 4)},
+                patch={record.limit_key: _raised_limit(limit, 4)},
             )
         if inferred:
             detail += "; inferred, the provider gave no stop reason"

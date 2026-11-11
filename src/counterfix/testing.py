@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from counterfix.core.caller import ModelCaller
 from counterfix.core.diagnosis import Diagnosis
@@ -37,7 +37,7 @@ from counterfix.core.record import CallRecord, Message
 
 
 def assert_ok(target: Any, *, judge: Any = False, allow: tuple[str, ...] = ()) -> Diagnosis:
-    """Fail the test if counterfix finds a model failure (F1 to F9) in this call.
+    """Fail the test if counterfix finds a model failure (F1 to F14) in this call.
 
     ``target`` is a guarded response, a Diagnosis or a CallRecord; ``judge`` as in
     :func:`counterfix.diagnose` (live checks only by default); ``allow`` lists failure
@@ -51,6 +51,38 @@ def assert_ok(target: Any, *, judge: Any = False, allow: tuple[str, ...] = ()) -
     if bad:
         raise AssertionError("counterfix found a failure:\n" + report.explain())
     return report
+
+
+_OPS: dict[str, Any] = {
+    ">=": lambda a, b: a >= b,
+    ">": lambda a, b: a > b,
+    "<=": lambda a, b: a <= b,
+    "<": lambda a, b: a < b,
+}
+
+
+def assert_metric(result: Any, name: str, op: str, value: float, *, of: str = "auto") -> float:
+    """Fail the test unless an eval metric meets a bar, e.g.
+    ``assert_metric(counterfix.evaluate(...), "exact_match", ">=", 0.8)``.
+
+    ``of`` picks the number: "pass_rate", "mean", or "auto" (the pass rate when the
+    metric has a threshold, else the mean). Returns the number checked.
+    """
+    if op not in _OPS:
+        raise ValueError(f"op must be one of {', '.join(_OPS)}")
+    summary = result.metric(name)
+    if of == "auto":
+        of = "pass_rate" if summary.pass_rate is not None else "mean"
+    got: float | None = summary.pass_rate if of == "pass_rate" else summary.mean
+    if got is None or not _OPS[op](got, value):
+        missed = "\n".join(
+            f"  {i.id}: " + "; ".join(r.reason for r in i.metrics if r.name == name)
+            for i in result.failed[:10]
+        )
+        raise AssertionError(
+            f"{name} {of} is {got}, expected {op} {value} ({len(result.failed)} missed)\n{missed}"
+        )
+    return got
 
 
 def case_from_fix(row: dict[str, Any]) -> dict[str, Any] | None:
@@ -119,22 +151,11 @@ def load_cases(path: str | Path) -> list[dict[str, Any]]:
 
 
 def caller_from_spec(spec: str) -> ModelCaller:
-    """A caller from ``provider:model`` or ``MODEL@http(s)://base-url`` (OpenAI-compatible;
-    the key comes from ``OPENAI_API_KEY`` if set)."""
-    import os
+    """A caller from ``provider:model``, ``anthropic:model`` or ``MODEL@http(s)://base-url``
+    (OpenAI-compatible; the key comes from ``OPENAI_API_KEY`` if set)."""
+    from counterfix.presets import caller_for
 
-    from counterfix.presets import load_env_file, make_caller
-
-    load_env_file(Path.cwd() / ".env")
-    if "@http" in spec:
-        from openai import OpenAI
-
-        from counterfix.core.caller import OpenAICompatibleCaller
-
-        model, base_url = spec.split("@", 1)
-        client = OpenAI(base_url=base_url, api_key=os.environ.get("OPENAI_API_KEY") or "none")
-        return OpenAICompatibleCaller(client, model, provider=base_url)
-    return make_caller(spec)
+    return cast(ModelCaller, caller_for(spec))
 
 
 def _default_caller(case: dict[str, Any]) -> ModelCaller | None:

@@ -16,6 +16,18 @@ if TYPE_CHECKING:
 DiagnosisHook = Callable[[CallRecord, Diagnosis], None]
 
 
+def hooks(*fns: DiagnosisHook | None) -> DiagnosisHook:
+    """Run several ``on_diagnosis`` hooks in order, e.g. a log and OpenTelemetry metrics:
+    ``Config(on_diagnosis=hooks(log_to("calls.jsonl"), otel.metrics()))``."""
+    chosen = [f for f in fns if f is not None]
+
+    def run(record: CallRecord, diagnosis: Diagnosis) -> None:
+        for fn in chosen:
+            fn(record, diagnosis)
+
+    return run
+
+
 class Config(BaseModel):
     """Settings shared by the live guard and the diagnosis engine.
 

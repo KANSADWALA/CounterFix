@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from counterfix._suggest import did_you_mean
 from counterfix.core.caller import OpenAICompatibleCaller
 
 # provider -> (base_url or None for the SDK default, API key variable or None, default model)
@@ -77,7 +78,10 @@ def load_env_file(path: str | Path) -> None:
 def make_client(provider: str, *, timeout: float | None = None, max_retries: int = 1) -> Any:
     """An ``openai.OpenAI`` client for a preset provider. Raises if the key is missing."""
     if provider not in PRESETS:
-        raise ValueError(f"unknown provider {provider!r}; choose from {', '.join(PRESETS)}")
+        raise ValueError(
+            f"unknown provider {provider!r}{did_you_mean(provider, PRESETS)}; "
+            f"choose from {', '.join(PRESETS)}"
+        )
     try:
         from openai import OpenAI
     except ImportError as exc:
@@ -98,7 +102,10 @@ def parse_spec(spec: str) -> tuple[str, str]:
     """'groq:openai/gpt-oss-20b' -> ('groq', 'openai/gpt-oss-20b'); 'groq' -> default model."""
     provider, _, model = spec.partition(":")
     if provider not in PRESETS:
-        raise ValueError(f"unknown provider in {spec!r}; choose from {', '.join(PRESETS)}")
+        raise ValueError(
+            f"unknown provider in {spec!r}{did_you_mean(spec.split(':')[0], PRESETS)}; choose "
+            f"from {', '.join(PRESETS)}, anthropic:MODEL, or MODEL@http://host/v1"
+        )
     return provider, model or PRESETS[provider][2]
 
 
@@ -106,3 +113,48 @@ def make_caller(spec: str, *, timeout: float | None = None) -> OpenAICompatibleC
     """A ModelCaller from a 'provider:model' spec."""
     provider, model = parse_spec(spec)
     return OpenAICompatibleCaller(make_client(provider, timeout=timeout), model, provider=provider)
+
+
+def caller_for(spec: str, *, timeout: float | None = None) -> Any:
+    """A ModelCaller from any spec counterfix takes on the command line:
+
+    - ``provider:model`` for a preset (groq, gemini, ollama, openai, openrouter);
+    - ``anthropic:model`` for Claude through the Anthropic SDK (``ANTHROPIC_API_KEY``);
+    - ``MODEL@http(s)://base-url`` for any OpenAI-compatible server (vLLM, LM Studio,
+      LiteLLM proxy, Azure OpenAI's ``/openai/v1`` endpoint ...); the key comes from
+      ``OPENAI_API_KEY`` if set.
+    """
+    load_env_file(Path.cwd() / ".env")
+    if "@http" in spec:
+        from openai import OpenAI
+
+        model, base_url = spec.split("@", 1)
+        client = OpenAI(
+            base_url=base_url,
+            api_key=os.environ.get("OPENAI_API_KEY") or "none",
+            timeout=timeout or 60.0,
+            max_retries=1,
+        )
+        return OpenAICompatibleCaller(client, model, provider=base_url)
+    provider, _, model = spec.partition(":")
+    if provider == "anthropic":
+        try:
+            from anthropic import Anthropic
+        except ImportError as exc:
+            raise ImportError("this needs the Anthropic SDK: pip install anthropic") from exc
+        from counterfix.adapters.anthropic import AnthropicCaller
+
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise RuntimeError("set ANTHROPIC_API_KEY in your environment or .env file")
+        if not model:
+            raise ValueError("give the model: anthropic:<model name>")
+        return AnthropicCaller(Anthropic(timeout=timeout or 60.0, max_retries=1), model)
+    return make_caller(spec, timeout=timeout)
+
+
+def pace_for(spec: str) -> float:
+    """Requests per minute for a spec; 0 (no pacing) for specs without a preset."""
+    try:
+        return rpm_for(spec)
+    except ValueError:
+        return 0.0

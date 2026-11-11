@@ -2,8 +2,8 @@
 
 **Find why an LLM call failed, and get a fix that was tested to work.**
 
-Most LLM tools tell you *that* a call failed. counterfix tells you *why* (one of nine
-failure types, F1 to F9) and hands back a fix it has already re-run and checked: it
+Most LLM tools tell you *that* a call failed. counterfix tells you *why* (one of fourteen
+failure types, F1 to F14) and hands back a fix it has already re-run and checked: it
 changes one thing at a time, re-runs the call, and keeps only the change that made the
 failure go away in 2 of 3 runs. The change that fixes the failure is both the diagnosis
 and the prescription.
@@ -55,3 +55,9 @@ print(result.explain())  # what was tried, what passed, the change to make
 It plugs into OpenAI-compatible clients (OpenAI, Groq, Gemini, OpenRouter, Ollama, vLLM),
 the Anthropic SDK, LiteLLM, LangChain, OpenTelemetry GenAI spans, or any function via a
 decorator. See [Plug it in](plugs.md).
+
+Beyond single calls: [evaluate a dataset](evals.md) or your own app, [RAG
+evaluation](rag.md) (retriever or model at fault), [code evaluation](code.md) (sandboxed
+tests, pass@k), [benchmarks](benchmarks.md) (MMLU, GSM8K, ARC, TruthfulQA, IFEval,
+HumanEval, MBPP), [safety](safety.md) (prompt injection, personal data, toxicity), and [agents](agents.md)
+(tool choice, loops, task success). Every miss gets a cause and, where one works, a verified fix.

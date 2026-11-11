@@ -40,7 +40,11 @@ from counterfix.detectors.judged import answer_contains  # noqa: E402
 LABEL_DIR = ROOT / "bench" / "labels"
 LABELS = LABEL_DIR / "labels.jsonl"  # your own labels (and --auto labels); always win
 HUMAN_SOURCES = {"human", "human-review"}
-CODES = {t.value for t in FailureType if t.is_model_failure}
+CODES = {
+    t.value
+    for t in FailureType
+    if t.is_model_failure and not (t.is_rag or t.is_code or t.is_injection or t.is_tool)
+}
 HELP = (
     "codes F1-F9 comma-separated | Enter = accept suggestion | n = no failure | s = skip | "
     "u = undo | ? = code table | q = quit"

@@ -6,9 +6,13 @@ from conftest import make_response
 from counterfix import CallRecord, Diagnosis, FailureType, Finding, Message, record_from_openai
 
 
-def test_model_failure_types_are_f1_to_f9() -> None:
+def test_model_failure_types_are_f1_to_f14() -> None:
     model = [t for t in FailureType if t.is_model_failure]
-    assert [t.value for t in model] == [f"F{i}" for i in range(1, 10)]
+    assert [t.value for t in model] == [f"F{i}" for i in range(1, 15)]
+    assert [t.value for t in FailureType if t.is_tool] == ["F14"]
+    assert [t.value for t in FailureType if t.is_injection] == ["F13"]
+    assert [t.value for t in FailureType if t.is_code] == ["F12"]
+    assert [t.value for t in FailureType if t.is_rag] == ["F10", "F11"]
     assert not FailureType.INFRASTRUCTURE.is_model_failure
     assert not FailureType.PROVIDER_FILTER.is_model_failure
     assert all(t.label for t in FailureType)

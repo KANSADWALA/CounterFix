@@ -28,6 +28,14 @@ nav:
       - Plug it in: plugs.md
       - Diagnose a call: diagnose.md
       - Verified fixes: fixes.md
+      - Evaluate a dataset: evals.md
+      - RAG evaluation: rag.md
+      - Code evaluation: code.md
+      - Benchmarks: benchmarks.md
+      - Safety and injection: safety.md
+      - Agents and tool calls: agents.md
+      - Confidence and perplexity: confidence.md
+      - Speed and cost: speed.md
       - In production: production.md
       - Prompt regression tests: testing.md
       - Model profiles: profiles.md
@@ -44,4 +52,9 @@ nav:
       - F7 Prompt fragility: failures/F7.md
       - F8 Computation error: failures/F8.md
       - F9 Ambiguous request: failures/F9.md
+      - F10 Retrieval miss: failures/F10.md
+      - F11 Context ignored: failures/F11.md
+      - F12 Code fails its tests: failures/F12.md
+      - F13 Prompt injection: failures/F13.md
+      - F14 Tool misuse: failures/F14.md
   - Measured results: results.md

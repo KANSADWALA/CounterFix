@@ -174,12 +174,8 @@ class FormatDetector:
                     )
                 )
                 continue
-            schema = schemas.get(name)
-            if name not in schemas and schemas:
-                problems.append(
-                    Evidence(detector=self.name, detail=f"tool {name!r} was not offered")
-                )
-            elif isinstance(schema, dict):
+            schema = schemas.get(name)  # a tool that was not offered is F14 (tool use)
+            if isinstance(schema, dict):
                 error = next(iter(jsonschema.Draft202012Validator(schema).iter_errors(args)), None)
                 if error is not None:
                     problems.append(

@@ -38,7 +38,8 @@ judged and skipped. Call `counterfix.background.flush()` before a short script e
 ## Automatic retry
 
 `Config(mode="retry")` re-runs a failed call once with a known parameter fix (for example
-a larger `max_tokens`), keeps whichever response is better, and records the attempt in
+`max_tokens` raised 4x and to at least 1,024: a limit is a ceiling, so a short answer costs
+no more), keeps whichever response is better, and records the attempt in
 `diagnosis.retries`. It never raises if the retry fails. Add your own per-model fixes with
 `RuleStore` and `FixRule`.
 

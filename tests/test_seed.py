@@ -14,7 +14,9 @@ def test_seed_loads_and_covers_every_failure_type() -> None:
     assert len({i.id for i in items}) == len(items)
     counts = Counter(i.failure_type for i in items)
     for ft in FailureType:
-        if ft.is_model_failure:
+        if ft.is_model_failure and not (
+            ft.is_rag or ft.is_code or ft.is_injection or ft.is_tool
+        ):  # own sets and checks
             assert counts[ft] >= 5, ft
     for item in items:
         assert item.id.startswith(item.failure_type.value + "-")

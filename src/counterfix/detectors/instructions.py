@@ -786,6 +786,19 @@ def mentions(constraint: Constraint, text: str) -> bool:
 # --- the detector -------------------------------------------------------------------------
 
 
+def _instruction_text(record: CallRecord) -> str:
+    """The instructions the app and the user gave: system and user text, without retrieved
+    passages pasted into the prompt. Instructions inside retrieved text are not the user's;
+    following them is F13 (prompt injection), ignoring them is right."""
+    from counterfix.judges.tasks import CONTEXT_KEY
+
+    text = f"{record.system_text}\n{record.prompt_text}"
+    context = record.metadata.get(CONTEXT_KEY)
+    if isinstance(context, str) and context.strip():
+        text = text.replace(context, "")
+    return text
+
+
 class InstructionCheck:
     """F6: the answer breaks an instruction that code can verify exactly. No LLM calls."""
 
@@ -793,7 +806,7 @@ class InstructionCheck:
     covers = (FailureType.DROPPED_INSTRUCTION,)
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        constraints = extract_constraints(f"{record.system_text}\n{record.prompt_text}")
+        constraints = extract_constraints(_instruction_text(record))
         if not constraints:
             raise SkipCheck("no instructions that code can check")
         if (record.finish_reason or "").lower() in LENGTH_REASONS:

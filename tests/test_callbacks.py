@@ -88,3 +88,25 @@ def test_langchain_callback_with_a_real_chat_model() -> None:
     reply = llm.invoke("Answer in exactly one word: sky colour?", config={"callbacks": [handler]})
     assert reply.content.startswith("The sky")
     assert handler.last_diagnosis.top.failure_type is FailureType.DROPPED_INSTRUCTION
+
+
+def test_callbacks_time_streams(monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_module(monkeypatch, "langchain_core.callbacks", BaseCallbackHandler=Base)
+    seen: list[Any] = []
+    handler = counterfix.langchain_callback(config=Config(on_diagnosis=lambda r, d: seen.append(r)))
+    handler.on_llm_start({}, ["Say hi"], run_id=7)
+    handler.on_llm_new_token("Hi", run_id=7)
+    handler.on_llm_new_token(".", run_id=7)
+    handler.on_llm_end(_lc_result("Hi.", "stop"), run_id=7)
+    assert seen[0].timing.ttft_ms is not None and seen[0].timing.chunks == 2
+
+    _fake_module(monkeypatch, "litellm.integrations.custom_logger", CustomLogger=Base)
+    got: list[Any] = []
+    lite = counterfix.litellm_callback(config=Config(on_diagnosis=lambda r, d: got.append(r)))
+    start = datetime(2026, 11, 9)
+    kwargs = {
+        "model": "m", "messages": [{"role": "user", "content": "hi"}], "stream": True,
+        "completion_start_time": start + timedelta(milliseconds=300),
+    }  # fmt: skip
+    lite.log_success_event(kwargs, make_response("Hi."), start, start + timedelta(seconds=1))
+    assert got[0].timing.ttft_ms == 300 and got[0].timing.last_chunk_ms == 1000

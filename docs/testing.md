@@ -11,7 +11,7 @@ from counterfix.testing import assert_ok
 
 def test_summary_prompt():
     response = client.chat.completions.create(model="gpt-4o-mini", messages=[...])
-    assert_ok(response)  # fails with the explanation if F1-F9 is found
+    assert_ok(response)  # fails with the explanation if F1-F14 is found
     assert_ok(response, judge=True)  # also judge checks
 ```
 

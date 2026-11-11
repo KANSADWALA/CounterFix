@@ -1,4 +1,5 @@
-"""Command line: ``counterfix lint FILE...``, ``counterfix diagnose LOG``, ``counterfix setup``.
+"""Command line: ``counterfix lint FILE...``, ``counterfix diagnose LOG``, ``counterfix eval DATA``,
+``counterfix setup``.
 
 Accepted files:
   * .txt / .md      the whole file is one user prompt
@@ -206,6 +207,200 @@ def cmd_export_tests(args: argparse.Namespace) -> int:
     return 0
 
 
+def _key_values(pairs: Sequence[str] | None, what: str) -> dict[str, Any]:
+    """["max_tokens=512", "temperature=0"] -> {"max_tokens": 512, "temperature": 0}."""
+    out: dict[str, Any] = {}
+    for pair in pairs or []:
+        key, sep, value = pair.partition("=")
+        if not sep:
+            raise ValueError(f"{what} needs NAME=VALUE, got {pair!r}")
+        try:
+            out[key.strip()] = json.loads(value)
+        except json.JSONDecodeError:
+            out[key.strip()] = value
+    return out
+
+
+def _no_answers(result: Any) -> str:
+    """A message when no item got an answer (every call failed): a CI gate must not pass."""
+    if result.items and all(i.record.error is not None for i in result.items):
+        first = result.items[0].record.error or ""
+        return f"\nERROR: no item got an answer; every call failed (first: {first[:200]})"
+    return ""
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    """Run a model over a dataset, score it, explain the misses, verify fixes."""
+    from counterfix.evals import evaluate
+    from counterfix.evals.data import is_suite, load_suite
+
+    try:
+        params = _key_values(args.param, "--param") or None
+        gates = _key_values(args.fail_under, "--fail-under")
+        if is_suite(args.data):
+            gates = {**load_suite(args.data).get("fail_under", {}), **gates}
+    except (ValueError, OSError) as exc:
+        print(exc)
+        return 2
+    judge: Any = False
+    if args.judge:
+        judge = _cli_judge(args.judge)
+        if judge is None:
+            return 2
+    if args.allow_code or args.sandbox:
+        import os
+
+        from counterfix.code.sandbox import ALLOW_ENV, SANDBOX_ENV
+
+        if args.allow_code:
+            os.environ[ALLOW_ENV] = "1"
+        if args.sandbox:
+            os.environ[SANDBOX_ENV] = args.sandbox
+    app = None
+    if args.app:
+        try:
+            from counterfix.evals.data import load_callable
+
+            app = load_callable(args.app)
+        except (ValueError, ImportError, AttributeError) as exc:
+            print(f"--app {args.app}: {exc}")
+            return 2
+
+    def progress(n: int, total: int, label: str) -> None:
+        # a fix-search label is long; an item id is short. Pad to wipe the previous line.
+        text = (
+            f"{n}/{total} {label}"
+            if label.startswith("fix search")
+            else f"item {n}/{total} {label[:30]}"
+        )
+        print(f"\r{text[:110]:<110}", end="", file=sys.stderr, flush=True)
+
+    try:
+        result = evaluate(
+            args.data,
+            model=args.model,
+            metrics=args.metric,
+            judge=judge,
+            fix=args.fix,
+            max_runs=args.max_runs,
+            input=args.input,
+            reference=args.reference,
+            template=args.template,
+            system=args.system,
+            params=params,
+            limit=args.limit,
+            out=args.out,
+            progress=progress,
+            app=app,
+            concurrency=args.concurrency,
+            samples=args.samples,
+        )
+    except (ValueError, OSError, ImportError, RuntimeError) as exc:  # incl. NoJudgeError
+        print(file=sys.stderr)
+        print(exc)
+        return 2
+    print(file=sys.stderr)
+    print(result.text())
+    if args.json:
+        result.save(args.json)
+        print(f"\nResult written to {args.json}")
+    if args.html:
+        Path(args.html).write_text(result.html(), encoding="utf-8")
+        print(f"\nHTML report written to {args.html}")
+    broken = _no_answers(result)
+    if broken:
+        print(broken)
+        return 2
+    failed_gates = []
+    for name, floor in gates.items():
+        try:
+            summary = result.metric(name)
+        except KeyError as exc:
+            print(exc)
+            return 2
+        value = summary.pass_rate if summary.pass_rate is not None else summary.mean
+        if value is None or value < float(floor):
+            failed_gates.append(f"{name} {value} < {floor}")
+    strict = args.fail_on_flagged or (
+        is_suite(args.data) and load_suite(args.data).get("fail_on_flagged")
+    )
+    if strict and result.flagged:
+        causes = ", ".join(f"{c} {k}" for c, k in result.flagged_by_cause.items())
+        failed_gates.append(f"{len(result.flagged)} item(s) flagged by live checks ({causes})")
+    if failed_gates:
+        print("\nFAILED: " + "; ".join(failed_gates))
+        return 1
+    return 0
+
+
+def cmd_benchmark(args: argparse.Namespace) -> int:
+    """Run a standard benchmark on a model, with the misses explained."""
+    from counterfix.benchmarks import BENCHMARKS, run_benchmark
+
+    if args.list or not args.name:
+        print("benchmarks (data downloaded when run; licence from each dataset card):")
+        for b in BENCHMARKS.values():
+            extra = "" if b.extra == "core" else f"  [needs counterfix[{b.extra}]"
+            extra += (", --allow-code]" if b.runs_code else "]") if extra else ""
+            print(f"  {b.name:<12} {b.title}\n  {'':<12} {b.source} · {b.licence}{extra}")
+        return 0
+    if not args.model and not args.app:
+        print("give --model SPEC (or --app MODULE:FN)")
+        return 2
+    import os
+
+    from counterfix.code.sandbox import ALLOW_ENV, SANDBOX_ENV
+
+    if args.allow_code:
+        os.environ[ALLOW_ENV] = "1"
+    if args.sandbox:
+        os.environ[SANDBOX_ENV] = args.sandbox
+    judge: Any = False
+    if args.judge:
+        judge = _cli_judge(args.judge)
+        if judge is None:
+            return 2
+    app = None
+    try:
+        if args.app:
+            from counterfix.evals.data import load_callable
+
+            app = load_callable(args.app)
+        params = _key_values(args.param, "--param") or None
+    except (ValueError, ImportError, AttributeError) as exc:
+        print(exc)
+        return 2
+
+    def progress(n: int, total: int, label: str) -> None:
+        text = f"{n}/{total} {label}" if label.startswith("fix search") else f"item {n}/{total}"
+        print(f"\r{text[:110]:<110}", end="", file=sys.stderr, flush=True)
+
+    try:
+        result = run_benchmark(
+            args.name, model=args.model, app=app, limit=args.limit, per_group=args.per_group,
+            seed=args.seed, params=params, judge=judge, fix=args.fix, max_runs=args.max_runs,
+            out=args.out, concurrency=args.concurrency, samples=args.samples,
+            progress=progress,
+        )  # fmt: skip
+    except (ValueError, OSError, ImportError, RuntimeError) as exc:
+        print(file=sys.stderr)
+        print(exc)
+        return 2
+    print(file=sys.stderr)
+    print(result.text())
+    if args.json:
+        result.save(args.json)
+        print(f"\nResult written to {args.json}")
+    if args.html:
+        Path(args.html).write_text(result.html(), encoding="utf-8")
+        print(f"\nHTML report written to {args.html}")
+    broken = _no_answers(result)
+    if broken:
+        print(broken)
+        return 2
+    return 0
+
+
 def _rerun_caller(spec: str) -> Any:
     from counterfix.core.caller import RateLimitedCaller
     from counterfix.presets import load_env_file, make_caller, rpm_for
@@ -347,7 +542,11 @@ def cmd_mcp(args: argparse.Namespace) -> int:
     except ImportError:
         print('The MCP server needs: pip install "counterfix[mcp]"')
         return 2
-    serve()
+    try:
+        serve()
+    except ImportError as exc:
+        print(exc)
+        return 2
     return 0
 
 
@@ -420,6 +619,19 @@ def cmd_setup(args: argparse.Namespace) -> int:
         print(f"\nJudge test FAILED with {judge.name}: {verdict.reason}")
         return 1
     print(f"\nJudge test ok: {judge.name} said {verdict.label!r} in {took:.1f}s ({source})")
+    from counterfix.capabilities import probe_logprobs
+
+    specs = [spec for spec, _ in detect_judges()]
+    if models:
+        specs.append(f"ollama:{models[0]}")
+    if specs:
+        print("\nToken logprobs (the confidence metric; one 5-token request each):")
+    for spec in dict.fromkeys(specs):
+        try:
+            ok, how = probe_logprobs(spec)
+        except Exception as exc:  # a missing SDK or key: say so, keep going
+            ok, how = False, f"could not ask: {str(exc)[:100]}"
+        print(f"  {spec:<40} {'available' if ok else 'not available'}  ({how})")
     return 0
 
 
@@ -497,6 +709,73 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_route.add_argument("profiles", nargs="+", help="profiles (files or model names)")
     p_route.add_argument("--max-failure", type=float, default=0.2, help="default 0.2")
     p_route.set_defaults(func=cmd_route)
+    p_eval = sub.add_parser(
+        "eval", help="run a model over a dataset, score it, explain misses, verify fixes"
+    )
+    p_eval.add_argument("data", help="suite (.yaml/.json) or dataset (.jsonl/.json/.csv)")
+    p_eval.add_argument("--model", metavar="SPEC", help="e.g. groq:openai/gpt-oss-120b, "
+                        "anthropic:MODEL or MODEL@http://host/v1; leave out to score "
+                        "answers already in the data")  # fmt: skip
+    p_eval.add_argument("--app", metavar="MODULE:FN", help="evaluate your own app or RAG "
+                        "pipeline: a function question -> answer (+ passages)")  # fmt: skip
+    p_eval.add_argument("--samples", type=int, metavar="N",
+                        help="answers per question; reports pass@k (temperature > 0)")  # fmt: skip
+    p_eval.add_argument("--allow-code", action="store_true",
+                        help="let the tests metric run the model's code")  # fmt: skip
+    p_eval.add_argument("--sandbox", choices=["auto", "subprocess", "docker"],
+                        help="where code runs (default auto: Docker if it answers)")  # fmt: skip
+    p_eval.add_argument("--concurrency", type=int, metavar="N",
+                        help="answer N items at once (default 1)")  # fmt: skip
+    p_eval.add_argument(
+        "--metric", action="append", help="metric[:threshold], repeatable, e.g. f1:0.6, "
+        "latency:3000 (default exact_match)",
+    )  # fmt: skip
+    p_eval.add_argument("--input", help="field holding the prompt")
+    p_eval.add_argument("--reference", help="field holding the reference answer")
+    p_eval.add_argument("--template", help='prompt template, e.g. "Q: {question}"')
+    p_eval.add_argument("--system", help="system message for every item")
+    p_eval.add_argument("--param", action="append", help="request field, e.g. max_tokens=512")
+    p_eval.add_argument("--limit", type=int, help="only the first N items")
+    p_eval.add_argument("--judge", nargs="?", const="auto", help="diagnose misses with a judge")
+    p_eval.add_argument("--fix", type=int, default=0, help="search fixes on up to N misses")
+    p_eval.add_argument("--max-runs", type=int, help="re-runs per fix search (default 9)")
+    p_eval.add_argument("--out", metavar="PATH", help="keep answers here; resumes a stopped run")
+    p_eval.add_argument("--json", metavar="PATH", help="write the full result as JSON")
+    p_eval.add_argument("--html", metavar="PATH", help="write a shareable HTML report")
+    p_eval.add_argument(
+        "--fail-under", action="append", metavar="METRIC=VALUE",
+        help="exit 1 when a metric's pass rate (or mean) is below VALUE (CI gate)",
+    )  # fmt: skip
+    p_eval.add_argument(
+        "--fail-on-flagged", action="store_true",
+        help="exit 1 when a live check flags an item that passed its metrics (CI)",
+    )  # fmt: skip
+    p_eval.set_defaults(func=cmd_eval)
+
+    p_bench = sub.add_parser(
+        "benchmark",
+        help="run a standard benchmark (MMLU, GSM8K, HumanEval, IFEval, tools...; --list)",
+    )
+    p_bench.add_argument("name", nargs="?", help="benchmark name (--list shows them)")
+    p_bench.add_argument("--list", action="store_true", help="list the benchmarks")
+    p_bench.add_argument("--model", metavar="SPEC", help="e.g. ollama:qwen2.5:3b")
+    p_bench.add_argument("--app", metavar="MODULE:FN", help="your own app instead of a model")
+    p_bench.add_argument("--limit", type=int, help="N questions in all (seeded)")
+    p_bench.add_argument("--per-group", type=int, metavar="N",
+                         help="N questions per group, e.g. per MMLU subject")  # fmt: skip
+    p_bench.add_argument("--seed", type=int, default=0, help="subset seed (default 0)")
+    p_bench.add_argument("--param", action="append", help="request field, e.g. max_tokens=4096")
+    p_bench.add_argument("--judge", nargs="?", const="auto", help="diagnose misses with a judge")
+    p_bench.add_argument("--fix", type=int, default=0, help="search fixes on up to N misses")
+    p_bench.add_argument("--max-runs", type=int, help="re-runs per fix search (default 9)")
+    p_bench.add_argument("--samples", type=int, metavar="N", help="answers per question (pass@k)")
+    p_bench.add_argument("--concurrency", type=int, metavar="N", help="N questions at once")
+    p_bench.add_argument("--allow-code", action="store_true", help="run code (HumanEval+, MBPP+)")
+    p_bench.add_argument("--sandbox", choices=["auto", "subprocess", "docker"])
+    p_bench.add_argument("--out", metavar="PATH", help="keep answers here; resumes a stopped run")
+    p_bench.add_argument("--json", metavar="PATH", help="write the full result as JSON")
+    p_bench.add_argument("--html", metavar="PATH", help="write a shareable HTML report")
+    p_bench.set_defaults(func=cmd_benchmark)
     p_mcp = sub.add_parser("mcp", help="run the MCP server for coding agents (stdio)")
     p_mcp.set_defaults(func=cmd_mcp)
     p_setup = sub.add_parser("setup", help="show which keys, local models and judge will be used")

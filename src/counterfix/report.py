@@ -115,6 +115,7 @@ def text_report(diagnoses: list[Diagnosis], *, failures_only: bool = True) -> st
     lines = [f"{len(diagnoses)} call(s) checked, {len(flagged)} with a failure."]
     for name, n in sorted(counts(diagnoses).items()):
         lines.append(f"  {name:<40} {n}")
+    lines += speed_lines(diagnoses)
     for d in diagnoses if not failures_only else flagged:
         record = d.record
         prompt = _short(record.prompt_text) if record is not None else d.record_id
@@ -122,6 +123,51 @@ def text_report(diagnoses: list[Diagnosis], *, failures_only: bool = True) -> st
         lines += ["", f"- {prompt}{model}"]
         lines += ["    " + line for line in d.explain().splitlines()]
     return "\n".join(lines)
+
+
+def _timed(diagnoses: Iterable[Diagnosis]) -> list[CallRecord]:
+    return [d.record for d in diagnoses if d.record is not None and d.record.latency_ms is not None]
+
+
+def speed_lines(diagnoses: Iterable[Diagnosis]) -> list[str]:
+    """Speed and cost per model (latency, TTFT, tokens/s percentiles), when calls were timed."""
+    from counterfix.perf import by_model, speed_summary
+
+    timed = _timed(diagnoses)
+    if not timed:
+        return []
+    lines = ["", "Speed and cost"]
+    for model, records in sorted(by_model(timed).items()):
+        lines.append(f"[{model}] " + speed_summary(records).table())
+    return lines
+
+
+def _speed_html(diagnoses: list[Diagnosis]) -> str:
+    from counterfix.perf import Spread, by_model, speed_summary
+
+    timed = _timed(diagnoses)
+    if not timed:
+        return ""
+
+    def cells(s: Spread) -> str:
+        return "".join(
+            f"<td>{x:.0f}</td>" if x is not None else "<td>-</td>" for x in (s.p50, s.p95, s.p99)
+        )
+
+    rows = []
+    for model, records in sorted(by_model(timed).items()):
+        s = speed_summary(records)
+        cost = f"${s.cost_usd:.4f}" if s.cost_usd is not None else "-"
+        rows.append(
+            f"<tr><td>{html.escape(model)}</td><td>{s.calls}</td>{cells(s.latency_ms)}"
+            f"{cells(s.ttft_ms)}<td>{s.tokens_per_s.p50 or 0:.0f}</td><td>{cost}</td></tr>"
+        )
+    return (
+        "<h2>Speed and cost</h2><table><tr><th>Model</th><th>Calls</th><th>Latency p50</th>"
+        "<th>p95</th><th>p99</th><th>TTFT p50</th><th>p95</th><th>p99</th>"
+        "<th>Tokens/s p50</th><th>Cost</th></tr>" + "".join(rows) + "</table>"
+        "<p class='muted'>milliseconds; TTFT only for streamed calls</p>"
+    )
 
 
 _CSS = """
@@ -132,7 +178,8 @@ _CSS = """
           --bad:#f97066; --ok:#47cd89; } }
 body { background:var(--bg); color:var(--fg); margin:0 auto; max-width:900px; padding:24px 16px;
        font:15px/1.5 system-ui, sans-serif; }
-h1 { font-size:22px; margin:0 0 4px; } .muted { color:var(--muted); }
+h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:17px; margin:20px 0 0; }
+.muted { color:var(--muted); }
 table { border-collapse:collapse; margin:16px 0; }
 td, th { padding:4px 12px 4px 0; text-align:left; }
 details { background:var(--card); border:1px solid var(--line); border-radius:8px;
@@ -177,6 +224,7 @@ def html_report(diagnoses: list[Diagnosis], *, title: str = "counterfix report")
         f"<title>{e(title)}</title><style>{_CSS}</style></head><body>"
         f"<h1>{e(title)}</h1><p class='muted'>{len(diagnoses)} call(s) checked, {flagged} with "
         f"a failure{' · judged by ' + e(judge) if judge else ' · live checks only'}</p>"
-        f"<table><tr><th>Failure</th><th>Calls</th></tr>{rows}</table>{''.join(cards)}"
+        f"<table><tr><th>Failure</th><th>Calls</th></tr>{rows}</table>{_speed_html(diagnoses)}"
+        f"{''.join(cards)}"
         f"</body></html>"
     )

@@ -100,7 +100,7 @@ def diagnose_call(
     source: str | None = None,
     reference: str | None = None,
 ) -> dict[str, Any]:
-    """Find why an LLM answer failed (taxonomy F1-F9). Live checks are free; judge=true
+    """Find why an LLM answer failed (taxonomy F1-F14). Live checks are free; judge=true
     adds judge checks (invented facts, false premises, ...) with your judge key. source is
     retrieved text the model was given; reference is a known correct answer."""
     from counterfix.diagnose import diagnose
@@ -171,7 +171,12 @@ TOOLS = [lint_prompt, diagnose_call, fix_call, compare_profiles, route_models]
 
 
 def server() -> Any:
-    from mcp.server.mcpserver import MCPServer
+    try:
+        from mcp.server.mcpserver import MCPServer
+    except ImportError as exc:
+        raise ImportError(
+            'the MCP server needs the MCP SDK: pip install "counterfix[mcp]"'
+        ) from exc
 
     app = MCPServer(
         name="counterfix",

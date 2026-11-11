@@ -73,6 +73,24 @@ def _judged(record: CallRecord, client: Any, judge: Any, config: Config) -> Diag
         fallback_provider=record.provider,
     )
     result = run_detectors(record, default_detectors() + judge_detectors(chosen), config)
+    _add_confidence(record, result)
     result.judge = f"{chosen.name} ({source})"
     result._client = client
     return result
+
+
+def _add_confidence(record: CallRecord, result: Diagnosis) -> None:
+    """Token probabilities, when the provider gave them, as extra evidence on F4."""
+    from counterfix.confidence import describe, of
+    from counterfix.core.diagnosis import Evidence
+    from counterfix.core.types import FailureType
+
+    text = describe(record)
+    if text is None:
+        return
+    s = of(record) or {}
+    for finding in result.findings:
+        if finding.failure_type is FailureType.HALLUCINATION:
+            finding.evidence.append(
+                Evidence(detector="logprobs", detail=text, data={"logprobs": s})
+            )

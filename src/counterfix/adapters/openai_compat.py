@@ -18,7 +18,7 @@ from counterfix.adapters._attach import attach
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector, run_detectors
 from counterfix.core.diagnosis import Diagnosis, Finding, RetryAttempt
-from counterfix.core.record import CallRecord, Message, Usage
+from counterfix.core.record import CallRecord, Message, Timing, Usage
 from counterfix.core.sync import clean_params
 from counterfix.core.types import PrescriptionKind
 
@@ -94,6 +94,13 @@ def record_from_openai(
     # Reasoning models: Groq/OpenAI-style "reasoning", vLLM/DeepSeek-style "reasoning_content".
     reasoning = _get(message, "reasoning") or _get(message, "reasoning_content")
 
+    metadata: dict[str, Any] = {"n_choices": len(choices)}
+    if first is not None and _get(first, "logprobs") is not None:
+        from counterfix.confidence import LOGPROBS_KEY, summarize, token_logprobs
+
+        summary = summarize(token_logprobs(first))
+        if summary is not None:
+            metadata[LOGPROBS_KEY] = summary
     return CallRecord(
         provider=provider,
         model=_get(response, "model") or request.get("model"),
@@ -105,7 +112,7 @@ def record_from_openai(
         tool_calls=[_to_dict(t) for t in raw_tool_calls] if raw_tool_calls else None,
         usage=usage,
         latency_ms=latency_ms,
-        metadata={"n_choices": len(choices)},
+        metadata=metadata,
     )
 
 
@@ -121,6 +128,8 @@ class _Guard:
         to_record: Callable[..., CallRecord] | None = None,
         create_paths: tuple[tuple[str, ...], ...] = _OPENAI_PATHS,
         retry_params: frozenset[str] | None = None,
+        stream_kind: str | None = None,
+        translate: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None,
     ):
         self.config = config
         self.detectors = list(detectors)
@@ -129,16 +138,41 @@ class _Guard:
         self.to_record = to_record or record_from_openai
         self.create_paths = create_paths
         self.anthropic = create_paths == _ANTHROPIC_PATHS
+        self.stream_kind = stream_kind or ("anthropic" if self.anthropic else "chat")
         self.retry_params = retry_params  # request fields retries may change; None = any
+        # Turns a parameter change written in chat terms into this API's terms.
+        self.translate = translate
+        # Guards for other calls on the same client (the Responses API next to chat).
+        self.siblings: list[_Guard] = []
+
+    def sibling(self, **kwargs: Any) -> _Guard:
+        """A guard for another API on the same client, sharing settings and client."""
+        other = _Guard(self.config, self.detectors, self.provider, **kwargs)
+        other.client = self.client
+        self.siblings.append(other)
+        return other
+
+    def owner(self, path: tuple[str, ...]) -> _Guard | None:
+        """The guard that checks calls at ``path``, if any."""
+        return next((g for g in (self, *self.siblings) if path in g.create_paths), None)
+
+    def watches(self, path: tuple[str, ...]) -> bool:
+        """True when ``path`` leads towards a checked call."""
+        return any(path == p[: len(path)] for g in (self, *self.siblings) for p in g.create_paths)
 
     def diagnose(
-        self, request: dict[str, Any], response: Any, latency_ms: float
+        self,
+        request: dict[str, Any],
+        response: Any,
+        latency_ms: float,
+        timing: Timing | None = None,
     ) -> Diagnosis | None:
         """Build the record, run detectors, attach the result. Never raises if fail_open."""
         try:
             record = self.to_record(
                 request, response, latency_ms=latency_ms, provider=self.provider
             )
+            record.timing = timing
         except Exception as exc:
             if not self.config.fail_open:
                 raise
@@ -176,6 +210,8 @@ class _Guard:
         store = self.config.rule_store()
         model = request.get("model")
         params = {k: v for k, v in request.items() if k != "messages"}
+        if self.translate is not None:  # the request is in this API's terms: compare in chat
+            params = self.to_record(request, None).params
         tried = {(a.failure_type, repr(sorted(a.changes.items()))) for a in diagnosis.retries}
         for finding in sorted(diagnosis.model_failures, key=lambda f: -f.confidence):
             candidates: list[tuple[dict[str, Any], str]] = []
@@ -185,10 +221,16 @@ class _Guard:
             fix = finding.prescription
             if fix is not None and fix.kind is PrescriptionKind.PARAM_CHANGE and fix.patch:
                 changed = {k: v for k, v in fix.patch.items() if params.get(k) != v}
+                for k in [k for k in changed if k in RETRY_LIMIT_KEYS]:
+                    # one retry only: a 5 -> 20 raise rarely helps; a limit is a ceiling
+                    if isinstance(changed[k], int):
+                        changed[k] = max(changed[k], RETRY_MIN_LIMIT)
                 candidates.append((changed, "prescription"))
             if rule is not None and rule.source == "builtin":
                 candidates.append((rule.changes(params), f"rule:{rule.description}"))
             for changes, source in candidates:
+                if self.translate is not None:
+                    changes = self.translate(changes, request)
                 if self.retry_params is not None:
                     changes = {k: v for k, v in changes.items() if k in self.retry_params}
                 key = (finding.failure_type, repr(sorted(changes.items())))
@@ -261,18 +303,18 @@ class _Guard:
         """Pass a stream through chunk by chunk; check the whole answer when it ends."""
         from counterfix.adapters.streams import GuardedStream
 
-        anthropic = self.anthropic
+        kind = self.stream_kind
 
-        def done(response: Any) -> Diagnosis | None:
-            return self.diagnose(kwargs, response, (time.perf_counter() - start) * 1000)
+        def done(response: Any, timing: Timing) -> Diagnosis | None:
+            return self.diagnose(kwargs, response, (time.perf_counter() - start) * 1000, timing)
 
         if inspect.isawaitable(result):
 
             async def opened() -> Any:
-                return GuardedStream(await result, anthropic, done)
+                return GuardedStream(await result, kind, done, start)
 
             return opened()
-        return GuardedStream(result, anthropic, done)
+        return GuardedStream(result, kind, done, start)
 
     def _retry_sync(
         self,
@@ -386,9 +428,10 @@ class GuardedClient:
         guard = object.__getattribute__(self, "_cf_guard")
         path = (*object.__getattribute__(self, "_cf_path"), name)
         value = getattr(target, name)
-        if path in guard.create_paths and callable(value):
-            return guard.wrap_create(value)
-        if any(path == p[: len(path)] for p in guard.create_paths):
+        owner = guard.owner(path)
+        if owner is not None and callable(value):
+            return owner.wrap_create(value)
+        if guard.watches(path):
             return GuardedClient(value, guard, path)
         if len(path) == 1 and name in _CLIENT_COPIES and callable(value):
 
@@ -428,6 +471,10 @@ class GuardedClient:
         return object.__getattribute__(self, "_cf_target")
 
 
+RETRY_LIMIT_KEYS = ("max_tokens", "max_completion_tokens", "max_output_tokens")
+RETRY_MIN_LIMIT = 1024
+
+
 def guard(
     client: ClientT,
     *,
@@ -452,6 +499,18 @@ def guard(
         if config is None and detectors is None and provider is None:
             return client
         client = client.unwrapped  # re-wrap with the new settings
+    if isinstance(client, type):
+        raise TypeError(
+            f"guard() needs a client instance: guard({client.__name__}()), "
+            f"not guard({client.__name__})"
+        )
+    if not any(hasattr(client, a) for a in ("chat", "messages", "responses")):
+        raise TypeError(
+            f"guard() wraps an OpenAI-compatible or Anthropic client; {type(client).__name__} "
+            "has no chat, responses or messages API. For your own function use "
+            "@counterfix.watch; for LiteLLM or LangChain use counterfix.litellm_callback() or "
+            "counterfix.langchain_callback()."
+        )
     provider = provider or provider_from_url(getattr(client, "base_url", None))
     if detectors is None:
         from counterfix.detectors import default_detectors
@@ -468,9 +527,25 @@ def guard(
             create_paths=_ANTHROPIC_PATHS,
             retry_params=ANTHROPIC_RETRY_PARAMS,
         )
+        state.client = client
     else:
+        from counterfix.adapters.responses import (
+            RESPONSES_PATHS,
+            RESPONSES_RETRY_PARAMS,
+            record_from_responses,
+            responses_changes,
+        )
+
         state = _Guard(config or Config(), detectors, provider)
-    state.client = client
+        state.client = client
+        if hasattr(client, "responses"):
+            state.sibling(
+                to_record=record_from_responses,
+                create_paths=RESPONSES_PATHS,
+                retry_params=RESPONSES_RETRY_PARAMS,
+                stream_kind="responses",
+                translate=responses_changes,
+            )
     return cast(ClientT, GuardedClient(client, state))
 
 

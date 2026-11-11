@@ -19,7 +19,7 @@ from counterfix.adapters.openai_compat import _get, _Guard, _to_dict, record_fro
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector
 from counterfix.core.diagnosis import Diagnosis
-from counterfix.core.record import CallRecord, Message, Usage
+from counterfix.core.record import CallRecord, Message, Timing, Usage
 
 
 def _state(config: Config | None, detectors: Sequence[Detector] | None, provider: str) -> _Guard:
@@ -44,7 +44,10 @@ def litellm_callback(
     *, config: Config | None = None, detectors: Sequence[Detector] | None = None
 ) -> Any:
     """A LiteLLM ``CustomLogger``: ``litellm.callbacks = [counterfix.litellm_callback()]``."""
-    from litellm.integrations.custom_logger import CustomLogger
+    try:
+        from litellm.integrations.custom_logger import CustomLogger
+    except ImportError as exc:
+        raise ImportError("litellm_callback() needs LiteLLM: pip install litellm") from exc
 
     state = _state(config, detectors, "litellm")
 
@@ -61,6 +64,11 @@ def litellm_callback(
                 record = record_from_openai(
                     request, response, latency_ms=_ms(start, end), provider="litellm"
                 )
+                first = kwargs.get("completion_start_time")
+                if kwargs.get("stream") and first is not None:  # LiteLLM notes the first chunk
+                    ttft = _ms(start, first)
+                    if ttft is not None and ttft >= 0:
+                        record.timing = Timing(ttft_ms=ttft, last_chunk_ms=_ms(start, end))
             except Exception:
                 if not state.config.fail_open:
                     raise
@@ -138,10 +146,19 @@ def record_from_langchain(
 def langchain_callback(
     *, config: Config | None = None, detectors: Sequence[Detector] | None = None
 ) -> Any:
-    """A LangChain callback handler: pass it in ``config={"callbacks": [...]}``."""
+    """A LangChain callback handler: pass it in ``config={"callbacks": [...]}``.
+
+    In a RAG chain it also keeps what the retriever returned and puts those documents on
+    the record of the model call that follows (same parent run), so the RAG checks and
+    metrics see the passages."""
     import time
 
-    from langchain_core.callbacks import BaseCallbackHandler
+    try:
+        from langchain_core.callbacks import BaseCallbackHandler
+    except ImportError as exc:
+        raise ImportError(
+            "langchain_callback() needs LangChain: pip install langchain-core"
+        ) from exc
 
     state = _state(config, detectors, "langchain")
 
@@ -150,10 +167,38 @@ def langchain_callback(
 
         def __init__(self) -> None:
             self._runs: dict[Any, tuple[list[Message], dict[str, Any], float]] = {}
+            self._parents: dict[Any, Any] = {}
+            self._docs: dict[Any, list[Any]] = {}  # retrieved documents by parent run
+            self._last_docs: list[Any] | None = None
+            self._tokens: dict[Any, Timing] = {}  # streamed runs: when tokens arrived
+
+        def on_llm_new_token(self, token: Any, *, run_id: Any, **kwargs: Any) -> None:
+            """Streaming: note the first and last token, for TTFT."""
+            run = self._runs.get(run_id)
+            if run is None:
+                return
+            ms = (time.perf_counter() - run[2]) * 1000
+            timing = self._tokens.setdefault(run_id, Timing())
+            if token:
+                if timing.ttft_ms is None:
+                    timing.ttft_ms = ms
+                timing.last_chunk_ms = ms
+                timing.chunks += 1
 
         def _start(self, run_id: Any, inputs: list[Message], kwargs: Any) -> None:
             params = _to_dict(kwargs.get("invocation_params") or {})
             self._runs[run_id] = (inputs, params, time.perf_counter())
+            self._parents[run_id] = kwargs.get("parent_run_id")
+
+        def on_retriever_end(self, documents: Any, *, run_id: Any, **kwargs: Any) -> None:
+            """Keep what a retriever returned, for the next model call in the same chain."""
+            docs = list(documents or [])
+            parent = kwargs.get("parent_run_id")
+            if parent is not None:
+                self._docs[parent] = docs
+                while len(self._docs) > 256:  # retrievals no model call used: drop the oldest
+                    self._docs.pop(next(iter(self._docs)))
+            self._last_docs = docs
 
         def on_chat_model_start(
             self, serialized: Any, messages: list[list[Any]], *, run_id: Any, **kwargs: Any
@@ -167,9 +212,21 @@ def langchain_callback(
 
         def on_llm_end(self, response: Any, *, run_id: Any, **kwargs: Any) -> None:
             inputs, params, start = self._runs.pop(run_id, ([], {}, time.perf_counter()))
+            timing = self._tokens.pop(run_id, None)
+            parent = self._parents.pop(run_id, kwargs.get("parent_run_id"))
+            docs = self._docs.pop(parent, None) if parent is not None else None
+            if docs is None:  # no shared parent: the most recent retrieval, used once
+                docs = self._last_docs
+            if docs is not None and docs is self._last_docs:
+                self._last_docs = None
             try:
                 ms = (time.perf_counter() - start) * 1000
                 record = record_from_langchain(inputs, response, params=params, latency_ms=ms)
+                record.timing = timing
+                if docs:
+                    from counterfix.rag import set_chunks
+
+                    set_chunks(record, docs)
             except Exception:
                 if not state.config.fail_open:
                     raise
@@ -178,5 +235,7 @@ def langchain_callback(
 
         def on_llm_error(self, error: BaseException, *, run_id: Any, **kwargs: Any) -> None:
             self._runs.pop(run_id, None)  # provider errors stay the app's; nothing to check
+            self._tokens.pop(run_id, None)
+            self._parents.pop(run_id, None)
 
     return CounterfixHandler()

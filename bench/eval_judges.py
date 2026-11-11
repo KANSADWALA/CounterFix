@@ -49,7 +49,11 @@ from counterfix.presets import (  # noqa: E402
 RESULTS = ROOT / "bench" / "results"
 CACHE = ROOT / "bench" / "cache" / "judges.jsonl"
 WORKERS_PER_JUDGE = 6  # calls in flight per judge; the rate limiter still spaces them
-TYPES = [t for t in FailureType if t.is_model_failure]
+TYPES = [
+    t
+    for t in FailureType
+    if t.is_model_failure and not (t.is_rag or t.is_code or t.is_injection or t.is_tool)
+]  # RAG: bench/eval_rag.py
 
 
 class _NamedOnly:

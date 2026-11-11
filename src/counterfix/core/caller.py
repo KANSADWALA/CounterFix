@@ -48,6 +48,8 @@ class OpenAICompatibleCaller:
         self.model = model
         self.provider = provider
         self.defaults = dict(defaults or {})
+        # Request fields this model refused once, and what to do with them next time.
+        self._adapt: dict[str, str | None] = {}
 
     @property
     def name(self) -> str:
@@ -62,10 +64,59 @@ class OpenAICompatibleCaller:
         request: dict[str, Any] = {"model": self.model, "messages": payload}
         request.update(self.defaults)
         request.update(rerun_params(params))
+        request = self._adapted(request)
         start = time.perf_counter()
-        response = resolve(self.client.chat.completions.create(**request))
+        for _ in range(3):  # each refused field is adapted once
+            try:
+                response = resolve(self.client.chat.completions.create(**request))
+                break
+            except Exception as exc:
+                if not self._learn(exc, request):
+                    raise
+                request = self._adapted(request)
+                start = time.perf_counter()
+        else:
+            response = resolve(self.client.chat.completions.create(**request))
         latency = (time.perf_counter() - start) * 1000
         return record_from_openai(request, response, latency_ms=latency, provider=self.provider)
+
+    def _adapted(self, request: dict[str, Any]) -> dict[str, Any]:
+        """The request with the fields this model refused renamed or dropped."""
+        out = dict(request)
+        if "max_output_tokens" in out:  # a Responses API limit: chat calls it max_tokens
+            limit = out.pop("max_output_tokens")
+            out.setdefault("max_tokens", limit)
+        for key, rename in self._adapt.items():
+            if key in out:
+                value = out.pop(key)
+                if rename is not None:
+                    out[rename] = max(value, out.get(rename) or 0) if rename in out else value
+        return out
+
+    def _learn(self, exc: Exception, request: dict[str, Any]) -> bool:
+        """True when ``exc`` is a 400 about a request field we can adapt.
+
+        Newer OpenAI models (the GPT-5 and o-series reasoning models) refuse ``max_tokens``
+        (they take ``max_completion_tokens``) and any ``temperature`` / ``top_p`` other than
+        the default; some servers refuse ``reasoning_effort``, and Groq refuses
+        ``logprobs`` (the answer then has no token confidence). Other errors are left alone.
+        """
+        status = getattr(exc, "status_code", None)
+        if status not in (400, 422) and type(exc).__name__ != "BadRequestError":
+            return False
+        message = str(exc).lower()
+        if "max_tokens" in request and "max_completion_tokens" in message:
+            self._adapt["max_tokens"] = "max_completion_tokens"
+            return True
+        if "logprobs" in request and "logprob" in message and "logprobs" not in self._adapt:
+            self._adapt["logprobs"] = None  # Groq and others refuse them: answer without
+            self._adapt["top_logprobs"] = None
+            return True
+        for key in ("temperature", "top_p", "reasoning_effort", "seed"):
+            if key in request and key in message and key not in self._adapt:
+                self._adapt[key] = None
+                return True
+        return False
 
     def __repr__(self) -> str:
         return f"OpenAICompatibleCaller({self.name!r})"

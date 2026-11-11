@@ -17,13 +17,19 @@ failure is both the diagnosis and the prescription. We call this **counterfactua
 diagnosis**.
 
 > **Status: alpha** (latest version in the PyPI badge above). Everything below works today: live checks, judge checks,
-> verified fixes, reports, regression tests, profiles. APIs may still change.
+> verified fixes, reports, regression tests, profiles, dataset and RAG evaluation, code
+> evaluation, benchmarks, prompt-injection and personal-data checks, token confidence,
+> and agent and tool-call checks. APIs may still change.
 >
 > **Known limits.** Verified fixes are common for cut-off answers and broken JSON, rare
 > for invented facts (3 of 14 on our seed set) and none yet for over-refusals or false
-> premises: there counterfix says so and lists what to try instead. Shipped model profiles
-> are small (54 probes; qwen2.5:3b only partly measured). The labels behind our accuracy
-> numbers are mostly reference labels, with a small human spot check still to do. See
+> premises: there counterfix says so and lists what to try instead. For code that gives
+> wrong results, a small model (qwen2.5:3b) got a verified fix on 2 of 8 repeatable
+> failures. For prompt injection, one fix (`delimit_untrusted`) was verified on 9 of 10
+> injected probes for gpt-oss-120b, none for qwen2.5:3b. The 20-probe `tools` benchmark
+> is a smoke test (qwen2.5:3b passes all 20), not a model comparison. Shipped model
+> profiles are small (54 probes; qwen2.5:3b only partly measured). The labels behind our accuracy
+> numbers are reference labels; a human spot check agreed with 33 of 35 of them. See
 > [`docs/results.md`](https://kansadwala.github.io/CounterFix/results/).
 
 ## Install
@@ -42,6 +48,11 @@ Optional extras add a provider's SDK only if you do not have it already:
 | OpenAI's SDK, or any OpenAI-compatible API through it (Groq, Gemini, OpenRouter, Ollama, vLLM, ...) | `pip install "counterfix[openai]"` |
 | Anthropic's SDK | `pip install "counterfix[anthropic]"` |
 | LiteLLM or LangChain | `pip install "counterfix[litellm]"` or `"counterfix[langchain]"` |
+| Benchmarks (MMLU, GSM8K, ARC, TruthfulQA, IFEval) | `pip install "counterfix[benchmarks]"` |
+| HumanEval / MBPP and HumanEval+ / MBPP+ (EvalPlus) | `pip install "counterfix[code]"` |
+| BLEU / chrF, or BERTScore, embeddings and perplexity | `"counterfix[metrics]"` or `"counterfix[semantic]"` |
+| Toxicity and Presidio personal-data checks | `pip install "counterfix[safety]"` |
+| Suite files in YAML, the MCP server, OpenTelemetry, LlamaIndex | `"counterfix[eval]"`, `"counterfix[mcp]"`, `"counterfix[otel]"`, `"counterfix[llamaindex]"` |
 
 If that SDK is already in your project, plain `pip install counterfix` is enough.
 
@@ -91,8 +102,8 @@ client = counterfix.guard(OpenAI(base_url="http://localhost:11434/v1", api_key="
 ```
 
 The guarded client behaves like the original: sync or `AsyncOpenAI`, `stream=True`,
-`chat.completions.parse()`, `with` / `async with`, and `with_options()` all work and stay
-checked. Your type checker sees the client you passed. Two things differ:
+`chat.completions.parse()`, the Responses API (`responses.create` / `.parse`),
+`with` / `async with`, and `with_options()` all work and stay checked. Your type checker sees the client you passed. Two things differ:
 `isinstance(client, OpenAI)` is False (pass `client.unwrapped` where a library insists on
 the real object), and type checkers do not know `response.diagnosis`, so typed code can use
 `counterfix.get_diagnosis(response)`.
@@ -199,7 +210,83 @@ queue fills up, new calls are skipped rather than waited on; `counterfix.backgro
 counts what was judged and skipped. Call `counterfix.background.flush()` before a short
 script exits if you want the queued checks to finish.
 
-### 7. Keep fixed failures fixed (pytest)
+### 7. Evaluate a dataset: the score, the misses by cause, the fixes
+
+```bash
+counterfix eval capitals.jsonl --model groq:openai/gpt-oss-120b --metric exact_match --judge --fix 5
+```
+
+Scores every answer (exact match, F1, ROUGE-L, BLEU, multiple choice, final number, JSON,
+latency, ...), groups the misses by cause (F1 to F14), and searches verified fixes on up to
+5 misses. Streamed calls also record TTFT; reports show latency, TTFT and tokens/s
+percentiles per model. Guides: [Evaluate a dataset](https://kansadwala.github.io/CounterFix/evals/),
+[Speed and cost](https://kansadwala.github.io/CounterFix/speed/).
+
+### 8. RAG: was it the retriever or the model?
+
+```bash
+counterfix eval rag.jsonl --model groq:openai/gpt-oss-120b --metric recall@5 --metric faithfulness --fix 5
+```
+
+Retrieval metrics from gold labels (hit, recall, precision, MRR, nDCG at k), judge metrics
+(faithfulness, context precision and recall, answer relevancy, citations), and the cause of
+each miss: F10 retrieval miss or F11 context ignored, with verified fixes (the gold passage
+proves the retriever was at fault; the key passage first fixes ignored context). To test
+your whole pipeline, pass it as a function: `counterfix eval qa.jsonl --app myapp:answer`
+(or `evaluate(..., app=answer)`; LangChain and LlamaIndex outputs are read as they are).
+Guide: [RAG evaluation](https://kansadwala.github.io/CounterFix/rag/).
+
+### 9. Code and benchmarks
+
+```bash
+counterfix eval coding.jsonl --model groq:openai/gpt-oss-120b --metric tests --allow-code --fix 5
+counterfix benchmark gsm8k --model ollama:qwen2.5:3b --limit 200
+counterfix benchmark humaneval+ --model groq:openai/gpt-oss-120b --allow-code
+```
+
+Code runs against its tests in a sandbox (Docker, or a subprocess for trusted
+benchmarks; off until you allow it). A failure is named (syntax, wrong name or signature,
+runtime error, wrong output, timeout: F12), with what the code returned, and fixes such as
+sending the error back are verified on re-run (measured so far: 2 of 8 repeatable
+failures fixed on qwen2.5:3b; gpt-oss-120b passed 18 of 20 HumanEval problems). `--samples N` reports pass@k. Benchmarks: MMLU, GSM8K, ARC-Challenge,
+TruthfulQA, IFEval (official checks), HumanEval/MBPP (counterfix's checker, any OS) and
+HumanEval+/MBPP+ (scored by EvalPlus, Linux and macOS), with seeded subsets that fit a free
+tier. Scores match lm-evaluation-harness on the same prompts (GSM8K 0.81 vs 0.79, MMLU
+abstract algebra 0.56 vs 0.56, on qwen2.5:3b). Guides: [Code evaluation](https://kansadwala.github.io/CounterFix/code/),
+[Benchmarks](https://kansadwala.github.io/CounterFix/benchmarks/).
+
+### 10. Prompt injection, personal data, token confidence
+
+```bash
+counterfix benchmark injection --model ollama:qwen2.5:3b --fix 10
+counterfix eval support.jsonl --model groq:openai/gpt-oss-120b --metric pii --metric toxicity
+counterfix eval qa.jsonl --model openai:gpt-4o-mini --param logprobs=true --metric confidence
+```
+
+20 injection probes (instructions planted in retrieved passages and tool results, checked
+exactly with canaries) and a judge check for any call with untrusted text: F13, with
+verified fixes such as marking untrusted text as data. PII in answers (built-in
+recognizers with checksums, optional Presidio), toxicity (Detoxify), and token confidence
+where the provider returns logprobs. Guides: [Safety](https://kansadwala.github.io/CounterFix/safety/),
+[Confidence and perplexity](https://kansadwala.github.io/CounterFix/confidence/).
+
+### 11. Agents and tool calls
+
+```bash
+counterfix benchmark tools --model ollama:qwen2.5:3b --fix 10
+counterfix eval tool_tests.jsonl --model groq:openai/gpt-oss-120b --metric tool_call --fix 5
+```
+
+```python
+rec = counterfix.agents.record(task, langgraph_result, tools=tools, expect_tools=["search"])
+counterfix.diagnose(rec)  # F14: unknown tool, loop, missing call; judge: task done, and why
+```
+
+Runs from OpenAI-style messages, LangChain/LangGraph, Anthropic, OpenTelemetry spans or
+guarded responses. Verified fixes for tool choice: `tool_choice`, naming the tool,
+describing the arguments. Guide: [Agents and tool calls](https://kansadwala.github.io/CounterFix/agents/).
+
+### 12. Keep fixed failures fixed (pytest)
 
 ```bash
 counterfix fix calls.jsonl --judge --out fixes.jsonl
@@ -232,7 +319,9 @@ spend the whole budget thinking), broken JSON or schema mismatches, broken tool-
 arguments, refusals, empty answers, provider content filters, and broken instructions that
 code can verify exactly: sentence, word and bullet counts, letter case, reply language
 (by script), British or American spelling, banned words, "end with a question", "only the
-number", "one word" and similar (in the spirit of IFEval).
+number", "one word" and similar (in the spirit of IFEval). On agent runs they also catch
+calls to tools that were not offered, repeated identical calls and missing expected calls;
+with a canary planted in untrusted text, they catch a followed injection for free.
 
 ### Optional auto-retry: a fix that was re-run
 
@@ -254,7 +343,7 @@ print("after: ", r.diagnosis.summary())
 
 ```text
 before: F1 the answer stopped at the max_tokens limit (20)
-retry:  {'max_tokens': 80} fixed
+retry:  {'max_tokens': 1024} fixed
 after:  no failure found by 5 checks
 ```
 
@@ -333,7 +422,7 @@ Design rules:
 - **Safe defaults.** Live mode only flags failures and makes no extra LLM calls.
 - **Light core.** The core depends on 4 small libraries; providers and heavy tools are extras.
 
-## Failure types (v1)
+## Failure types
 
 | Code | Failure |
 | --- | --- |
@@ -346,6 +435,11 @@ Design rules:
 | F7 | Prompt fragility |
 | F8 | Computation or token-level error |
 | F9 | Ambiguous request |
+| F10 | Retrieval miss (RAG: the answer was not in the retrieved text) |
+| F11 | Context ignored (RAG: the answer was there, the model missed it) |
+| F12 | Code fails its tests |
+| F13 | Followed instructions planted in retrieved text or tool output (prompt injection) |
+| F14 | Tool misuse (wrong, unknown or missing tool call, loop, agent task not done) |
 
 API errors, rate limits and provider content filters are tracked separately, so they are
 never counted as the model's fault.
@@ -360,7 +454,11 @@ pytest
 ```
 
 Optional extras: `openai`, `anthropic`, `litellm`, `langchain`, `llamaindex`, `otel`,
-`semantic`, `cache`, `cli`, `report`, `jev`.
+`semantic`, `metrics`, `eval`, `code`, `benchmarks`, `safety`, `mcp`, `cache`, `cli`,
+`report`, `jev`.
+
+`python bench/dev_walkthrough.py SPEC` uses the library as a developer would against a real
+model (about 40 small calls) and prints OK or the error for each step.
 
 ## Roadmap
 
@@ -378,11 +476,20 @@ Done:
 - Model profiles, `compare`, `drift`, `route`; fixes ordered by what worked per model ✅
 - OpenTelemetry export and GenAI span reader; streams; RAG context; MCP server ✅
 - Released on PyPI (`pip install counterfix`), docs site, releases by trusted publishing ✅
+- Evaluation, wave 1: `counterfix eval`, reference metrics, TTFT and speed/cost, verified speed fixes ✅
+- RAG evaluation: retrieval and judge metrics, F10 retrieval miss vs F11 context ignored, verified RAG fixes ✅
+- OpenAI Responses API in `guard()`; evaluate your own app or RAG pipeline (`--app`) ✅
+- Code evaluation: sandboxed tests, F12 with its causes, verified code fixes, pass@k ✅
+- Benchmarks: MMLU, GSM8K, ARC, TruthfulQA, IFEval, HumanEval(+), MBPP(+), checked against lm-eval ✅
+- Safety: prompt injection (F13, probes and judge check, verified fixes), PII, toxicity; token confidence and perplexity ✅
+- Agents and tool calls: trajectories from any framework, F14 checks, `tool_call` metric, verified tool-choice fixes ✅
+- Trust in the metrics: a labelled set and measured accuracy for every judge-based check, and a human spot check of the labels ✅
 
 Next:
 
-1. A larger probe suite from public datasets (after a licence check per dataset)
-2. A public dataset of diagnosed failures with their verified fixes
+1. A public dataset of diagnosed failures with their verified fixes
+2. Larger labelled sets and full profiles for more models
+3. A BFCL loader, so the tool-use benchmark can compare models
 
 ## License
 

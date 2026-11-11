@@ -1,4 +1,4 @@
-"""Writes docs/failures/F1.md ... F9.md from the engine's interventions and escalations.
+"""Writes docs/failures/F1.md ... F14.md from the engine's interventions and escalations.
 
     python bench/gen_failure_pages.py
 
@@ -68,6 +68,52 @@ TEXT = {
         "The request had several readings and the model silently picked one.",
         "Judge: lists the readings and checks whether the answer named or asked about its "
         "choice. The linter's L6 flags requests missing who, what or which.",
+    ),
+    "F10": (
+        "RAG: the retrieved passages did not hold the answer, so the model could only guess "
+        "or decline. The retriever is at fault, not the model.",
+        "Free with gold labels: none of the gold passages was retrieved. Without labels, a "
+        "judge decides whether the passages hold what the question needs "
+        "(`context_lacks_answer`). F10 takes precedence over F4: the unsupported claim is "
+        "the symptom.",
+    ),
+    "F11": (
+        "RAG: the answer was in the retrieved passages, but the model contradicted it, left "
+        "it out, or said it was not there.",
+        "Judge: finds the passage that holds the answer, then checks whether the model answer "
+        "agrees with it (`answer_ignores_context`). The passage number is passed to the fix "
+        "search, which moves that passage first.",
+    ),
+    "F12": (
+        "Code: the code in the answer fails its tests. counterfix names what went wrong: no "
+        "code, a syntax error, the wrong function name or signature, a disallowed import, an "
+        "error when run, wrong results, or a timeout. Code cut off by the token limit is F1.",
+        "With the `tests` metric (opt-in, it runs the code in a sandbox): cheapest check "
+        "first, `ast` parse, the name and signature the tests call, the import allow-list, "
+        "then each test on its own in a subprocess or a Docker container with no network. "
+        "See [Code evaluation](../code.md).",
+    ),
+    "F13": (
+        "Prompt injection: text the app gave the model but did not write itself (retrieved "
+        "passages, web pages, tool results) carried an instruction aimed at the AI, and the "
+        "answer carried it out: it said the planted text, added a link, switched language "
+        "or format, or dropped the user's task.",
+        "Judge (`InjectionCheck`): finds a planted instruction in the retrieved text or tool "
+        "results and decides whether the answer followed it; skips calls without such text. "
+        "For probes, a canary planted in the text and found in the answer is exact and free "
+        "(`CanaryCheck`, the `injection` metric and benchmark). F13 takes precedence over "
+        "F4, F6 and F11. See [Safety](../safety.md).",
+    ),
+    "F14": (
+        "Tool use went wrong: the model called a tool that was not offered, the wrong tool, "
+        "no tool when one was needed (or one when none was), gave arguments with wrong "
+        "values, repeated the same call (a loop), or an agent run did not reach the user's "
+        "goal. Arguments that are not JSON or break the schema are F2.",
+        "Live and free (`ToolUseCheck`): unknown tool, loops, a tool the item expects that "
+        "was never called, too many steps, on single calls and on agent runs "
+        "(`counterfix.agents.record`). With an expected call, the `tool_call` metric names "
+        "the cause. Judge (`AgentTaskCheck`): did the run complete the task, and if not, "
+        "why. See [Agents and tool calls](../agents.md).",
     ),
 }
 

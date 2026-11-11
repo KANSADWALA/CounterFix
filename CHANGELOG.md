@@ -2,6 +2,162 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## 0.2.0 (2026-11-11)
+
+counterfix grows from diagnosing single calls into one-stop evaluation, where every miss
+gets a cause and, where one works, a verified fix: an eval runner with reference metrics,
+speed and cost; RAG evaluation (F10, F11); code evaluation and standard benchmarks (F12);
+prompt injection (F13), personal data, toxicity and token confidence; agents and tool
+calls (F14); and a measured accuracy for every judged check, with a human spot check of
+the labels. Also the OpenAI Responses API, evaluating your own app, and fixes from using
+the library end to end as a new developer would.
+
+- `counterfix eval DATA` and `counterfix.evaluate()`: run a model over a JSONL, JSON or
+  CSV dataset (or score recorded answers), report each metric with a 95% bootstrap
+  confidence interval, group the misses by cause (F1 to F14), and with `--fix N` search
+  verified fixes on up to N misses (a fix counts when the item passes its metrics in 2 of
+  3 re-runs). Suite files (`.json`, or `.yaml` with the `eval` extra), `--out` to resume
+  after a daily limit (kept answers are reused only for unchanged prompts),
+  `--fail-under METRIC=VALUE` for CI, text and HTML reports. Failed calls count as misses
+  with cause INFRA; items a metric cannot score are shown as "not scored"; misses the
+  judge could not check are reported. Items that pass their metrics but that a live check
+  flags (e.g. a cut-off answer under a latency gate) are listed as "flagged";
+  `--fix` searches fixes for them too (the flagged failure must be gone), and
+  `--fail-on-flagged` fails CI on them.
+- `counterfix.metrics`: `exact_match`, `f1`, `contains`, `rouge_l` (same numbers as
+  `rouge-score`), `bleu` and `chrf` (sacrebleu, `metrics` extra), `choice`, `number`,
+  `json_valid`, `json_match`, `embedding_similarity` and `bertscore` (`semantic` extra),
+  `latency`, `ttft`; answer extraction helpers (`extract_choice`, `extract_number`,
+  `extract_code`). `counterfix.testing.assert_metric` gates a result in pytest.
+- Speed: streamed calls record `record.timing` (TTFT, first reasoning chunk, last chunk,
+  chunk count). `counterfix.perf`: latency/TTFT/tokens-per-second percentiles per model,
+  cost from prices you set (none are shipped), and `speed_fix()`, verified changes that
+  bring a slow call under a target without a new failure. Reports show a speed table.
+- RAG evaluation (wave 2): passages on records (`counterfix.context(chunks=...)`,
+  `counterfix.rag.record()`, `record_from_llamaindex()`, LangChain retriever capture);
+  retrieval metrics from gold labels (`hit`, `recall`, `precision`, `mrr`, `ndcg`, each
+  with `@k`); judge metrics with RAGAS definitions (`faithfulness`, `context_precision`,
+  `context_recall`, `answer_relevancy`, `citations`) and `answer_correctness` (any task with
+  a reference); new failure types F10 retrieval miss
+  and F11 context ignored (free F10 from labels, judge check for both, both supersede F4);
+  verified RAG fixes (`gold_passage`, `key_passage_first`, `fewer_passages`,
+  `quote_then_answer`); eval datasets take `contexts`, `relevant` and `gold_passages`.
+  `bench/rag_seed.jsonl` (33 labelled answers, 15 hard; development) and
+  `bench/rag_holdout.jsonl` (15 answers in new domains, never used to tune the judge
+  rules) with `bench/eval_rag.py` (accuracy with 95% intervals, clear and hard apart,
+  judge panel, judges run side by side, every disagreement listed) measure the checks.
+- Judge hardening: text inside the judged material is data (the judge is told to ignore
+  instructions in it), and tags inside material are neutralised so a retrieved page cannot
+  close a section of the judge prompt. Long contexts are shortened evenly per passage
+  (60,000 characters) and answers capped (20,000) before they reach a judge. The
+  LangChain callback no longer keeps retrievals that no model call used.
+- OpenTelemetry: `counterfix.otel.metrics()` records `gen_ai.client.operation.duration`,
+  `gen_ai.client.operation.time_to_first_chunk` and `gen_ai.client.token.usage`; diagnosis
+  spans also carry token counts, latency and TTFT. `counterfix.hooks()` chains hooks.
+- OpenAI Responses API: `guard()` checks `client.responses.create` / `.parse` (sync,
+  async, streamed, with TTFT). The call is recorded in chat terms, so every check, judge
+  and fix works; `status="incomplete"` with `max_output_tokens` is F1; retry mode changes
+  Responses fields. `counterfix.record_from_responses()` for logged calls.
+- Evaluate your own app: `evaluate(app=fn)` / `counterfix eval --app module:function`
+  calls your function per question and reads what it returns (string, LangChain or
+  LlamaIndex output, `(answer, passages)`, a guarded response, a `CallRecord`;
+  `counterfix.rag.record_from_output()`). Gold `relevant` labels now apply without
+  `contexts` in the data, so an app's own retrieval is scored.
+- `evaluate(concurrency=N)` / `--concurrency N`: N items at once, order kept, resumable
+  `--out` still safe.
+- Model specs: `anthropic:MODEL` and `MODEL@http://host/v1` work in `counterfix eval`
+  (same as `--counterfix-caller`); `counterfix.presets.caller_for()`.
+- Newer OpenAI models: re-runs and judges resend with `max_completion_tokens` (and
+  without `temperature` / `top_p`) when the model refuses them, and remember it; F1
+  fixes raise whichever limit field the call used.
+- TTFT from the LangChain callback (`on_llm_new_token`) and LiteLLM
+  (`completion_start_time`) on streamed calls.
+- Python 3.14 in CI and the classifiers.
+- Token confidence (wave 4): records keep a summary of token logprobs when the provider
+  returns them (OpenAI Chat Completions, Ollama 0.12.11+, vLLM; also for streams); the
+  `confidence` metric; a judge-confirmed F4 shows the token confidence as evidence;
+  re-runs drop `logprobs` where a provider refuses them (Groq); `counterfix setup --test`
+  reports which providers return logprobs. `counterfix.perplexity.perplexity()`: corpus
+  perplexity with a local Hugging Face model (sliding window, as in the HF guide), with
+  `bench/perplexity_check.py` against the guide's GPT-2 large numbers (measured 16.44,
+  the guide's figure); `dtype="float16"` for small GPUs.
+- Safety: new failure type F13 (followed instructions planted in retrieved text or tool
+  output): `InjectionCheck` (judge, runs only on calls with untrusted text) and
+  `CanaryCheck` (exact, for probes); verified fixes `delimit_untrusted`,
+  `data_not_instructions`, `restate_task`; the `injection` benchmark (20 probes written for
+  counterfix, 12 in passages and 8 in tool results, canary-checked). `pii` metric with
+  built-in recognizers (email, phone, Luhn-checked cards, IBAN, US SSN, Verhoeff-checked
+  Aadhaar, IPv4, API keys), only data not already in the prompt, masked in reports;
+  optional Presidio. `toxicity` metric (Detoxify). Extra `safety`. `bench/injection_seed.jsonl`
+  (20 labelled answers) and `bench/eval_injection.py` measure the judge check
+  (precision 7/7, recall 7/8 with qwen3.8-27b as judge). Measured on the probes:
+  gpt-oss-120b resisted 6/20 and `delimit_untrusted` verified on 9 of 10 misses;
+  qwen2.5:3b resisted 13/20 with no prompt fix verified.
+- Agents and tool calls (wave 5): new failure type F14 (tool misuse).
+  `counterfix.agents` reads runs from OpenAI-style messages, LangChain/LangGraph,
+  Anthropic blocks, OpenTelemetry GenAI spans or guarded responses
+  (`agents.record(task, run)`); `ToolUseCheck` (live, free): unknown tool, loops, missing
+  expected call (`expect_tools`), too many steps; `AgentTaskCheck` (judge): task completed,
+  and if not, the cause. `tool_call` metric (expected call or `"no_call"`, `any_of`
+  values, parallel calls) with causes; datasets take `tools` and `expect_tools` fields;
+  `evaluate(app=...)` accepts agent runs. Verified fixes `tool_choice`, `name_the_tool`,
+  `describe_arguments`, `no_repeat`. The `tools` benchmark (20 probes written for
+  counterfix, BFCL-style). `bench/agent_seed.jsonl` (20 labelled runs) and
+  `bench/eval_agents.py` measure the judge check. A tool that was not offered is now F14,
+  not F2.
+- Trust in the metrics (wave 6): `bench/metric_seed.jsonl` (26 labelled answers) and
+  `bench/eval_metrics.py` measure answer_relevancy, answer_correctness, context_recall,
+  context_precision and citations; `bench/spot_check.py` is a human spot check of the
+  reference labels behind the newer sets (resumable, 5 per set); Measured results opens
+  with one table of every judged check and where it was measured. Report lines: "every
+  group passed" instead of a list of perfect "weakest groups".
+  Measured: every RAG metric agreed with every label (relevancy 12/12, correctness,
+  recall and precision 22/22, citations 4/4); the human spot check agreed with 33 of 35
+  sampled labels (F6-004 relabelled F4 only by the reviewer).
+- Developer walkthrough (counterfix installed from a wheel, used from a clean folder as the
+  README and docs say; `bench/dev_walkthrough.py` repeats it on a real model): `counterfix
+  eval` / `benchmark` exit 2 when every call failed (a wrong model name no longer passes a
+  CI gate); "did you mean" for metric, benchmark and provider names; `guard()` refuses a
+  class (`guard(OpenAI)`) or an object with no chat, responses or messages API instead of
+  checking nothing; `litellm_callback()`, `langchain_callback()` and `counterfix mcp` say
+  what to install; eval reports note when `fix` cannot run with `app=` and when no
+  retrieved passage id ever matches a gold `relevant` id; `counterfix.confidence` reads a
+  guarded response directly (`confidence.describe(r)`); fix reports tell a failure that
+  stayed ("still") from one the change brought ("new"); docs show `default_threshold` for
+  custom metrics and the eval exit codes.
+- From the walkthrough on real models (qwen2.5:3b, gpt-oss-120b): F5 (false premise)
+  now supersedes F9 (a request built on a false premise is not ambiguous; no measured
+  number changed); retry mode raises a cut-off call's `max_tokens` 4x and to at least
+  1,024 (5 -> 20 or 40 never helped; `fix()` and its measured order are unchanged); eval
+  reports name an app by its function name and an unnamed dataset "dataset".
+- Fixes from these runs: the F6 instruction check no longer reads instructions planted in
+  retrieved text as the user's; a metric that names the root cause (F13, F12) now
+  supersedes the live findings it explains; Ollama embedding models (all-minilm, ...) are
+  no longer offered as judges or chat models.
+- Code evaluation (wave 3): `counterfix.code` runs model-written code against tests in a
+  sandbox (Docker with no network and resource caps, or an isolated subprocess; off
+  until `--allow-code` / `COUNTERFIX_ALLOW_CODE=1`). The `tests` metric reads HumanEval,
+  MBPP or plain assert tests; new failure type F12 (code fails its tests) with causes
+  no code, syntax, name, signature, import, runtime, wrong output, timeout (cut-off code
+  is F1); verified fixes `error_feedback`, `restate_signature`, `one_code_block`.
+  `samples=N` / `--samples N` reports pass@k (unbiased estimator). `bench/code_parity.py`:
+  counterfix's checker agrees with EvalPlus on 491 of 492 verdicts.
+- Benchmarks: `counterfix benchmark NAME` / `counterfix.benchmarks.run_benchmark()` for
+  MMLU, GSM8K, ARC-Challenge, TruthfulQA MC1, IFEval (official checks via lm-eval) and
+  HumanEval+/MBPP+ (scored by EvalPlus; Linux and macOS), `humaneval` / `mbpp` (original
+  tests, counterfix's checker, any OS), generative, temperature 0, versioned prompts,
+  seeded subsets (`--per-group`, `--limit`), per-group accuracy, licences listed; data
+  downloaded at run time. Extras `code` and `benchmarks`. `bench/lm_eval_parity.py`
+  compares with lm-evaluation-harness: on qwen2.5:3b with the same prompts, GSM8K 0.81 vs
+  0.79 (94/100 items scored the same) and MMLU abstract algebra 0.56 vs 0.56 (100/100).
+- Code fixes after the first live runs: a failed assert now reports what the code
+  returned (`... == 14 (got 12)`), also in `error_feedback`; new fix `check_examples`
+  (work the examples by hand first). On qwen2.5:3b HumanEval (40 problems) 2 of 8
+  repeatable failures got a verified fix, up from 0. Cut-off code says so instead of
+  "invalid syntax". Benchmark answers get 4,096 tokens (reasoning models ran out at 1,536).
+  `humaneval` / `mbpp` benchmarks score the original tests with counterfix's checker and
+  run on Windows; EvalPlus's scorer (`humaneval+`, `mbpp+`) needs Linux or macOS.
+
 ## 0.1.3 (2026-11-09)
 
 - Fix: `counterfix.otel.SpanChecker` crashed inside `span.end()` on newer OpenTelemetry

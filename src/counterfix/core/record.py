@@ -50,6 +50,31 @@ class Usage(BaseModel):
     reasoning_tokens: int | None = None
 
 
+class Timing(BaseModel):
+    """When the pieces of a streamed answer arrived, in ms after the request was sent.
+
+    Filled in for streamed calls only: a call that is not streamed has just ``latency_ms``.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    ttft_ms: float | None = None
+    """Time to the first chunk of the answer: visible text or tool-call arguments."""
+    first_reasoning_ms: float | None = None
+    """Time to the first chunk of reasoning, for models that stream their thinking."""
+    last_chunk_ms: float | None = None
+    """Time to the last chunk of the answer."""
+    chunks: int = 0
+    """Number of chunks that carried answer text or tool-call arguments."""
+
+    @property
+    def mean_chunk_gap_ms(self) -> float | None:
+        """Average time between answer chunks after the first (inter-chunk latency)."""
+        if self.chunks < 2 or self.ttft_ms is None or self.last_chunk_ms is None:
+            return None
+        return (self.last_chunk_ms - self.ttft_ms) / (self.chunks - 1)
+
+
 class CallRecord(BaseModel):
     """A single LLM call: what was asked, with which settings, and what came back."""
 
@@ -68,6 +93,8 @@ class CallRecord(BaseModel):
     tool_calls: list[dict[str, Any]] | None = None
     usage: Usage | None = None
     latency_ms: float | None = None
+    timing: Timing | None = None
+    """Chunk timing (TTFT and friends), for streamed calls."""
 
     error: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -113,6 +140,15 @@ class CallRecord(BaseModel):
             if isinstance(value, int):
                 return value
         return None
+
+    @property
+    def limit_key(self) -> str:
+        """The request field that holds the output-token limit: the one the call used
+        (``max_completion_tokens`` for newer OpenAI models), else ``max_tokens``."""
+        for key in ("max_completion_tokens", "max_output_tokens", "max_tokens"):
+            if key in self.params:
+                return key
+        return "max_tokens"
 
 
 _TAGS = r"(think|thought|thinking)"

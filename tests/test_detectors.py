@@ -218,7 +218,11 @@ def test_tool_call_arguments() -> None:
     unknown = rec(
         None, finish="tool_calls", params={"tools": TOOLS}, tool_calls=[call("send_email", "{}")]
     )
-    assert "not offered" in d.check(unknown, CFG)[0].evidence[0].detail
+    assert d.check(unknown, CFG) == []  # a tool that was not offered is F14, not F2
+    from counterfix.detectors import ToolUseCheck
+
+    f14 = ToolUseCheck().check(unknown, CFG)
+    assert f14[0].failure_type.value == "F14" and "not offered" in f14[0].evidence[0].detail
 
 
 # --- F3 refusal ---------------------------------------------------------------------

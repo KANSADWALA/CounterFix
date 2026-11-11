@@ -104,8 +104,24 @@ def ollama_models(timeout: float = 0.5) -> list[str]:
             data = json.loads(response.read().decode("utf-8"))
     except Exception:
         return []
-    names = [str(m.get("name", "")) for m in data.get("models", []) if isinstance(m, dict)]
-    return [n for n in names if n and "embed" not in n.lower()]
+    return [
+        str(m.get("name"))
+        for m in data.get("models", [])
+        if isinstance(m, dict) and m.get("name") and not _is_embedding(m)
+    ]
+
+
+# Embedding models answer no chat requests ("does not support chat").
+_EMBED_NAMES = ("embed", "minilm", "bge-", "bge:", "e5-", "gte-", "nomic-bert", "mxbai")
+_EMBED_FAMILIES = {"bert", "nomic-bert", "xlm-roberta", "roberta", "jina-bert-v2"}
+
+
+def _is_embedding(model: dict[str, Any]) -> bool:
+    name = str(model.get("name", "")).lower()
+    raw = model.get("details")
+    details: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    families = {str(f).lower() for f in (details.get("families") or [details.get("family")]) if f}
+    return any(k in name for k in _EMBED_NAMES) or bool(families & _EMBED_FAMILIES)
 
 
 def detect_judges(avoid_model: str | None = None) -> list[tuple[str, str]]:
