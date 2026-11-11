@@ -48,7 +48,7 @@ def _print_issue(issue: LintIssue) -> None:
     print(f"      {issue.message}")
     if issue.snippet:
         print(f'      at: "{issue.snippet}"')
-    print(f"      fix: {issue.suggestion}")
+    print(f"      try: {issue.suggestion}")
 
 
 def _cli_judge(choice: str) -> Judge | None:
@@ -636,7 +636,10 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="counterfix", description="Find why LLM calls fail.")
+    parser = argparse.ArgumentParser(
+        prog="counterfix",
+        description="Diagnose LLM failures and re-run fixes to see which ones work.",
+    )
     parser.add_argument("--version", action="version", version=f"counterfix {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
     p_lint = sub.add_parser("lint", help="check prompts for failure-prone patterns")

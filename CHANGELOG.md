@@ -2,6 +2,21 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## 0.2.1 (2026-11-11)
+
+Wording that claims no more than counterfix does.
+
+- New tagline everywhere (PyPI, README, docs, CLI, MCP server): "LLM evaluation that
+  diagnoses failures and re-runs fixes to see which ones work". The old one ("get a fix
+  that was tested to work") implied a fix every time; often no change passes, and
+  counterfix says so.
+- `diagnose()` output, the HTML report and `counterfix lint` show an untested suggestion as
+  `try:`; only a suggestion that passed re-runs is shown as `fix (verified):`. `fix()`
+  output is unchanged (it prints `fix:` only for a verified change).
+- The README and docs intros say counterfix looks for the likely cause and tests fixes,
+  and that when none passes it says so and lists what to try next.
+- Docs: the confidence example shows the guarded client.
+
 ## 0.2.0 (2026-11-11)
 
 counterfix grows from diagnosing single calls into one-stop evaluation, where every miss

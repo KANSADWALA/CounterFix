@@ -18,7 +18,7 @@ counterfix diagnose calls.jsonl --fail-on-failure    # exit code 1 if any call f
 ```
 
 The HTML report is one self-contained file to send to a teammate: totals per failure
-type, then each call with its prompt, answer, why it was flagged and the suggested fix.
+type, then each call with its prompt, answer, why it was flagged and what to try.
 
 ## Judge checks on live traffic, with a cost cap
 

@@ -108,7 +108,8 @@ class Diagnosis(BaseModel):
         return "; ".join(parts)
 
     def explain(self) -> str:
-        """A few readable lines: each finding, why it was flagged, and the suggested fix."""
+        """A few readable lines: each finding, why it was flagged, and what to try. A suggestion
+        is shown as "try:" until a re-run verified it ("fix (verified):", see ``fix()``)."""
         if self.ok:
             return self.summary()
         lines = []
@@ -116,7 +117,8 @@ class Diagnosis(BaseModel):
             lines.append(f"{f.failure_type.value} {f.failure_type.label} ({f.confidence:.0%})")
             lines += [f"  why: {e.detail}" for e in f.evidence]
             if f.prescription is not None:
-                lines.append(f"  fix: {f.prescription.description}")
+                label = "fix (verified)" if f.prescription.verified else "try"
+                lines.append(f"  {label}: {f.prescription.description}")
         if self.judge:
             lines.append(f"judged by {self.judge}")
         return "\n".join(lines)

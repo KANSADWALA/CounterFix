@@ -1,7 +1,7 @@
 # Code evaluation
 
-Score code a model wrote against tests, see why it failed (F12), and get a fix that was
-re-run and verified.
+Score code a model wrote against tests, see why it failed (F12), and re-run candidate
+fixes to find one that makes the tests pass.
 
 ```bash
 counterfix eval coding.jsonl --model groq:openai/gpt-oss-120b --metric tests --allow-code --fix 5

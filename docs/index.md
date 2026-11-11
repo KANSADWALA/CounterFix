@@ -1,12 +1,12 @@
 # counterfix
 
-**Find why an LLM call failed, and get a fix that was tested to work.**
+**LLM evaluation that diagnoses failures and re-runs fixes to see which ones work.**
 
-Most LLM tools tell you *that* a call failed. counterfix tells you *why* (one of fourteen
-failure types, F1 to F14) and hands back a fix it has already re-run and checked: it
-changes one thing at a time, re-runs the call, and keeps only the change that made the
-failure go away in 2 of 3 runs. The change that fixes the failure is both the diagnosis
-and the prescription.
+Most LLM tools tell you *that* a call failed. counterfix also looks for *why* (one of
+fourteen failure types, F1 to F14), then tests fixes: it changes one thing at a time,
+re-runs the call, and keeps only a change that made the failure go away in 2 of 3 runs.
+When no change passes, it says so and lists what to try next. A change that works is both
+the diagnosis and the prescription.
 
 ```bash
 pip install counterfix

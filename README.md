@@ -6,15 +6,15 @@
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://kansadwala.github.io/CounterFix/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/KANSADWALA/CounterFix/blob/main/LICENSE)
 
-**Find why an LLM call failed, and get a fix that was tested to work.**
+**LLM evaluation that diagnoses failures and re-runs fixes to see which ones work.**
 
-Most LLM evaluation tools tell you *that* a model failed. counterfix is built to tell you
-*why*, and to hand back a fix it has already checked. When a call fails, it changes one
-thing at a time (raises `max_tokens`, asks for bare JSON, adds the source text, tells the
-model to check the question's premises, repeats a missed instruction) and re-runs the
-call. A change counts only if it works in 2 of 3 re-runs. The change that fixes the
-failure is both the diagnosis and the prescription. We call this **counterfactual
-diagnosis**.
+Most LLM evaluation tools tell you *that* a model failed. counterfix also looks for
+*why*: it names the likely failure type (F1 to F14), then tests fixes. When a call fails,
+it changes one thing at a time (raises `max_tokens`, asks for bare JSON, adds the source
+text, tells the model to check the question's premises, repeats a missed instruction) and
+re-runs the call. A change counts only if it works in 2 of 3 re-runs; when none does,
+counterfix says so and lists what to try next. A change that makes the failure go away is
+both the diagnosis and the prescription. We call this **counterfactual diagnosis**.
 
 > **Status: alpha** (latest version in the PyPI badge above). Everything below works today: live checks, judge checks,
 > verified fixes, reports, regression tests, profiles, dataset and RAG evaluation, code
@@ -74,7 +74,7 @@ print(counterfix.diagnose(record, judge=False).explain())
 ```text
 F6 Dropped instruction (90%)
   why: instructions not met: exactly 1 word (has 9); a one-word answer (has 9 words)
-  fix: Repeat the broken instructions at the end of the prompt as a short checklist. ...
+  try: Repeat the broken instructions at the end of the prompt as a short checklist. ...
 ```
 
 `judge=False` runs only the live checks: free, instant, no extra calls. More cases in
@@ -148,7 +148,7 @@ The judge comes from your own key (a free `GROQ_API_KEY` or `GEMINI_API_KEY` is 
 see [Bring your own key](#bring-your-own-key)). Run `counterfix setup` to see what it
 found. Full script: [`examples/diagnose_with_judge.py`](https://github.com/KANSADWALA/CounterFix/blob/main/examples/diagnose_with_judge.py).
 
-### 4. Get a fix that was tested to work
+### 4. Re-run fixes and keep the ones that work
 
 ```python
 result = counterfix.fix(response)  # a guarded response, its diagnosis, or a CallRecord
@@ -190,7 +190,7 @@ counterfix diagnose calls.jsonl --fail-on-failure    # exit code 1 if any call f
 ```
 
 The HTML report is one self-contained file you can send to a teammate: totals per failure
-type, then each call with its prompt, answer, why it was flagged and the suggested fix.
+type, then each call with its prompt, answer, why it was flagged and what to try.
 The JSON lines (`{"record": ..., "diagnosis": ...}`) suit log pipelines, and can be read
 back with `counterfix diagnose` or `counterfix.load_log()`.
 

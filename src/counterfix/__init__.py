@@ -1,4 +1,4 @@
-"""counterfix: find why an LLM call failed and get a fix that was tested to work."""
+"""counterfix: LLM evaluation that diagnoses failures and re-runs fixes to see which ones work."""
 
 from counterfix import background, metrics, otel, perf
 from counterfix.adapters import (
@@ -38,7 +38,7 @@ from counterfix.lint import LintIssue, lint
 from counterfix.report import load_log, log_to
 from counterfix.rules import FixRule, RuleStore
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "CallRecord",

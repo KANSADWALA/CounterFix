@@ -48,7 +48,7 @@ def test_reports_count_failures_and_escape_html() -> None:
     reports = [counterfix.diagnose(r, judge=False) for r in (_cut_off(), fine)]
     text = text_report(reports)
     assert text.startswith("2 call(s) checked, 1 with a failure.")
-    assert "F1 Truncation" in text and "fix:" in text and "Hello!" not in text
+    assert "F1 Truncation" in text and "try:" in text and "Hello!" not in text
     page = html_report(reports)
     assert page.startswith("<!doctype html>") and page.count("<details") == 2
     assert "&lt;please&gt;" in page and "<please>" not in page

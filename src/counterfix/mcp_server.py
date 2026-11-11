@@ -126,7 +126,7 @@ def fix_call(
     judge: bool = True,
     max_runs: int = 9,
 ) -> dict[str, Any]:
-    """Find a fix that was tested to work: re-run the call (model as provider:model, e.g.
+    """Search for a fix that works on re-run: re-run the call (model as provider:model, e.g.
     groq:openai/gpt-oss-120b) with one change at a time; a fix counts only if it passes
     2 of 3 re-runs. Makes real model calls with your keys."""
     from counterfix.engine import fix
@@ -180,7 +180,7 @@ def server() -> Any:
 
     app = MCPServer(
         name="counterfix",
-        instructions="Find why an LLM call failed and get a fix that was tested to work.",
+        instructions="Diagnose why an LLM call failed and re-run fixes to see which ones work.",
     )
     for tool in TOOLS:
         app.tool()(cast(Any, tool))

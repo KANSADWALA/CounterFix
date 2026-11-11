@@ -161,4 +161,4 @@ def test_diagnose_without_a_judge_runs_live_checks_only(clean: pytest.MonkeyPatc
     assert [f.failure_type for f in report.findings] == [FailureType.TRUNCATION]
     assert report.judge is None and not any(c.startswith("judge_") for c in report.checked)
     text = report.explain()
-    assert text.startswith("F1 Truncation") and "why:" in text and "fix:" in text
+    assert text.startswith("F1 Truncation") and "why:" in text and "try:" in text

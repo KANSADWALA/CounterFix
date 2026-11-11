@@ -208,7 +208,12 @@ def html_report(diagnoses: list[Diagnosis], *, title: str = "counterfix report")
             f"<p><b>{e(f.failure_type.value)} {e(f.failure_type.label)}</b> "
             f"({f.confidence:.0%})</p>"
             + "".join(f"<pre>why: {e(ev.detail)}</pre>" for ev in f.evidence)
-            + (f"<pre>fix: {e(f.prescription.description)}</pre>" if f.prescription else "")
+            + (
+                f"<pre>{'fix (verified)' if f.prescription.verified else 'try'}: "
+                f"{e(f.prescription.description)}</pre>"
+                if f.prescription
+                else ""
+            )
             for f in d.findings
         )
         model = f' <span class="muted">{e(record.model)}</span>' if record and record.model else ""

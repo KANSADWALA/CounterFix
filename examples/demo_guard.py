@@ -66,7 +66,7 @@ def run(client: Any, model: str, *, retry: bool = False) -> list[Any]:
             for evidence in top.evidence:
                 print(f"  why: {evidence.detail}")
             if top.prescription is not None:
-                print(f"  fix: {top.prescription.description} -> {top.prescription.patch}")
+                print(f"  try: {top.prescription.description} -> {top.prescription.patch}")
         for attempt in response.diagnosis.retries:
             print(f"  retried with {attempt.changes}: {attempt.outcome}")
         responses.append(response)

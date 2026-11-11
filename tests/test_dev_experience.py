@@ -141,3 +141,18 @@ def test_app_label_and_default_name():
 
     result = evaluate([{"id": "a", "question": "q", "answer": "Paris"}], app=outer())
     assert result.model == "app:app" and result.name == "dataset"
+
+
+def test_untested_suggestions_say_try_and_verified_ones_say_fix():
+    from counterfix import FailureType, Finding
+    from counterfix.core.diagnosis import Diagnosis, Prescription
+    from counterfix.core.types import PrescriptionKind
+
+    def diag(verified: bool) -> str:
+        p = Prescription(kind=PrescriptionKind.PARAM_CHANGE, description="Raise max_tokens",
+                         patch={"max_tokens": 160}, verified=verified)  # fmt: skip
+        f = Finding(failure_type=FailureType.TRUNCATION, confidence=0.95, prescription=p)
+        return Diagnosis(record_id="r", findings=[f]).explain()
+
+    assert "  try: Raise max_tokens" in diag(False) and "fix" not in diag(False).lower()
+    assert "  fix (verified): Raise max_tokens" in diag(True)
