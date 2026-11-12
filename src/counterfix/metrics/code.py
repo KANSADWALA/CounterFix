@@ -1,5 +1,5 @@
 """Code metric: does the answer's code pass the tests? Runs the code, so it needs code
-execution turned on (see :mod:`counterfix.code.sandbox`)."""
+execution turned on (see :mod:`counterfix.detect.code.sandbox`)."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ class TestsPass(Metric):
         raise NotImplementedError  # score() does the work: it needs the record's metadata
 
     def score(self, record: CallRecord, reference: Any = None) -> MetricResult:
-        from counterfix.code import check_code
-        from counterfix.code.check import as_tests
+        from counterfix.detect.code import check_code
+        from counterfix.detect.code.check import as_tests
 
         result = MetricResult(name=self.name, threshold=self.threshold)
         if record.error is not None:

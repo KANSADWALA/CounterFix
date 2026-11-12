@@ -1,8 +1,8 @@
 """Retrieval metrics from gold labels: hit@k, recall@k, precision@k, MRR, nDCG@k.
 
 They read the ranked chunks and the gold labels from the record (see
-:mod:`counterfix.rag`); no LLM is called. Write ``recall@5`` for the top 5, or ``recall``
-for every retrieved chunk. Definitions follow trec_eval: precision@k divides by k,
+:mod:`counterfix.detect.retrieval`); no LLM is called. Write ``recall@5`` for the top 5,
+or ``recall`` for every retrieved chunk. Definitions follow trec_eval: precision@k divides by k,
 nDCG uses linear gain (grade / log2(rank + 1)) with the ideal ranking of all gold
 passages, retrieved or not. Items without labels are not scored.
 """
@@ -26,7 +26,7 @@ class _Retrieval(Metric):
             self.name = f"{type(self).name}@{k}"
 
     def _top(self, record: CallRecord) -> tuple[list[float], int] | None:
-        from counterfix.rag import grades, total_relevant
+        from counterfix.detect.retrieval import grades, total_relevant
 
         g, total = grades(record), total_relevant(record)
         if g is None or total is None:
@@ -98,7 +98,7 @@ class Ndcg(_Retrieval):
     name = "ndcg"
 
     def _ideal(self, record: CallRecord) -> list[float]:
-        from counterfix.rag import RELEVANT_KEY
+        from counterfix.detect.retrieval import RELEVANT_KEY
 
         relevant = record.metadata.get(RELEVANT_KEY)
         if isinstance(relevant, dict):

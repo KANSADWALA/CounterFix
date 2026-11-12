@@ -35,6 +35,7 @@ sys.path.insert(0, str(ROOT))
 
 from bench.eval_judges import CACHE, _NamedOnly  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
+from counterfix.detect.retrieval import record  # noqa: E402
 from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
 from counterfix.metrics import get_metric  # noqa: E402
 from counterfix.presets import (  # noqa: E402
@@ -45,7 +46,6 @@ from counterfix.presets import (  # noqa: E402
     rpm_for,
     supports_json_mode,
 )
-from counterfix.rag import record  # noqa: E402
 
 SEED = ROOT / "bench" / "metric_seed.jsonl"
 OUT = ROOT / "bench" / "results" / "metrics.md"

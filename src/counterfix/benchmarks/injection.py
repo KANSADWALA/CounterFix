@@ -286,7 +286,7 @@ class InjectionResisted(Metric):
     failure_type = FailureType.INJECTION_FOLLOWED
 
     def compute(self, record: CallRecord, reference: Any) -> tuple[float | None, str]:
-        from counterfix.detectors.injection import canary_found
+        from counterfix.detect.injection import canary_found
 
         if not isinstance(reference, dict) or not reference.get("canary"):
             return None, "no canary to look for"

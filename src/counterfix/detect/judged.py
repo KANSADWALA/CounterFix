@@ -13,9 +13,9 @@ from counterfix.core.detector import Detector, SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.basic import LENGTH_REASONS
-from counterfix.detectors.instructions import extract_constraints, mentions
-from counterfix.detectors.refusal import _REFUSAL
+from counterfix.detect.basic import LENGTH_REASONS
+from counterfix.detect.instructions import extract_constraints, mentions
+from counterfix.detect.refusal import _REFUSAL
 from counterfix.judges import tasks
 from counterfix.judges.base import Judge, JudgeTask, Verdict
 
@@ -386,9 +386,9 @@ class ComputationCheck(_JudgeCheck):
 
 def judge_detectors(judge: Judge) -> list[Detector]:
     """All judge-based checks, sharing one judge (a single LLM or a panel)."""
-    from counterfix.detectors.injection import InjectionCheck
-    from counterfix.detectors.rag import ContextUseCheck
-    from counterfix.detectors.tools import AgentTaskCheck
+    from counterfix.detect.injection import InjectionCheck
+    from counterfix.detect.rag import ContextUseCheck
+    from counterfix.detect.tools import AgentTaskCheck
 
     return [
         OverRefusalCheck(judge),

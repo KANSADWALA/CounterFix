@@ -480,7 +480,7 @@ def guard(
     config = settings(config, **shortcuts)
     provider = provider or provider_from_url(getattr(client, "base_url", None))
     if detectors is None:
-        from counterfix.detectors import default_detectors
+        from counterfix.detect import default_detectors
 
         detectors = default_detectors()
     if not hasattr(client, "chat") and hasattr(client, "messages"):

@@ -17,7 +17,7 @@ from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.judged import _JudgeCheck
+from counterfix.detect.judged import _JudgeCheck
 from counterfix.judges import tasks
 
 _RETRIEVER_FIX = Prescription(
@@ -36,7 +36,7 @@ class RetrievalLabelCheck:
     covers = (FailureType.RETRIEVAL_MISS,)
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        from counterfix.rag import chunks_of, grades, total_relevant
+        from counterfix.detect.retrieval import chunks_of, grades, total_relevant
 
         g, total = grades(record), total_relevant(record)
         if g is None or not total or not chunks_of(record):
@@ -67,7 +67,7 @@ class ContextUseCheck(_JudgeCheck):
     covers = (FailureType.RETRIEVAL_MISS, FailureType.CONTEXT_IGNORED)
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        from counterfix.rag import has_context
+        from counterfix.detect.retrieval import has_context
 
         if not has_context(record):
             raise SkipCheck("no retrieved context on this call")

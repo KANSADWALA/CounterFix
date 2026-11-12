@@ -71,10 +71,10 @@ def truth(dataset: str) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def base_tests(problem: dict[str, Any]) -> dict[str, Any]:
-    """The problem's original tests in a form :func:`counterfix.code.check_code` reads."""
+    """The problem's original tests in a form :func:`counterfix.detect.code.check_code` reads."""
     if problem.get("test"):  # HumanEval
         return {k: problem[k] for k in ("prompt", "entry_point", "test")}
-    from counterfix.code.check import _split_asserts
+    from counterfix.detect.code.check import _split_asserts
 
     asserts = _split_asserts(problem.get("assertion") or "")  # MBPP+
     return {"tests": asserts, "entry_point": problem.get("entry_point")}
@@ -94,9 +94,9 @@ class EvalPlusTests(Metric):
         raise NotImplementedError
 
     def score(self, record: CallRecord, reference: Any = None) -> MetricResult:
-        from counterfix.code import check_code
-        from counterfix.code.check import as_tests, build_program
-        from counterfix.code.sandbox import CodeExecutionDisabled, execution_allowed
+        from counterfix.detect.code import check_code
+        from counterfix.detect.code.check import as_tests, build_program
+        from counterfix.detect.code.sandbox import CodeExecutionDisabled, execution_allowed
 
         result = MetricResult(name=self.name, threshold=self.threshold)
         if record.error is not None:
@@ -154,7 +154,7 @@ class EvalPlusTests(Metric):
             "cause": cause, "detail": detail, "entry_point": problem["entry_point"],
             "signature": _signature(problem["prompt"], problem["entry_point"]),
         }  # fmt: skip
-        from counterfix.code import CAUSE_TEXT
+        from counterfix.detect.code import CAUSE_TEXT
 
         result.reason = f"[{cause}] {CAUSE_TEXT.get(cause or '', 'failed')}" + (
             f": {detail}" if detail else ""

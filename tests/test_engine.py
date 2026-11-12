@@ -112,7 +112,7 @@ def test_budget_and_judge_only_failures() -> None:
 
 
 def test_fragility_check_and_its_fix() -> None:
-    from counterfix.detectors import FragilityCheck
+    from counterfix.detect import FragilityCheck
 
     record = CallRecord(
         model="m",

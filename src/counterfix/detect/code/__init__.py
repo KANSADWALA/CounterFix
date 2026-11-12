@@ -1,14 +1,14 @@
 """Code evaluation: run a model's code against tests in a sandbox, find why it failed
 (F12 and its sub-causes), and estimate pass@k.
 
->>> from counterfix.code import check_code
+>>> from counterfix.detect.code import check_code
 >>> check_code(answer, {"test_list": ["assert add(1, 2) == 3"]}, allow=True)  # doctest: +SKIP
 CodeResult(passed=True, ...)
 
-Running model-written code is off until you turn it on; see :mod:`counterfix.code.sandbox`.
+Running model-written code is off until you turn it on; see :mod:`counterfix.detect.code.sandbox`.
 """
 
-from counterfix.code.check import (
+from counterfix.detect.code.check import (
     CAUSE_TEXT,
     CodeResult,
     CodeTests,
@@ -16,8 +16,8 @@ from counterfix.code.check import (
     build_program,
     check_code,
 )
-from counterfix.code.passk import mean_pass_at_k, pass_at_k
-from counterfix.code.sandbox import (
+from counterfix.detect.code.passk import mean_pass_at_k, pass_at_k
+from counterfix.detect.code.sandbox import (
     ALLOW_ENV,
     CodeExecutionDisabled,
     RunResult,

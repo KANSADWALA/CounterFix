@@ -76,7 +76,7 @@ def watch(
     :func:`counterfix.guard`. There is no retry mode: a plain function cannot be re-run with
     a changed request."""
     if detectors is None:
-        from counterfix.detectors import default_detectors
+        from counterfix.detect import default_detectors
 
         detectors = default_detectors()
     config = settings(config, log=log, judge=judge, sample_rate=sample_rate)

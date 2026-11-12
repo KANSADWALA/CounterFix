@@ -19,7 +19,7 @@ from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.judged import _JudgeCheck
+from counterfix.detect.judged import _JudgeCheck
 from counterfix.judges import tasks
 from counterfix.judges.tasks import CONTEXT_KEY
 

@@ -8,7 +8,7 @@ Hugging Face perplexity guide (https://huggingface.co/docs/transformers/perplexi
 Chat APIs do not return probabilities for the text you send (only, at most, for tokens
 they generate), so corpus perplexity needs the model's weights: a local Hugging Face
 model (``pip install "counterfix[semantic]"``). For one answer's token probabilities from
-an API, see :mod:`counterfix.confidence`.
+an API, see :mod:`counterfix.detect.confidence`.
 """
 
 from __future__ import annotations

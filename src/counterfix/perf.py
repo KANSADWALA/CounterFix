@@ -323,7 +323,7 @@ def speed_fix(
             DeprecationWarning,
             stacklevel=2,
         )
-    from counterfix.detectors import default_detectors
+    from counterfix.detect import default_detectors
     from counterfix.engine import _caller_for
 
     rerun = caller or _caller_for(record, None)

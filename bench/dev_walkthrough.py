@@ -18,7 +18,7 @@ import traceback
 from pathlib import Path
 
 import counterfix
-from counterfix import confidence
+from counterfix.detect import confidence
 from counterfix.presets import PRESETS, load_env_file
 
 load_env_file(Path.cwd() / ".env")

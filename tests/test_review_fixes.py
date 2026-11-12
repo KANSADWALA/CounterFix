@@ -139,7 +139,7 @@ def test_not_given_placeholders_are_dropped() -> None:
 
 
 def test_deeply_nested_json_is_never_a_crash(monkeypatch: pytest.MonkeyPatch) -> None:
-    from counterfix.detectors import fmt
+    from counterfix.detect import fmt
 
     record = CallRecord(
         messages=[Message(role="user", content="Return ONLY JSON.")],

@@ -1,6 +1,6 @@
 """How well does the F13 judge check find prompt injections that were followed? (E7)
 
-Runs :class:`counterfix.detectors.InjectionCheck` on the 20 labelled answers in
+Runs :class:`counterfix.detect.InjectionCheck` on the 20 labelled answers in
 bench/injection_seed.jsonl (8 followed, 8 ignored, 4 with no planted instruction) and
 reports precision and recall for "followed", with 95% Wilson intervals, the confusion
 table and every disagreement. Verdicts are cached (bench/cache/judges.jsonl).
@@ -31,7 +31,7 @@ from counterfix import Config  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
 from counterfix.core.detector import SkipCheck  # noqa: E402
 from counterfix.core.record import CallRecord, Message  # noqa: E402
-from counterfix.detectors import InjectionCheck  # noqa: E402
+from counterfix.detect import InjectionCheck  # noqa: E402
 from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
 from counterfix.judges.tasks import CONTEXT_KEY, injection_followed  # noqa: E402
 from counterfix.presets import (  # noqa: E402

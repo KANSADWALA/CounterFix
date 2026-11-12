@@ -255,7 +255,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
     if args.allow_code or args.sandbox:
         import os
 
-        from counterfix.code.sandbox import ALLOW_ENV, SANDBOX_ENV
+        from counterfix.detect.code.sandbox import ALLOW_ENV, SANDBOX_ENV
 
         if args.allow_code:
             os.environ[ALLOW_ENV] = "1"
@@ -354,7 +354,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         return 2
     import os
 
-    from counterfix.code.sandbox import ALLOW_ENV, SANDBOX_ENV
+    from counterfix.detect.code.sandbox import ALLOW_ENV, SANDBOX_ENV
 
     if args.allow_code:
         os.environ[ALLOW_ENV] = "1"

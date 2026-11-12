@@ -25,7 +25,7 @@ from counterfix.core.record import CallRecord, Message, Timing, Usage
 
 def _state(config: Config | None, detectors: Sequence[Detector] | None, provider: str) -> _Guard:
     if detectors is None:
-        from counterfix.detectors import default_detectors
+        from counterfix.detect import default_detectors
 
         detectors = default_detectors()
     return _Guard(config or Config(), detectors, provider)
@@ -225,7 +225,7 @@ def langchain_callback(
                 record = record_from_langchain(inputs, response, params=params, latency_ms=ms)
                 record.timing = timing
                 if docs:
-                    from counterfix.rag import set_chunks
+                    from counterfix.detect.retrieval import set_chunks
 
                     set_chunks(record, docs)
             except Exception:

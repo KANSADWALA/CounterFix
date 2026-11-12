@@ -6,7 +6,7 @@ import pytest
 
 from counterfix import CallRecord, Config, FailureType, Finding, Message, SkipCheck, run_detectors
 from counterfix.core.precedence import resolve
-from counterfix.detectors.instructions import (
+from counterfix.detect.instructions import (
     InstructionCheck,
     extract_constraints,
     list_items,

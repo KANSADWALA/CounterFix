@@ -55,7 +55,7 @@ def load_probes(path: str | Path | None = None) -> list[dict[str, Any]]:
 
 def probe_record(probe: dict[str, Any], record: CallRecord) -> CallRecord:
     """Attach what a probe knows (schema, right answer) so the checks can use it."""
-    from counterfix.detectors.fmt import SCHEMA_METADATA_KEY
+    from counterfix.detect.fmt import SCHEMA_METADATA_KEY
     from counterfix.judges.tasks import REFERENCE_KEY
 
     if probe.get("schema"):
@@ -103,7 +103,7 @@ def build_profile(
             why.startswith("judge failed") for why in report.skipped.values()
         )
         if probe["failure_type"] == "F7":  # fragility needs re-asks, so only on its probes
-            from counterfix.detectors import FragilityCheck
+            from counterfix.detect import FragilityCheck
 
             extra = diagnose(record, detectors=[FragilityCheck(caller, judge=chosen)])
             report.findings += extra.findings

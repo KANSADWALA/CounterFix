@@ -1,6 +1,6 @@
 """F14 tool misuse, from what the run did (live, free, exact).
 
-Works on an agent run (``counterfix.agents.record(task, run)``) and on a single model
+Works on an agent run (``counterfix.detect.agents.record(task, run)``) and on a single model
 call that offered tools: a call to a tool that was not offered, the same call repeated
 (a loop), a tool the item expects that was never called, too many steps. Arguments that
 are not JSON or break the tool's schema stay F2 (format). Whether the run reached the
@@ -16,7 +16,7 @@ from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.judged import _JudgeCheck
+from counterfix.detect.judged import _JudgeCheck
 from counterfix.judges import tasks
 
 _FIXES = {
@@ -57,7 +57,7 @@ class ToolUseCheck:
     covers = (FailureType.TOOL_MISUSE,)
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        from counterfix import agents
+        from counterfix.detect import agents
 
         traj = agents.of(record)
         if traj is None:
@@ -90,7 +90,7 @@ class AgentTaskCheck(_JudgeCheck):
     covers = (FailureType.TOOL_MISUSE,)
 
     def check(self, record: CallRecord, config: Config) -> list[Finding]:
-        from counterfix import agents
+        from counterfix.detect import agents
 
         traj = agents.of(record)
         if traj is None or not (traj.calls or traj.final_answer):

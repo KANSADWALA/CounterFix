@@ -11,7 +11,7 @@ the final answer. Build one from what your framework already gives you:
 * OpenTelemetry GenAI spans (``execute_tool`` spans with ``gen_ai.tool.*``);
 * a list of guarded responses or ``CallRecord`` objects, one per model call.
 
-``counterfix.agents.record(task, run)`` turns a run into a record for ``diagnose()`` and
+``counterfix.detect.agents.record(task, run)`` turns a run into a record for ``diagnose()`` and
 ``evaluate(app=...)``; the live check :class:`ToolUseCheck` then reports F14 when a call
 names a tool that was not offered, when the same call repeats (a loop), or when a tool
 the item expects was never called. Free, no extra calls.

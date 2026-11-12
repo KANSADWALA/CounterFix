@@ -10,8 +10,8 @@ import pytest
 
 import counterfix
 from conftest import FakeClient, FakeCompletions, make_response
-from counterfix import confidence
 from counterfix.cli import main
+from counterfix.detect import confidence
 from counterfix.evals import evaluate
 
 

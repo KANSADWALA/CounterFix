@@ -111,7 +111,7 @@ TEXT = {
         "goal. Arguments that are not JSON or break the schema are F2.",
         "Live and free (`ToolUseCheck`): unknown tool, loops, a tool the item expects that "
         "was never called, too many steps, on single calls and on agent runs "
-        "(`counterfix.agents.record`). With an expected call, the `tool_call` metric names "
+        "(`counterfix.detect.agents.record`). With an expected call, the `tool_call` metric names "
         "the cause. Judge (`AgentTaskCheck`): did the run complete the task, and if not, "
         "why. See [Agents and tool calls](../agents.md).",
     ),

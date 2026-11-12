@@ -22,7 +22,7 @@ from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.basic import LENGTH_REASONS
+from counterfix.detect.basic import LENGTH_REASONS
 
 # --- reading the answer -------------------------------------------------------------------
 

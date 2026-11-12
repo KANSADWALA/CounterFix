@@ -70,7 +70,7 @@ class JudgeMetric(Metric):
             from counterfix.judges.auto import resolve_judge
 
             self.judge = resolve_judge(None, target_model=record.model)[0]
-        from counterfix.rag import has_context
+        from counterfix.detect.retrieval import has_context
 
         if self.needs_context and not has_context(record):
             return None, "no retrieved context on this call"
@@ -114,7 +114,7 @@ class ContextPrecision(JudgeMetric):
         return tasks.context_precision(record)
 
     def from_verdict(self, verdict: Verdict, record: CallRecord) -> tuple[float | None, str]:
-        from counterfix.rag import chunks_of
+        from counterfix.detect.retrieval import chunks_of
 
         n = len(chunks_of(record)) or len(_CITE.findall(record.metadata[tasks.CONTEXT_KEY]))
         useful = {u for u in _numbers(verdict.extra.get("useful")) if 1 <= u <= max(n, 1)}

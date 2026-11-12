@@ -6,7 +6,9 @@ from typing import Any
 
 import pytest
 
-from counterfix.code import (
+from counterfix.core.record import CallRecord, Message
+from counterfix.core.types import FailureType
+from counterfix.detect.code import (
     CodeExecutionDisabled,
     as_tests,
     check_code,
@@ -14,8 +16,6 @@ from counterfix.code import (
     pass_at_k,
     run_python,
 )
-from counterfix.core.record import CallRecord, Message
-from counterfix.core.types import FailureType
 from counterfix.evals import evaluate
 from counterfix.metrics import get_metric
 

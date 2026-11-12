@@ -22,6 +22,11 @@ MOVED: dict[str, str] = {
     "counterfix.text": "counterfix._internal.text",
     "counterfix.safe_eval": "counterfix._internal.safe_eval",
     "counterfix._suggest": "counterfix._internal.suggest",
+    "counterfix.detectors": "counterfix.detect",
+    "counterfix.code": "counterfix.detect.code",
+    "counterfix.confidence": "counterfix.detect.confidence",
+    "counterfix.rag": "counterfix.detect.retrieval",
+    "counterfix.agents": "counterfix.detect.agents",
 }
 
 

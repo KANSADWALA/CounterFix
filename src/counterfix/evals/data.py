@@ -118,8 +118,8 @@ def make_items(
         raw_chunks = _first(row, _CHUNKS)
         chunks = None
         if raw_chunks not in (None, "", []):
+            from counterfix.detect.retrieval import CHUNKS_KEY, RELEVANT_KEY, joined, to_chunks
             from counterfix.judges.tasks import CONTEXT_KEY
-            from counterfix.rag import CHUNKS_KEY, RELEVANT_KEY, joined, to_chunks
 
             if isinstance(raw_chunks, str):
                 raw_chunks = [raw_chunks]
@@ -128,7 +128,7 @@ def make_items(
             meta[CONTEXT_KEY] = joined(chunks)
         relevant = _first(row, _RELEVANT)
         if relevant not in (None, "", []):  # gold labels also score an app's own retrieval
-            from counterfix.rag import RELEVANT_KEY
+            from counterfix.detect.retrieval import RELEVANT_KEY
 
             meta[RELEVANT_KEY] = relevant
         if isinstance(row.get("gold_passages"), list):
@@ -141,7 +141,7 @@ def make_items(
         if row.get("messages"):
             messages = [Message.model_validate(m) for m in row["messages"]]
         elif chunks is not None and template is None:
-            from counterfix.rag import PROMPT_KEY, QUESTION_KEY, rag_messages
+            from counterfix.detect.retrieval import PROMPT_KEY, QUESTION_KEY, rag_messages
 
             question = row.get(input) if input else _first(row, _INPUTS)
             if question in (None, ""):
@@ -156,7 +156,7 @@ def make_items(
                 try:
                     fill = dict(row)
                     if chunks is not None:  # {context} in a template: the numbered passages
-                        from counterfix.rag import joined
+                        from counterfix.detect.retrieval import joined
 
                         fill["context"] = joined(chunks)
                     prompt = template.format(**fill)

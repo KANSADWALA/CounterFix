@@ -10,9 +10,9 @@ from typing import Any
 import pytest
 
 from counterfix.core.record import CallRecord
+from counterfix.detect.retrieval import chunks_of, record_from_output
 from counterfix.evals import evaluate
 from counterfix.evals.data import load_callable
-from counterfix.rag import chunks_of, record_from_output
 
 ROWS = [
     {"id": "a", "question": "Capital of France?", "answer": "Paris", "relevant": ["d1"]},

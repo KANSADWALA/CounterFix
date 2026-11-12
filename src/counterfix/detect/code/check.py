@@ -23,7 +23,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from counterfix.code.sandbox import RunResult, Sandbox, run_python
+from counterfix.detect.code.sandbox import RunResult, Sandbox, run_python
 
 _FENCE = re.compile(r"```[ \t]*([\w+-]*)[ \t]*\n(.*?)```", re.DOTALL)
 
@@ -268,7 +268,7 @@ def check_code(
     """Check an answer's code against tests (see the module docstring for the steps).
 
     ``allowed_imports``: modules allowed beyond the standard library; None skips the
-    import check. Raises :class:`~counterfix.code.sandbox.CodeExecutionDisabled` when the
+    import check. Raises :class:`~counterfix.detect.code.sandbox.CodeExecutionDisabled` when the
     tests would run and execution is off.
     """
     spec = as_tests(reference)

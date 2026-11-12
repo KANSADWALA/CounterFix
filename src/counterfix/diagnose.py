@@ -38,7 +38,7 @@ def diagnose(
     ``judge=False`` runs only the free live checks (no extra calls, no key needed).
     ``detectors`` replaces the default set entirely.
     """
-    from counterfix.detectors import default_detectors
+    from counterfix.detect import default_detectors
 
     record, client = _target(target)
     if detectors is not None or judge is False:
@@ -51,7 +51,7 @@ def diagnose(
 
 def _judged(record: CallRecord, client: Any, judge: Any, config: Config) -> Diagnosis:
     """Live checks plus judge checks with the judge chosen for this record."""
-    from counterfix.detectors import default_detectors, judge_detectors
+    from counterfix.detect import default_detectors, judge_detectors
 
     chosen, source = resolve_judge(
         judge,
@@ -68,9 +68,9 @@ def _judged(record: CallRecord, client: Any, judge: Any, config: Config) -> Diag
 
 def _add_confidence(record: CallRecord, result: Diagnosis) -> None:
     """Token probabilities, when the provider gave them, as extra evidence on F4."""
-    from counterfix.confidence import describe, of
     from counterfix.core.diagnosis import Evidence
     from counterfix.core.types import FailureType
+    from counterfix.detect.confidence import describe, of
 
     text = describe(record)
     if text is None:

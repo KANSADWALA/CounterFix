@@ -21,7 +21,7 @@ from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.sampling import same_meaning_heuristic
+from counterfix.detect.sampling import same_meaning_heuristic
 from counterfix.judges.base import Judge, JudgeTask
 
 VARIANTS_KEY = "variants"

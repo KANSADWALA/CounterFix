@@ -11,7 +11,7 @@ from conftest import FakeClient, FakeCompletions, make_response
 from counterfix import CallRecord, Config, FailureType, Message
 from counterfix._internal.safe_eval import UnsafeExpression, safe_eval
 from counterfix.core.caller import ModelCaller, OpenAICompatibleCaller
-from counterfix.detectors import (
+from counterfix.detect import (
     AmbiguityCheck,
     ComputationCheck,
     DroppedInstructionCheck,
@@ -20,7 +20,7 @@ from counterfix.detectors import (
     OverRefusalCheck,
     judge_detectors,
 )
-from counterfix.detectors.judged import answer_contains
+from counterfix.detect.judged import answer_contains
 from counterfix.judges import (
     CachedJudge,
     JudgePanel,

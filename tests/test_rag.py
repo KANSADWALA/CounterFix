@@ -14,11 +14,8 @@ import pytest
 import counterfix
 from conftest import FakeClient
 from counterfix import CallRecord, Config, FailureType, Message, run_detectors
-from counterfix.detectors import ContextUseCheck, RetrievalLabelCheck
-from counterfix.evals import evaluate
-from counterfix.judges.base import JudgeTask, Verdict
-from counterfix.metrics import get_metric
-from counterfix.rag import (
+from counterfix.detect import ContextUseCheck, RetrievalLabelCheck
+from counterfix.detect.retrieval import (
     CHUNKS_KEY,
     chunks_of,
     record,
@@ -26,6 +23,9 @@ from counterfix.rag import (
     set_chunks,
     to_chunks,
 )
+from counterfix.evals import evaluate
+from counterfix.judges.base import JudgeTask, Verdict
+from counterfix.metrics import get_metric
 
 ROOT = Path(__file__).resolve().parents[1]
 

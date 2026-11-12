@@ -110,7 +110,7 @@ def text_report(result: EvalResult) -> str:
         for code, count in result.by_cause.items():
             lines.append(f"  {_label(code):<44} {count}")
         if result.code_causes:
-            from counterfix.code import CAUSE_TEXT
+            from counterfix.detect.code import CAUSE_TEXT
 
             lines.append("  code that failed its tests, by what went wrong:")
             for cause, count in result.code_causes.items():
@@ -172,7 +172,7 @@ def html_report(result: EvalResult) -> str:
     flagged = "".join(
         f"<tr><td>{e(_label(c))}</td><td>{k}</td></tr>" for c, k in result.flagged_by_cause.items()
     )
-    from counterfix.code import CAUSE_TEXT
+    from counterfix.detect.code import CAUSE_TEXT
 
     causes += "".join(
         f"<tr><td>&nbsp;&nbsp;code: {e(CAUSE_TEXT.get(c, c))}</td><td>{k}</td></tr>"

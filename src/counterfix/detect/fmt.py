@@ -14,7 +14,7 @@ from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
-from counterfix.detectors.basic import LENGTH_REASONS
+from counterfix.detect.basic import LENGTH_REASONS
 
 _FENCE = re.compile(r"^\s*```(?:json|JSON)?\s*\n?(.*?)\n?```\s*$", re.DOTALL)
 _ASKS_FOR_JSON = re.compile(

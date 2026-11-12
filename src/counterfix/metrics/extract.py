@@ -11,8 +11,8 @@ import math
 import re
 from typing import Any
 
-from counterfix.code.check import extract_code as extract_code
 from counterfix.core.record import CallRecord
+from counterfix.detect.code.check import extract_code as extract_code
 from counterfix.metrics.base import Metric, references
 
 _LETTERS = "ABCDEFGHIJKLMNOP"

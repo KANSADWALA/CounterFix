@@ -33,9 +33,9 @@ sys.path.insert(0, str(ROOT))
 
 from bench.seed import SeedItem, load_seed  # noqa: E402
 from counterfix import CallRecord, Config, FailureType, Message  # noqa: E402
-from counterfix.detectors import FormatDetector  # noqa: E402
-from counterfix.detectors.fmt import SCHEMA_METADATA_KEY  # noqa: E402
-from counterfix.detectors.judged import answer_contains  # noqa: E402
+from counterfix.detect import FormatDetector  # noqa: E402
+from counterfix.detect.fmt import SCHEMA_METADATA_KEY  # noqa: E402
+from counterfix.detect.judged import answer_contains  # noqa: E402
 
 LABEL_DIR = ROOT / "bench" / "labels"
 LABELS = LABEL_DIR / "labels.jsonl"  # your own labels (and --auto labels); always win

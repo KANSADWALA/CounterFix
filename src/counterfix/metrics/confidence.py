@@ -20,7 +20,7 @@ class Confidence(Metric):
     needs_reference = False
 
     def compute(self, record: CallRecord, reference: Any) -> tuple[float | None, str]:
-        from counterfix.confidence import of
+        from counterfix.detect.confidence import of
 
         s = of(record)
         if s is None:

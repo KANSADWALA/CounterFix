@@ -294,7 +294,7 @@ def _text_of(value: Any) -> str:
 
 
 def _is_agent_run(output: Any) -> bool:
-    from counterfix.agents import Trajectory
+    from counterfix.detect.agents import Trajectory
 
     if isinstance(output, Trajectory):
         return True
@@ -333,7 +333,7 @@ def record_from_output(
         rec.metadata.setdefault(QUESTION_KEY, question)
         return rec
     if _is_agent_run(output):  # a message list with tool calls, or a LangGraph state
-        from counterfix.agents import record as agent_record
+        from counterfix.detect.agents import record as agent_record
 
         rec = agent_record(question, output)
         rec.latency_ms = latency_ms

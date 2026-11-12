@@ -139,7 +139,7 @@ class SpanChecker:
         from counterfix.adapters.openai_compat import _Guard
 
         if detectors is None:
-            from counterfix.detectors import default_detectors
+            from counterfix.detect import default_detectors
 
             detectors = default_detectors()
         self._state = _Guard(config or Config(), detectors, provider=None)

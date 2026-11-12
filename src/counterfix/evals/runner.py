@@ -187,7 +187,7 @@ class EvalResult(BaseModel):
 def _id_mismatch_note(items: Sequence[ItemResult]) -> str:
     """A note when items carry gold ``relevant`` ids but no retrieved passage ever matches
     one: almost always ids from a different scheme (the dataset's vs the retriever's)."""
-    from counterfix.rag import RELEVANT_KEY, chunks_of, grades
+    from counterfix.detect.retrieval import RELEVANT_KEY, chunks_of, grades
 
     labelled = retrieved = matched = 0
     seen_ids: list[str] = []
@@ -314,7 +314,7 @@ def fix_item(
     ``must_clear`` (a flagged item, whose metrics already pass) those failure types must
     also be gone. ``on_run(calls, change)`` is called before each re-run (for progress).
     """
-    from counterfix.detectors import default_detectors
+    from counterfix.detect import default_detectors
     from counterfix.engine import INTERVENTIONS
     from counterfix.verify import beatable, level, p_value, settled
 
@@ -459,8 +459,8 @@ def _cached(path: Path | None, model: str | None) -> dict[tuple[str, str], CallR
 
 def _question(item: EvalItem) -> str:
     """The question an app is asked: the dataset's question, not the prompt built for it."""
+    from counterfix.detect.retrieval import QUESTION_KEY
     from counterfix.evals.data import INPUT_KEY
-    from counterfix.rag import QUESTION_KEY
 
     for key in (QUESTION_KEY, INPUT_KEY):
         asked = item.metadata.get(key)
@@ -472,7 +472,7 @@ def _question(item: EvalItem) -> str:
 
 def _run_app(app: Callable[[str], Any], item: EvalItem) -> CallRecord:
     """Call the user's app on one item and read what it returned."""
-    from counterfix.rag import QUESTION_KEY, record_from_output
+    from counterfix.detect.retrieval import QUESTION_KEY, record_from_output
 
     question = _question(item)
     start = time.perf_counter()
@@ -566,7 +566,7 @@ def evaluate(
     ``"module:function"``) that takes the question and returns the answer: a string, a
     dict such as LangChain's ``{"answer": ..., "context": [...]}``, a LlamaIndex
     ``Response``, a guarded client's response or a ``CallRecord`` (see
-    :func:`counterfix.rag.record_from_output`). The
+    :func:`counterfix.detect.retrieval.record_from_output`). The
     passages it returns are what the RAG metrics and checks look at. The fix search needs
     ``model`` (it re-runs the model with changed settings), so it is off with ``app``.
 
@@ -823,7 +823,7 @@ def evaluate(
 
 def _check_code_execution(metrics: Sequence[Metric]) -> None:
     """Fail before any call when a metric would run code that is not allowed to run."""
-    from counterfix.code.sandbox import CodeExecutionDisabled, execution_allowed
+    from counterfix.detect.code.sandbox import CodeExecutionDisabled, execution_allowed
 
     for m in metrics:
         if getattr(m, "needs_code_execution", False) and not execution_allowed(
@@ -851,7 +851,7 @@ def _pass_at_k(
     result: EvalResult, metrics: Sequence[Metric], n: int
 ) -> dict[str, dict[int, float]]:
     """pass@k per pass/fail metric over the questions, for k in 1, 5, 10, 100 up to n."""
-    from counterfix.code.passk import mean_pass_at_k
+    from counterfix.detect.code.passk import mean_pass_at_k
 
     ks = [k for k in (1, 5, 10, 100) if k <= n] or [1]
     out: dict[str, dict[int, float]] = {}

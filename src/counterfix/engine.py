@@ -161,7 +161,7 @@ def _rag_order(
 ]:
     """A fix that re-asks with the passages changed: "gold" (the right passage added
     first), "key_first" (the passage with the answer moved first) or "fewer" (top 3)."""
-    from counterfix import rag
+    from counterfix.detect import retrieval as rag
 
     def chunks(r: CallRecord, f: Finding) -> list[rag.Chunk] | None:
         if not rag.rebuildable(r):
@@ -341,7 +341,7 @@ def _error_feedback(r: CallRecord, f: Finding) -> Change | None:
     check = _code_check(r)
     if not check.get("cause") or not r.response_text:
         return None
-    from counterfix.code import CAUSE_TEXT
+    from counterfix.detect.code import CAUSE_TEXT
 
     what = CAUSE_TEXT.get(str(check["cause"]), "the code failed")
     detail = f"\n\n{check['detail']}" if check.get("detail") else ""
@@ -420,7 +420,7 @@ def _delimit(r: CallRecord, f: Finding) -> Change | None:
 
 def _restate_task(r: CallRecord, f: Finding) -> Change | None:
     """Repeat the user's request after the untrusted text, the last thing the model reads."""
-    from counterfix.detectors.injection import user_request
+    from counterfix.detect.injection import user_request
 
     request = user_request(r).strip()
     if not request:
@@ -845,7 +845,7 @@ def fix(
             stacklevel=2,
         )
     from counterfix.core.attach import target_record as _target
-    from counterfix.detectors import default_detectors, judge_detectors
+    from counterfix.detect import default_detectors, judge_detectors
     from counterfix.diagnose import diagnose
     from counterfix.judges.auto import NoJudgeError, resolve_judge
 
@@ -893,7 +893,7 @@ def fix(
     before = {f.failure_type for f in diagnosis.model_failures}
 
     def checks_for(kind: FailureType) -> list[Detector]:
-        from counterfix.detectors import FragilityCheck
+        from counterfix.detect import FragilityCheck
 
         extra = [] if chosen is None else judge_detectors(chosen)
         if kind is F.PROMPT_FRAGILITY:  # re-asks rewordings: extra calls to the model

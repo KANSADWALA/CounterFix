@@ -41,14 +41,14 @@ def context(
         k: v for k, v in ((CONTEXT_KEY, source), (REFERENCE_KEY, reference)) if v
     }
     if chunks is not None:
-        from counterfix.rag import CHUNKS_KEY, joined, to_chunks
+        from counterfix.detect.retrieval import CHUNKS_KEY, joined, to_chunks
 
         found = to_chunks(chunks)
         extra[CHUNKS_KEY] = [c.model_dump() for c in found]
         if found:
             extra.setdefault(CONTEXT_KEY, joined(found))
     if relevant is not None:
-        from counterfix.rag import RELEVANT_KEY
+        from counterfix.detect.retrieval import RELEVANT_KEY
 
         extra[RELEVANT_KEY] = relevant
     token = _current.set({**(_current.get() or {}), **extra})

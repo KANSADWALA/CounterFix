@@ -1,6 +1,6 @@
 """How well does the F14 judge check tell finished agent runs from failed ones? (E8)
 
-Runs :class:`counterfix.detectors.AgentTaskCheck` on the 20 labelled runs in
+Runs :class:`counterfix.detect.AgentTaskCheck` on the 20 labelled runs in
 bench/agent_seed.jsonl (10 completed, 10 not, with the cause) and reports precision and
 recall for "not completed" with 95% Wilson intervals, how often the named cause matches
 the label, and every disagreement. Verdicts are cached (bench/cache/judges.jsonl).
@@ -27,8 +27,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from bench.eval_judges import CACHE, _NamedOnly  # noqa: E402
-from counterfix import agents  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
+from counterfix.detect import agents  # noqa: E402
 from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
 from counterfix.judges.tasks import agent_task  # noqa: E402
 from counterfix.presets import (  # noqa: E402
