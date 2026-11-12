@@ -32,7 +32,7 @@ accept several values: `{"city": {"any_of": ["Pune", "Pune, India"]}}`. Argument
 reference does not name are allowed. A list of calls means all of them, in any order
 (parallel calls).
 
-The `tools` benchmark has 20 probes over one toolbox of 9 tools: plain calls, choices
+The `tools` probe set has 20 probes over one toolbox of 9 tools: plain calls, choices
 between two similar tools (weather now or forecast), argument formats (ISO dates, currency
 codes) and requests that need no tool, in the style of the Berkeley Function Calling
 Leaderboard's simple and irrelevance categories. They are easy (qwen2.5:3b scores 20/20):

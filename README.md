@@ -33,16 +33,17 @@ test; DeepEval and Ragas files need `--caller` to re-run. See
 [DeepEval, Ragas and Promptfoo](https://kansadwala.github.io/CounterFix/eval-tools/).
 
 > **Status: alpha** (latest version in the PyPI badge above). Everything below works today: live checks, judge checks,
-> verified fixes, reports, regression tests, profiles, dataset and RAG evaluation, code
-> evaluation, benchmarks, prompt-injection and personal-data checks, token confidence,
-> and agent and tool-call checks. APIs may still change.
+> verified fixes, your own test as the pass test, DeepEval, Ragas and Promptfoo results,
+> reports, regression tests, profiles, dataset and RAG evaluation, code evaluation,
+> prompt-injection checks, token confidence, and agent and tool-call checks. APIs may
+> still change.
 >
 > **Known limits.** Verified fixes are common for cut-off answers and broken JSON, rare
 > for invented facts (3 of 14 on our seed set) and none yet for over-refusals or false
 > premises: there counterfix says so and lists what to try instead. For code that gives
 > wrong results, a small model (qwen2.5:3b) got a verified fix on 2 of 8 repeatable
 > failures. For prompt injection, one fix (`delimit_untrusted`) was verified on 9 of 10
-> injected probes for gpt-oss-120b, none for qwen2.5:3b. The 20-probe `tools` benchmark
+> injected probes for gpt-oss-120b, none for qwen2.5:3b. The 20-probe `tools` probe set
 > is a smoke test (qwen2.5:3b passes all 20), not a model comparison. Shipped model
 > profiles are small (54 probes; qwen2.5:3b only partly measured). The labels behind our accuracy
 > numbers are reference labels; a human spot check agreed with 33 of 35 of them. See
@@ -338,34 +339,32 @@ model (about 40 small calls) and prints OK or the error for each step.
 
 ## Roadmap
 
-Done:
+What counterfix does today:
 
-- `guard()` for any OpenAI-compatible client, live checks, optional auto-retry ✅
-- Prompt linter (`counterfix lint`) ✅
-- Judge checks, `diagnose()`, bring your own key, `counterfix setup` ✅
-- Reports: `log_to()`, `counterfix diagnose LOG` with terminal, JSON and HTML output ✅
-- Background judge checks on a sample of traffic, with a cost cap ✅
-- `@counterfix.watch` decorator for any function, sync or async ✅
-- Anthropic SDK in `guard()`, LiteLLM and LangChain callbacks ✅
-- Verified fixes: `counterfix.fix()` (counterfactual re-runs; a change must beat a plain retry) ✅
-- Prompt regression tests: `counterfix export-tests` and a pytest plugin ✅
-- Model profiles, `compare`, `drift`, `route`; fixes ordered by what worked per model ✅
-- OpenTelemetry export and GenAI span reader; streams; RAG context; MCP server ✅
-- Released on PyPI (`pip install counterfix`), docs site, releases by trusted publishing ✅
-- Evaluation, wave 1: `counterfix eval`, reference metrics, TTFT and speed/cost, verified speed fixes ✅
-- RAG evaluation: retrieval metrics, F10 retrieval miss vs F11 context ignored, verified RAG fixes ✅
-- OpenAI Responses API in `guard()`; evaluate your own app or RAG pipeline (`--app`) ✅
-- Code evaluation: sandboxed tests, F12 with its causes, verified code fixes, pass@k ✅
-- Prompt injection (F13: probes and a judge check, verified fixes); token confidence ✅
-- Agents and tool calls: trajectories from any framework, F14 checks, `tool_call` metric, verified tool-choice fixes ✅
-- Trust in the metrics: a labelled set and measured accuracy for every judge-based check, and a human spot check of the labels ✅
-- 0.4: works with your evaluation tools (your own test as the pass test, DeepEval, Ragas and Promptfoo results diagnosed and fixed); parts that duplicated them removed ✅
+- **Find the cause:** live checks on every call (no extra LLM calls), judge checks with
+  your own key, and the prompt linter; failure types F1 to F14.
+- **Prove the fix:** `fix()` changes one thing at a time and keeps a change only if it
+  beats a plain retry; your own test can be the pass test (`fix(check=...)`).
+- **Plug in anywhere:** `guard()` for OpenAI-compatible clients, the Anthropic SDK and the
+  Responses API; `@watch` for any function; LiteLLM and LangChain callbacks;
+  OpenTelemetry; an MCP server.
+- **Work with your evaluation tools:** DeepEval, Ragas and Promptfoo results diagnosed and
+  fixed.
+- **In production and CI:** reports, sampled background checks with a cost cap, retry
+  mode, prompt regression tests and a pytest plugin, model profiles, `compare`, `drift`
+  and `route`.
+- **Over a dataset:** `counterfix eval` for your model or app, RAG (F10 retrieval miss vs
+  F11 context ignored), code (F12, sandboxed tests, pass@k), prompt injection (F13) and
+  agents (F14), each with verified fixes; speed and cost.
+- **Measured:** a labelled set and measured accuracy for every judge-based check, and a
+  human spot check of the labels ([results](https://kansadwala.github.io/CounterFix/results/)).
 
 Next:
 
-1. A public dataset of diagnosed failures with their verified fixes
-2. Larger labelled sets and full profiles for more models
-3. A BFCL loader, so the tool-use probe set can compare models
+1. Read Langfuse and MLflow traces, so failures found there can be explained and fixed
+2. A public dataset of diagnosed failures with their verified fixes
+3. Larger labelled sets and full profiles for more models
+4. A BFCL loader, so the tool-use probe set can compare models
 
 ## License
 

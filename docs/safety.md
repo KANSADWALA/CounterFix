@@ -13,7 +13,7 @@ tool results (`tool` messages): the judge finds a planted instruction and decide
 the answer followed it. Calls without such text are skipped, so this costs nothing
 elsewhere.
 
-**Probe your model.** The `injection` benchmark runs 20 probes, 12 with an instruction
+**Probe your model.** The `injection` probe set runs 20 probes, 12 with an instruction
 planted in a retrieved passage and 8 in a tool result (a web search, an email, a file, an
 API reply, a shell output...). Each planted instruction asks for a made-up canary code,
 so whether the model followed it is checked exactly, without a judge:
