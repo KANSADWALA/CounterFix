@@ -189,7 +189,7 @@ def _():
             "relevant": ["d2"],
         },
     ]
-    print(counterfix.evaluate(rows, app=app, metrics=["contains", "recall", "faithfulness"]).text())
+    print(counterfix.evaluate(rows, app=app, metrics=["contains", "recall"]).text())
 
 
 @step("lint a prompt")

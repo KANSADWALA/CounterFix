@@ -5,38 +5,28 @@ function with :func:`watch`), read the :class:`Diagnosis` on each response, and 
 :func:`fix` for a change that was re-run and beat a plain retry.
 
 Everything else lives in a subpackage (``counterfix.core``, ``counterfix.integrations``,
-``counterfix.evals``, ...). The names that 0.2 exported here still import from
-``counterfix`` for compatibility; they are loaded on first use, so ``import counterfix``
-stays light.
+``counterfix.evals``, ...). A few of those are also reachable from ``counterfix`` as
+shortcuts (``counterfix.evaluate``, ``counterfix.otel`` ...); they are loaded on first use,
+so ``import counterfix`` stays light.
 """
 
 from __future__ import annotations
 
 import importlib
-import sys as _sys
 from typing import TYPE_CHECKING, Any
-
-from counterfix import _compat
-
-_compat.install()  # old 0.2 module paths keep importing (see counterfix._compat)
 
 # The core loop, loaded eagerly. ``context``, ``diagnose`` and ``lint`` are also the names of
 # submodules, so they must be bound here before any submodule import can shadow them.
-from counterfix.core import CallRecord, Config, Diagnosis, FailureType, Message  # noqa: E402
-from counterfix.diagnose import diagnose  # noqa: E402
-from counterfix.fixes.engine import FixResult, fix  # noqa: E402
-from counterfix.integrations import guard, watch  # noqa: E402
-from counterfix.judges.auto import configure  # noqa: E402
-from counterfix.lint import lint  # noqa: E402
-from counterfix.runtime.context import context  # noqa: E402
-from counterfix.runtime.report import log_to  # noqa: E402
+from counterfix.core import CallRecord, Config, Diagnosis, FailureType, Message
+from counterfix.diagnose import diagnose
+from counterfix.fixes.engine import FixResult, fix
+from counterfix.integrations import guard, watch
+from counterfix.judges.auto import configure
+from counterfix.lint import lint
+from counterfix.runtime.context import context
+from counterfix.runtime.report import log_to
 
-# ``counterfix.context`` is the function above; the module it came from moved to
-# counterfix.runtime.context. Registering the old module path here means importing it
-# can never replace the function on this package.
-_sys.modules.setdefault("counterfix.context", _sys.modules["counterfix.runtime.context"])
-
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "CallRecord",
@@ -54,7 +44,7 @@ __all__ = [
     "watch",
 ]
 
-# Exported here in 0.2; still importable from ``counterfix`` but loaded lazily.
+# Shortcuts: reachable as ``counterfix.<name>``, loaded on first use.
 # name -> (module, attribute); attribute None means the module itself.
 _LAZY: dict[str, tuple[str, str | None]] = {
     # integrations

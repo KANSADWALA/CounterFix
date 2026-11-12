@@ -1,10 +1,7 @@
-"""IFEval scored with the official checks (Google's code as shipped in lm-evaluation-harness),
-so the numbers match the published metric: strict prompt-level accuracy.
-
-Needs the ``benchmarks`` extra (``lm-eval[ifeval]``). When an answer misses, the failed
-instruction ids are the reason, and the miss points at F6 (dropped instruction), so the
-fix search tries counterfix's F6 fixes (an instruction checklist at the end of the prompt).
-"""
+"""IFEval for the bench scripts: Google's official strict checks (as shipped in
+lm-evaluation-harness) and the dataset loader. Not part of counterfix: install
+``datasets`` and ``lm-eval[ifeval]`` to use it. A miss points at F6 (dropped
+instruction), so counterfix's fix search tries its F6 fixes."""
 
 from __future__ import annotations
 
@@ -19,7 +16,7 @@ def _utils() -> Any:
     try:
         from lm_eval.tasks.ifeval import utils
     except ImportError as exc:
-        raise ImportError('IFEval needs lm-eval: pip install "counterfix[benchmarks]"') from exc
+        raise ImportError('IFEval needs lm-eval: pip install "lm-eval[ifeval]"') from exc
     return utils
 
 
@@ -60,5 +57,28 @@ class IfEvalStrict(Metric):
 
 
 def score_instructions(answer: str, reference: dict[str, Any]) -> MetricResult:
-    """IFEval verdict for one answer (helper for scripts)."""
+    """IFEval verdict for one answer."""
     return IfEvalStrict().score(CallRecord(response_text=answer), reference)
+
+
+def load_ifeval() -> list[dict[str, Any]]:
+    """google/IFEval (train): id, prompt, reference (the instructions to check)."""
+    try:
+        import datasets
+    except ImportError as exc:
+        raise ImportError("IFEval needs Hugging Face datasets: pip install datasets") from exc
+    ds = datasets.load_dataset("google/IFEval", split="train")
+    return [
+        {
+            "id": f"ifeval-{r['key']}",
+            "prompt": r["prompt"],
+            "reference": {
+                "key": r["key"],
+                "prompt": r["prompt"],
+                "instruction_id_list": list(r["instruction_id_list"]),
+                "kwargs": [dict(k) for k in r["kwargs"]],
+            },
+            "group": "all",
+        }
+        for r in ds
+    ]

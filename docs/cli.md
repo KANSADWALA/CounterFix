@@ -7,7 +7,7 @@
 | `counterfix diagnose LOG [--judge] [--html P] [--json P] [--fail-on-failure]` | report on a log of calls, or on a DeepEval, Ragas or Promptfoo results file ([guide](eval-tools.md)) |
 | `counterfix fix LOG [--judge] [--caller SPEC] [--check FILE:FN] [--system TEXT] [--threshold M=V] [--max-runs N] [--out P]` | verified fixes for the failed calls in a log or an evaluation tool's results; `--check` uses your own test ([guide](your-check.md), [tools](eval-tools.md)) |
 | `counterfix eval DATA [--model SPEC] [--app MODULE:FN] [--metric M]... [--concurrency N] [--samples N] [--allow-code] [--sandbox docker] [--judge] [--fix N] [--out P] [--fail-under M=V] [--fail-on-flagged]` | run and score a dataset, misses by cause, verified fixes ([guide](evals.md)) |
-| `counterfix benchmark NAME --model SPEC [--limit N] [--per-group N] [--seed S] [--fix N] [--allow-code]` | MMLU, GSM8K, ARC, TruthfulQA, IFEval, HumanEval, MBPP (and their EvalPlus versions), prompt injection and tool use, with misses by cause ([guide](benchmarks.md)); `--list` shows them |
+| `counterfix benchmark NAME --model SPEC [--limit N] [--per-group N] [--seed S] [--fix N]` | the prompt-injection and tool-use probe sets, with misses by cause ([guide](benchmarks.md)); `--list` shows them |
 | `counterfix export-tests FIXES [--out P]` | turn verified fixes into pytest cases |
 | `counterfix profile SPEC [--judge] [--fix] [--cost X]` | measure a model on the probe suite |
 | `counterfix compare A B` / `compare LOG --model SPEC` | two profiles, or a model upgrade on your calls |

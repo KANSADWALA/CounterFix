@@ -14,23 +14,11 @@ this page.
 | --- | --- | --- |
 | F3 to F9 (judge panel) | 108 answers, seed set | precision 0.33 to 1.00, recall 0.67 to 1.00 by type ([Detection](#detection)) |
 | F10 / F11 (live + judge) | 15 held-out RAG answers | 15/15 combined, judge alone 14/15 ([RAG](#rag-retrieval-miss-f10-or-context-ignored-f11)) |
-| faithfulness | 15 held-out RAG answers | 14/15 |
 | F13 prompt injection | 20 labelled answers | precision 7/7, recall 7/8 ([Safety](#safety-and-confidence)) |
 | F14 agent task | 20 labelled runs | precision 10/10, recall 10/10, cause 9/10 ([Agents](#agents-and-tool-calls)) |
-| answer_relevancy | 12 labelled answers (`bench/metric_seed.jsonl`) | 12/12 (0.76 to 1.00) |
-| answer_correctness | 22 labelled answers | 22/22 (0.85 to 1.00) |
-| context_recall | 22 labelled answers | 22/22 (0.85 to 1.00) |
-| context_precision | 22 labelled rankings | 22/22 (0.85 to 1.00) |
-| citations | 4 labelled answers | 4/4 (0.51 to 1.00) |
-
-The RAG metrics agreed with every label (`bench/eval_metrics.py`, held-out: the set was
-never used to tune the judge prompts). The answers in that set are short and their cases
-clear-cut, so the lower ends of the intervals are the honest reading, and citations was
-checked on only 4 answers.
 
 Not judged, so measured exactly instead: F1, F2, F6 (exact instruction checks), F12 code
-(491/492 against EvalPlus), benchmark scoring (lm-eval parity), the injection canaries and
-the F14 live checks.
+(491/492 against EvalPlus), the injection canaries and the F14 live checks.
 
 All numbers come from the labelled seed set: 54 prompts, 6 per failure type, answered by
 two models (Groq `openai/gpt-oss-120b` and local `qwen2.5:3b`), so 108 labelled answers.
@@ -142,10 +130,8 @@ hard cases. These are the numbers to quote.
 | Free check from gold labels (F10 only, no LLM) | 4 of 5 retrieval misses, 0 false alarms | |
 | Judge alone | 14/15 | 0.70 to 0.99 |
 | counterfix: free check + judge | 15/15 | 0.80 to 1.00 |
-| Faithfulness (every claim supported, or not) | 14/15 | 0.70 to 0.99 |
 
-**Development set** (`bench/rag_seed.jsonl`, 33 answers, 15 hard): 33/33 causes and
-32/32 faithfulness, but the judge rules were refined while looking at this set, so treat
+**Development set** (`bench/rag_seed.jsonl`, 33 answers, 15 hard): 33/33 causes, but the judge rules were refined while looking at this set, so treat
 it as optimistic.
 
 Known weak spots:
@@ -158,15 +144,14 @@ Known weak spots:
 - **Partly retrieved answers.** The free check fires only when no gold passage was
   retrieved, so it cannot see a miss where one of two needed passages was found; the
   judge handles these (right on both such items).
-- **"The passages don't say" when they do.** Faithfulness may count this as a false claim
-  about the context or as no claim; the cause check reports it as F11 either way.
+- **"The passages don't say" when they do.** The cause check reports it as F11.
 - **Small sets.** 15 held-out items give wide intervals (0.70 to 0.99 for 14/15); more
   held-out items, written without looking at results, are the way to tighten them.
 
 ## Code
 
-`bench/code_parity.py` (results in `bench/results/code_parity.md`) checks counterfix's
-own code checker against EvalPlus. For all 164 HumanEval+ problems it scores three
+counterfix's own code checker was checked against EvalPlus (2026-11-10, with a script
+retired in 0.4 along with the HumanEval benchmark). For all 164 HumanEval+ problems it scores three
 answers: the reference solution, a stub that returns None, and a solution cut after its
 first line. Each answer is scored by counterfix (original HumanEval tests, subprocess
 sandbox) and by EvalPlus's base tests.
@@ -178,15 +163,15 @@ sandbox) and by EvalPlus's base tests.
 | first line only | 37/164 | 37/164 |
 
 The two agree on 491 of 492 verdicts. The one difference: HumanEval/32's reference
-solution passes the original tests but not EvalPlus's base check. The `humaneval+` and
-`mbpp+` benchmarks are scored by EvalPlus itself, so their pass@1 is EvalPlus's number;
-this table checks the checker that names the cause of each failure.
+solution passes the original tests but not EvalPlus's base check. This table checks the
+checker that names the cause of each failure (F12).
 
-First live run (2026-11-10, `counterfix benchmark humaneval --limit 20 --fix 5`,
+The two live runs below used the `humaneval` benchmark counterfix had until 0.3 (for
+benchmark scores, use EvalPlus). First live run (2026-11-10, 20 problems, `--fix 5`,
 groq:openai/gpt-oss-120b, 1,536-token budget): 18/20 passed. Both misses were code cut
 off because the model's reasoning used up the budget (F1, not F12); the fix search
-verified `raise_max_tokens` on one, and a plain retry passed on the other. The benchmark
-budget is now 4,096 tokens.
+verified `raise_max_tokens` on one, and a plain retry passed on the other. The default
+budget for probe sets is now 4,096 tokens.
 
 Second run (2026-11-10, ollama:qwen2.5:3b, 40 problems, `--fix 10`): 22/40 passed
 (0.55, 0.40 to 0.70). All 18 misses were F12: 16 wrong output, 2 runtime errors. The fix
@@ -204,25 +189,6 @@ the code returned (e.g. `assert candidate(12, 15) == 14 (got 12)`), and `check_e
 was added. So 2 of the 8 repeatable failures got a verified fix. These are small numbers
 on one 3B model (and Ollama is not fully deterministic at temperature 0), so they show the
 fixes can work, not how often; a 3B model often cannot correct its own logic.
-
-## Benchmarks against lm-evaluation-harness
-
-`bench/lm_eval_parity.py` runs the same model, the same first 100 questions and the same
-prompt text through counterfix and through lm-eval (`local-chat-completions`, temperature
-0, 1,024 tokens; lm-eval reads answers with its own filters). On ollama:qwen2.5:3b
-(details in `bench/results/lm_eval_parity.md`):
-
-| Benchmark | counterfix | lm-eval | Items scored the same |
-| --- | --- | --- | --- |
-| GSM8K | 0.81 (0.72 to 0.87) | 0.79 (0.70 to 0.86) | 94/100 |
-| MMLU, abstract algebra | 0.56 (0.46 to 0.65) | 0.56 (0.46 to 0.65) | 100/100 |
-
-Of the 6 GSM8K differences, 3 are the model answering differently across the two runs
-(Ollama is not fully deterministic at temperature 0), and 3 are answers like "75.00" for
-75: lm-eval compares text and counts them wrong, counterfix compares numbers. lm-eval's
-stock tasks are not comparable for chat models: `gsm8k_cot_zeroshot` caps answers at 256
-tokens (it scored 0.40 here) and `mmlu_*_generative` needs a bare letter on the first line
-(0.00 here).
 
 ## Safety and confidence
 
@@ -265,11 +231,6 @@ now ignores retrieved text pasted into the prompt, and a metric that names the r
 **Token logprobs** (`counterfix setup --test`, 2026-11-11): available on Ollama
 (qwen2.5), not on Groq (HTTP 400) nor on Gemini's OpenAI-compatible endpoint (HTTP 400,
 unknown field).
-
-**Perplexity** (`bench/perplexity_check.py --dtype float16`, 2026-11-11, RTX 3050 Laptop
-GPU): GPT-2 large on the WikiText-2 test set, 1,024-token windows, stride 512: **16.44**,
-the figure in the Hugging Face perplexity guide (561 windows, half precision because the
-GPU has 4 GB; full precision did not fit and spilled into system memory).
 
 ## Agents and tool calls
 

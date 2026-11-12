@@ -4,20 +4,20 @@
 >>> m = get_metric("f1:0.6")          # name, optionally ":threshold"
 >>> m.score(record, reference="the Eiffel Tower").value    # doctest: +SKIP
 
-Names: exact_match, f1, contains, rouge_l, bleu, chrf, choice, number, json_valid,
-json_match, embedding_similarity, bertscore, latency, ttft; retrieval (gold labels):
-hit, recall, precision, mrr, ndcg (each also as name@k); RAG with a judge:
-faithfulness, context_precision, context_recall, answer_relevancy, citations; any
-task with a judge: answer_correctness; code (runs the code, opt-in): tests; token
-probabilities: confidence; safety: pii, toxicity; tool use:
-tool_call.
+Names: exact_match, f1, contains, choice, number, json_valid, json_match, latency, ttft;
+retrieval (gold labels): hit, recall, precision, mrr, ndcg (each also as name@k); code
+(runs the code, opt-in): tests; token probabilities: confidence; tool use: tool_call;
+prompt injection (its probe set): injection.
+
+These are the metrics counterfix's diagnosis and fixes rely on. For ROUGE, BLEU, embedding
+scores, judge-scored RAG metrics, PII or toxicity, use your evaluation tool (DeepEval,
+Ragas, Promptfoo ...), or wrap a scorer in your own :class:`Metric`.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from counterfix._internal import deprecation
 from counterfix._internal.suggest import did_you_mean
 from counterfix.evals.metrics.base import Metric, MetricResult, references
 from counterfix.evals.metrics.code import TestsPass
@@ -29,29 +29,14 @@ from counterfix.evals.metrics.extract import (
     extract_code,
     extract_number,
 )
-from counterfix.evals.metrics.rag import (
-    AnswerCorrectness,
-    AnswerRelevancy,
-    Citations,
-    ContextPrecision,
-    ContextRecall,
-    Faithfulness,
-    JudgeMetric,
-)
 from counterfix.evals.metrics.retrieval import HitRate, Mrr, Ndcg, Precision, Recall
-from counterfix.evals.metrics.safety import PiiLeak, Toxicity
-from counterfix.evals.metrics.semantic import BertScore, EmbeddingSimilarity
 from counterfix.evals.metrics.speed import Latency, Ttft
 from counterfix.evals.metrics.structured import JsonMatch, JsonValid, parse_json
 from counterfix.evals.metrics.text import (
-    Bleu,
-    Chrf,
     Contains,
     ExactMatch,
-    RougeL,
     TokenF1,
     normalize,
-    rouge_l,
     token_f1,
 )
 from counterfix.evals.metrics.tools import ToolCallMatch
@@ -62,15 +47,10 @@ METRICS: dict[str, type[Metric]] = {
         ExactMatch,
         TokenF1,
         Contains,
-        RougeL,
-        Bleu,
-        Chrf,
         ChoiceMatch,
         NumberMatch,
         JsonValid,
         JsonMatch,
-        EmbeddingSimilarity,
-        BertScore,
         Latency,
         Ttft,
         HitRate,
@@ -78,28 +58,18 @@ METRICS: dict[str, type[Metric]] = {
         Precision,
         Mrr,
         Ndcg,
-        Faithfulness,
-        ContextPrecision,
-        ContextRecall,
-        AnswerRelevancy,
-        Citations,
-        AnswerCorrectness,
         TestsPass,
         Confidence,
-        PiiLeak,
-        Toxicity,
         ToolCallMatch,
     )
 }
 
 
 def _benchmark_metrics() -> None:
-    """Metrics that score against benchmark data (they import their library on use)."""
-    from counterfix.evals.benchmarks.evalplus import EvalPlusTests
-    from counterfix.evals.benchmarks.ifeval import IfEvalStrict
+    """Metrics that score against counterfix's probe sets."""
     from counterfix.evals.benchmarks.injection import InjectionResisted
 
-    METRICS.update({m.name: m for m in (EvalPlusTests, IfEvalStrict, InjectionResisted)})
+    METRICS[InjectionResisted.name] = InjectionResisted
 
 
 _benchmark_metrics()
@@ -121,8 +91,6 @@ def get_metric(spec: str | Metric, **options: Any) -> Metric:
             f"unknown metric {name!r}{did_you_mean(name, METRICS)}; "
             f"choose from {', '.join(sorted(METRICS))}"
         )
-    if name in deprecation.METRICS:
-        deprecation.warn(f"the {name!r} metric", deprecation.METRICS[name])
     if at:
         if name not in RANKED or not k.isdigit() or int(k) < 1:
             raise ValueError(f"{spec!r}: @k works only with {', '.join(sorted(RANKED))}, k >= 1")
@@ -132,38 +100,24 @@ def get_metric(spec: str | Metric, **options: Any) -> Metric:
 
 __all__ = [
     "METRICS",
-    "AnswerCorrectness",
-    "AnswerRelevancy",
-    "BertScore",
-    "Bleu",
     "ChoiceMatch",
-    "Chrf",
-    "Citations",
     "Confidence",
     "Contains",
-    "ContextPrecision",
-    "ContextRecall",
-    "EmbeddingSimilarity",
     "ExactMatch",
-    "Faithfulness",
     "HitRate",
     "JsonMatch",
     "JsonValid",
-    "JudgeMetric",
     "Latency",
     "Metric",
     "MetricResult",
     "Mrr",
     "Ndcg",
     "NumberMatch",
-    "PiiLeak",
     "Precision",
     "Recall",
-    "RougeL",
     "TestsPass",
     "TokenF1",
     "ToolCallMatch",
-    "Toxicity",
     "Ttft",
     "extract_choice",
     "extract_code",
@@ -172,6 +126,5 @@ __all__ = [
     "normalize",
     "parse_json",
     "references",
-    "rouge_l",
     "token_f1",
 ]

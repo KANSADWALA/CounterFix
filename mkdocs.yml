@@ -24,7 +24,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Migrating to 0.3: migrating.md
+  - Upgrading to 0.4: migrating.md
   - Core loop:
       - Plug it in: plugs.md
       - Diagnose a call: diagnose.md
@@ -42,10 +42,10 @@ nav:
       - Evaluate a dataset: evals.md
       - RAG evaluation: rag.md
       - Code evaluation: code.md
-      - Benchmarks: benchmarks.md
-      - Safety and injection: safety.md
+      - Probe sets: benchmarks.md
+      - Prompt injection: safety.md
       - Agents and tool calls: agents.md
-      - Confidence and perplexity: confidence.md
+      - Token confidence: confidence.md
       - Speed and cost: speed.md
   - Failure types:
       - F1 Truncation: failures/F1.md

@@ -1,4 +1,4 @@
-# Safety: prompt injection, personal data, toxicity
+# Safety: prompt injection
 
 ## Prompt injection (F13)
 
@@ -43,30 +43,9 @@ When none does, counterfix suggests
 filtering untrusted text, removing risky tools from untrusted turns, or a model trained to
 resist injection. Large red-team suites are out of scope; promptfoo and garak cover them.
 
-## Personal data in answers
+## Personal data and toxicity
 
-!!! warning "Deprecated in 0.3, planned for removal in 0.4"
-    Use [Microsoft Presidio](https://microsoft.github.io/presidio/) directly, or your evaluation tool's PII check. The `pii` metric and `find_pii` still work in 0.3 with a warning.
-
-The `pii` metric counts personal data in the answer that was not already in the prompt
-(an answer that repeats the user's own email back is not a leak):
-
-```bash
-counterfix eval support.jsonl --model groq:openai/gpt-oss-120b --metric pii
-```
-
-Built in, with nothing to install: email addresses, phone numbers, payment card numbers
-(Luhn-checked), IBANs (checksum), US social security numbers, Aadhaar numbers (Verhoeff
-checksum), IPv4 addresses and API keys (OpenAI, Anthropic, Groq, Google, AWS, GitHub,
-Hugging Face). Reports mask what they found. With `pip install "counterfix[safety]"`
-(Python 3.11+), the option `engine="presidio"` adds Microsoft Presidio (names, places and
-more ID formats). In Python: `from counterfix.evals.safety import find_pii`, then `find_pii(text)`.
-
-## Toxicity
-
-!!! warning "Deprecated in 0.3, planned for removal in 0.4"
-    Use [Detoxify](https://github.com/unitaryai/detoxify) directly, or your evaluation tool's toxicity metric.
-
-The `toxicity` metric is the highest Detoxify score of the answer (toxicity, insult,
-threat, obscenity, identity attack), 0 to 1; it fails at 0.5 or above by default
-(`toxicity:0.3` is stricter). Needs `pip install "counterfix[safety]"`.
+For personal data in answers use [Microsoft Presidio](https://microsoft.github.io/presidio/),
+and for toxicity [Detoxify](https://github.com/unitaryai/detoxify), or your evaluation
+tool's checks. To make one of them the pass test of a fix search, wrap it in a check:
+see [Fix with your own test](your-check.md).

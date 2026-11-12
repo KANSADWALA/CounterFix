@@ -206,14 +206,6 @@ def test_verification_statistics() -> None:
     assert not wins(0, 6, 0, 6, at)
 
 
-def test_need_is_ignored_with_a_warning() -> None:
-    import pytest
-
-    model = Scripted(lambda m, p: ("Mercury ... Neptune.", "stop"))
-    with pytest.warns(DeprecationWarning, match="need"):
-        counterfix.fix(cut_off(), judge=False, caller=model, need=2)
-
-
 # --- fix() with no judge anywhere -------------------------------------------------------
 
 

@@ -295,7 +295,6 @@ def speed_fix(
     caller: ModelCaller | None = None,
     alternatives: Sequence[ModelCaller] = (),
     runs: int = 6,
-    need: int | None = None,
     max_runs: int = 30,
     check_retry: bool = True,
     alpha: float = 0.05,
@@ -310,21 +309,10 @@ def speed_fix(
 
     A change is verified when it meets the target clearly more often than the plain
     retry, by the same test as :func:`counterfix.fix` (see :mod:`counterfix.fixes.verify`).
-    ``need`` is no longer used and only warns.
     """
-    import warnings
-
-    from counterfix.fixes.verify import beatable, level, p_value, settled
-
-    if need is not None:
-        warnings.warn(
-            "speed_fix(need=...) is ignored: a change is now verified when it beats the "
-            "plain retry (see counterfix.fixes.verify)",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     from counterfix.detect import default_detectors
     from counterfix.fixes.engine import _caller_for
+    from counterfix.fixes.verify import beatable, level, p_value, settled
 
     rerun = caller or _caller_for(record, None)
     result = SpeedFixResult(record_id=record.id, target_ms=target_ms)

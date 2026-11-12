@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "counterfix"
-version = "0.3.0"
+version = "0.4.0"
 description = "Find out why an LLM call failed, and prove the fix works: a one-line wrapper that diagnoses failures and verifies fixes by re-running them."
 readme = "README.md"
 license = "MIT"
@@ -38,29 +38,18 @@ litellm = ["litellm>=1.50"]
 langchain = ["langchain-core>=0.3"]
 llamaindex = ["llama-index-core>=0.11"]
 otel = ["opentelemetry-sdk>=1.27"]
-semantic = [
-  "transformers>=4.44",
-  "torch>=2.2",
-  "sentence-transformers>=3.0",
-  "bert-score>=0.3.13",
-]
-metrics = ["sacrebleu>=2.4"]
 eval = ["pyyaml>=6.0"]
-code = ["evalplus>=0.3.1"]
-benchmarks = ["datasets>=2.18", "lm-eval[ifeval]>=0.4.8"]
-safety = ["detoxify>=0.5", "presidio-analyzer>=2.2; python_version >= '3.11'"]
 cache = ["diskcache>=5.6"]
 cli = ["typer>=0.12", "rich>=13.7"]
 report = ["jinja2>=3.1"]
 jev = ["typesafe-sdk>=0.7"]
 mcp = ["mcp>=2.0"]
 # Bundles. "evals": the dataset runner, its reports and the command line. "all": every
-# integration and feature. The "metrics", "semantic", "safety", "benchmarks" and "code"
-# extras serve features deprecated in 0.3 (planned for removal in 0.4).
+# integration and feature.
 evals = ["counterfix[eval,report,cli]"]
 all = [
   "counterfix[openai,anthropic,litellm,langchain,llamaindex,otel,mcp,cache]",
-  "counterfix[evals,semantic,safety]",
+  "counterfix[evals]",
 ]
 docs = ["mkdocs-material>=9.5"]
 dev = [
@@ -70,8 +59,6 @@ dev = [
   "mypy==2.4.0",
   "import-linter==2.15",  # layer check: lint-imports
   "types-jsonschema",
-  "sacrebleu>=2.4",
-  "rouge-score>=0.1.2",
 ]
 
 [project.scripts]
@@ -134,10 +121,7 @@ mypy_path = "src"
 
 [[tool.mypy.overrides]]
 module = ["openai", "openai.*", "anthropic", "anthropic.*", "typesafe_sdk", "typesafe_sdk.*", "litellm.*", "langchain_core.*",
-  "opentelemetry", "opentelemetry.*", "mcp", "mcp.*", "sacrebleu", "sentence_transformers",
-  "bert_score", "yaml", "rouge_score", "rouge_score.*", "evalplus", "evalplus.*",
-  "lm_eval", "lm_eval.*", "datasets", "torch", "torch.*", "transformers", "transformers.*",
-  "detoxify", "presidio_analyzer", "presidio_analyzer.*",
+  "opentelemetry", "opentelemetry.*", "mcp", "mcp.*", "yaml",
 ]
 ignore_missing_imports = true
 
@@ -149,9 +133,6 @@ warn_unused_ignores = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
-# A deprecation warning from counterfix itself is an error unless the test marks it as
-# expected: kept features must never warn.
-filterwarnings = ["error:.*will be removed in counterfix:FutureWarning"]
 
 # Layers, highest first: a module may import only from layers below it. Run `lint-imports`.
 # Matches the target layout in the restructure plan, spelled with today's module names.

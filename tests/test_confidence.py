@@ -1,4 +1,4 @@
-"""Token confidence from logprobs, and perplexity."""
+"""Token confidence from logprobs."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
 from counterfix.detect.confidence import describe, mean_probability
 from counterfix.evals.metrics import get_metric
-from counterfix.evals.perplexity import windows_for
 from counterfix.integrations.openai_compat import record_from_openai
 
 
@@ -98,13 +97,3 @@ def test_confidence_added_to_a_judged_f4() -> None:
     d = Diagnosis(record_id=rec.id, findings=[f4])
     _add_confidence(rec, d)
     assert d.findings[0].evidence[-1].detector == "logprobs"
-
-
-def test_perplexity_windows_score_every_token_once() -> None:
-    for seq_len, window, stride in [(10, 4, 2), (3000, 1024, 512), (1024, 1024, 1024), (5, 8, 3)]:
-        plan = windows_for(seq_len, window, stride)
-        scored: list[int] = []
-        for begin, end, target in plan:
-            assert end - begin <= window and target <= end - begin
-            scored += list(range(end - target, end))
-        assert scored == list(range(seq_len))  # each position once (position 0 has no loss)

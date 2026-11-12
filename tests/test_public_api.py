@@ -1,35 +1,41 @@
-"""The public surface of counterfix 0.2.1, frozen.
-
-Every name and module path a user could import from 0.2.1 must keep importing until the
-deprecation shims are removed (planned for 0.4.0). Moving code is fine; breaking these
-imports is not. When a path is deliberately retired, remove it here in the same commit and
-say so in the CHANGELOG.
-"""
+"""The public surface of counterfix, frozen: the everyday names, the shortcuts, the
+subpackages people import from, and the entry points. Moving code is fine; breaking these
+is not. When a name is deliberately retired, remove it here in the same commit and say so
+in the CHANGELOG."""
 
 from __future__ import annotations
 
 import importlib
-import warnings
 
 import pytest
 
 import counterfix
 
-TOP_LEVEL_0_2_1 = [
+EVERYDAY = [
     "CallRecord",
     "Config",
-    "Detector",
     "Diagnosis",
+    "FailureType",
+    "FixResult",
+    "Message",
+    "__version__",
+    "configure",
+    "diagnose",
+    "fix",
+    "guard",
+    "log_to",
+    "watch",
+]
+
+SHORTCUTS = [
+    "Detector",
     "EvalResult",
     "Evidence",
-    "FailureType",
     "Finding",
     "FixAttempt",
-    "FixResult",
     "FixRule",
     "GuardedClient",
     "LintIssue",
-    "Message",
     "NoJudgeError",
     "Prescription",
     "PrescriptionKind",
@@ -39,328 +45,78 @@ TOP_LEVEL_0_2_1 = [
     "SkipCheck",
     "Timing",
     "Usage",
-    "__version__",
     "background",
-    "configure",
     "context",
-    "diagnose",
     "evaluate",
-    "fix",
     "get_diagnosis",
-    "guard",
     "hooks",
     "langchain_callback",
     "lint",
     "litellm_callback",
     "load_log",
-    "log_to",
     "metrics",
     "otel",
     "perf",
     "record_from_openai",
     "record_from_responses",
     "run_detectors",
-    "watch",
 ]
 
-MODULES_0_2_1 = [
-    "counterfix.adapters",
-    "counterfix.adapters.anthropic",
-    "counterfix.adapters.callbacks",
-    "counterfix.adapters.decorator",
-    "counterfix.adapters.openai_compat",
-    "counterfix.adapters.responses",
-    "counterfix.adapters.streams",
-    "counterfix.agents",
-    "counterfix.background",
-    "counterfix.benchmarks",
-    "counterfix.benchmarks.evalplus",
-    "counterfix.benchmarks.ifeval",
-    "counterfix.benchmarks.injection",
-    "counterfix.benchmarks.tool_use",
-    "counterfix.capabilities",
-    "counterfix.cli",
-    "counterfix.code",
-    "counterfix.code.check",
-    "counterfix.code.passk",
-    "counterfix.code.sandbox",
-    "counterfix.confidence",
-    "counterfix.context",
+MODULES = [
     "counterfix.core",
-    "counterfix.core.caller",
-    "counterfix.core.config",
-    "counterfix.core.detector",
-    "counterfix.core.diagnosis",
-    "counterfix.core.precedence",
-    "counterfix.core.record",
-    "counterfix.core.sync",
-    "counterfix.core.types",
-    "counterfix.detectors",
-    "counterfix.detectors.basic",
-    "counterfix.detectors.fmt",
-    "counterfix.detectors.fragility",
-    "counterfix.detectors.injection",
-    "counterfix.detectors.instructions",
-    "counterfix.detectors.judged",
-    "counterfix.detectors.rag",
-    "counterfix.detectors.refusal",
-    "counterfix.detectors.sampling",
-    "counterfix.detectors.tools",
-    "counterfix.detectors.truncation",
+    "counterfix.detect",
     "counterfix.diagnose",
-    "counterfix.engine",
     "counterfix.evals",
-    "counterfix.evals.data",
-    "counterfix.evals.report",
-    "counterfix.evals.runner",
+    "counterfix.evals.benchmarks",
+    "counterfix.evals.metrics",
+    "counterfix.fixes",
+    "counterfix.fixes.engine",
+    "counterfix.fixes.verify",
+    "counterfix.integrations",
+    "counterfix.integrations.eval_results",
+    "counterfix.integrations.otel",
     "counterfix.judges",
-    "counterfix.judges.auto",
-    "counterfix.judges.base",
-    "counterfix.judges.cache",
-    "counterfix.judges.jev",
-    "counterfix.judges.llm",
-    "counterfix.judges.tasks",
     "counterfix.lint",
-    "counterfix.lint.judged",
-    "counterfix.lint.rules",
-    "counterfix.mcp_server",
-    "counterfix.metrics",
-    "counterfix.metrics.base",
-    "counterfix.metrics.code",
-    "counterfix.metrics.confidence",
-    "counterfix.metrics.extract",
-    "counterfix.metrics.rag",
-    "counterfix.metrics.retrieval",
-    "counterfix.metrics.safety",
-    "counterfix.metrics.semantic",
-    "counterfix.metrics.speed",
-    "counterfix.metrics.structured",
-    "counterfix.metrics.text",
-    "counterfix.metrics.tools",
-    "counterfix.otel",
-    "counterfix.perf",
-    "counterfix.perplexity",
-    "counterfix.presets",
-    "counterfix.profiles",
-    "counterfix.rag",
-    "counterfix.report",
-    "counterfix.rules",
-    "counterfix.rules.store",
-    "counterfix.safe_eval",
-    "counterfix.safety",
+    "counterfix.runtime",
+    "counterfix.runtime.context",
+    "counterfix.runtime.perf",
+    "counterfix.runtime.report",
     "counterfix.testing",
-    "counterfix.text",
-    "counterfix.verify",
 ]
 
-SUBPACKAGE_ALL_0_2_1 = {
-    "counterfix.adapters": [
-        "GuardedClient",
-        "get_diagnosis",
-        "guard",
-        "langchain_callback",
-        "litellm_callback",
-        "record_from_openai",
-        "record_from_responses",
-        "watch",
-    ],
-    "counterfix.benchmarks": [
-        "BENCHMARKS",
-        "Benchmark",
-        "get_benchmark",
-        "load_benchmark",
-        "run_benchmark",
-        "sample",
-    ],
-    "counterfix.code": [
-        "ALLOW_ENV",
-        "CAUSE_TEXT",
-        "CodeExecutionDisabled",
-        "CodeResult",
-        "CodeTests",
-        "RunResult",
-        "as_tests",
-        "build_program",
-        "check_code",
-        "docker_available",
-        "execution_allowed",
-        "mean_pass_at_k",
-        "pass_at_k",
-        "run_python",
-    ],
-    "counterfix.core": [
-        "CallRecord",
-        "Config",
-        "Detector",
-        "Diagnosis",
-        "Evidence",
-        "FailureType",
-        "Finding",
-        "Message",
-        "Prescription",
-        "PrescriptionKind",
-        "RetryAttempt",
-        "SkipCheck",
-        "Timing",
-        "Usage",
-        "hooks",
-        "run_detectors",
-    ],
-    "counterfix.detectors": [
-        "AgentTaskCheck",
-        "AmbiguityCheck",
-        "CanaryCheck",
-        "ComputationCheck",
-        "ContextUseCheck",
-        "DroppedInstructionCheck",
-        "EmptyOutputDetector",
-        "FalsePremiseCheck",
-        "FormatDetector",
-        "FragilityCheck",
-        "HallucinationCheck",
-        "InjectionCheck",
-        "InstructionCheck",
-        "OverRefusalCheck",
-        "ProviderFilterDetector",
-        "RefusalDetector",
-        "RetrievalLabelCheck",
-        "ToolUseCheck",
-        "TruncationDetector",
-        "default_detectors",
-        "expected_format",
-        "extract_constraints",
-        "judge_detectors",
-    ],
-    "counterfix.evals": [
-        "EvalItem",
-        "EvalResult",
-        "ItemFix",
-        "ItemResult",
-        "MetricSummary",
-        "bootstrap_ci",
-        "evaluate",
-        "fix_item",
-        "load_suite",
-        "make_items",
-        "read_rows",
-    ],
-    "counterfix.judges": [
-        "CachedJudge",
-        "Judge",
-        "JudgePanel",
-        "JudgeTask",
-        "LLMJudge",
-        "NoJudgeError",
-        "SelfJudgeWarning",
-        "Verdict",
-        "Vote",
-        "build_judge",
-        "configure",
-        "detect_judges",
-        "parse_reply",
-        "render",
-        "resolve_judge",
-    ],
-    "counterfix.lint": ["JUDGE_RULES", "LintIssue", "LintRule", "RULES", "lint"],
-    "counterfix.metrics": [
-        "AnswerCorrectness",
-        "AnswerRelevancy",
-        "BertScore",
-        "Bleu",
-        "ChoiceMatch",
-        "Chrf",
-        "Citations",
-        "Confidence",
-        "Contains",
-        "ContextPrecision",
-        "ContextRecall",
-        "EmbeddingSimilarity",
-        "ExactMatch",
-        "Faithfulness",
-        "HitRate",
-        "JsonMatch",
-        "JsonValid",
-        "JudgeMetric",
-        "Latency",
-        "METRICS",
-        "Metric",
-        "MetricResult",
-        "Mrr",
-        "Ndcg",
-        "NumberMatch",
-        "PiiLeak",
-        "Precision",
-        "Recall",
-        "RougeL",
-        "TestsPass",
-        "TokenF1",
-        "ToolCallMatch",
-        "Toxicity",
-        "Ttft",
-        "extract_choice",
-        "extract_code",
-        "extract_number",
-        "get_metric",
-        "normalize",
-        "parse_json",
-        "references",
-        "rouge_l",
-        "token_f1",
-    ],
-    "counterfix.perf": [
-        "Price",
-        "SpeedAttempt",
-        "SpeedFixResult",
-        "SpeedSummary",
-        "Spread",
-        "by_model",
-        "cost_usd",
-        "output_tokens",
-        "percentile",
-        "price_for",
-        "set_prices",
-        "speed_fix",
-        "speed_summary",
-        "tokens_per_second",
-    ],
-    "counterfix.rules": ["BUILTIN_RULES", "FixRule", "RuleStore"],
-    "counterfix.verify": [
-        "DEFAULT_ALPHA",
-        "DEFAULT_RUNS",
-        "beatable",
-        "level",
-        "p_value",
-        "settled",
-        "wins",
-    ],
-}
+RETIRED_IN_0_4 = [
+    "counterfix.adapters",  # 0.2 paths: now counterfix.integrations, .detect, .fixes ...
+    "counterfix.detectors",
+    "counterfix.engine",
+    "counterfix.evals.perplexity",  # use lm-evaluation-harness
+    "counterfix.evals.safety",  # use Presidio, Detoxify
+    "counterfix.evals.metrics.rag",  # use Ragas or DeepEval
+    "counterfix.evals.metrics.semantic",  # use bert-score, sentence-transformers
+    "counterfix.evals.benchmarks.evalplus",  # use EvalPlus
+]
 
 
-@pytest.mark.parametrize("name", TOP_LEVEL_0_2_1)
-def test_top_level_name_still_imports(name: str) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        assert getattr(counterfix, name) is not None
+def test_all_is_the_everyday_api() -> None:
+    assert sorted(counterfix.__all__) == sorted(EVERYDAY)
 
 
-@pytest.mark.parametrize("path", MODULES_0_2_1)
-def test_module_path_still_imports(path: str) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
+@pytest.mark.parametrize("name", EVERYDAY + SHORTCUTS)
+def test_name_imports(name: str) -> None:
+    assert getattr(counterfix, name) is not None
+
+
+@pytest.mark.parametrize("path", MODULES)
+def test_module_imports(path: str) -> None:
+    importlib.import_module(path)
+
+
+@pytest.mark.parametrize("path", RETIRED_IN_0_4)
+def test_retired_paths_are_gone(path: str) -> None:
+    with pytest.raises(ModuleNotFoundError):
         importlib.import_module(path)
 
 
-@pytest.mark.parametrize(
-    ("path", "name"),
-    [(path, name) for path, names in SUBPACKAGE_ALL_0_2_1.items() for name in names],
-)
-def test_subpackage_name_still_imports(path: str, name: str) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        assert getattr(importlib.import_module(path), name) is not None
-
-
-def test_pytest_plugin_entry_point_still_loads() -> None:
+def test_pytest_plugin_entry_point_loads() -> None:
     from importlib.metadata import entry_points
 
     (plugin,) = [ep for ep in entry_points(group="pytest11") if ep.name == "counterfix"]
@@ -368,7 +124,7 @@ def test_pytest_plugin_entry_point_still_loads() -> None:
     plugin.load()
 
 
-def test_cli_entry_point_still_loads() -> None:
+def test_cli_entry_point_loads() -> None:
     from importlib.metadata import entry_points
 
     (script,) = [ep for ep in entry_points(group="console_scripts") if ep.name == "counterfix"]

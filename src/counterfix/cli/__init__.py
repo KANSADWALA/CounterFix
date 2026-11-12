@@ -207,15 +207,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     p_bench = sub.add_parser(
         "benchmark",
-        help="run a standard benchmark (MMLU, GSM8K, HumanEval, IFEval, tools...; --list)",
+        help="run a probe set: prompt injection or tool use (--list)",
     )
     p_bench.add_argument("name", nargs="?", help="benchmark name (--list shows them)")
     p_bench.add_argument("--list", action="store_true", help="list the benchmarks")
     p_bench.add_argument("--model", metavar="SPEC", help="e.g. ollama:qwen2.5:3b")
     p_bench.add_argument("--app", metavar="MODULE:FN", help="your own app instead of a model")
     p_bench.add_argument("--limit", type=int, help="N questions in all (seeded)")
-    p_bench.add_argument("--per-group", type=int, metavar="N",
-                         help="N questions per group, e.g. per MMLU subject")  # fmt: skip
+    p_bench.add_argument("--per-group", type=int, metavar="N", help="N questions per group")
     p_bench.add_argument("--seed", type=int, default=0, help="subset seed (default 0)")
     p_bench.add_argument("--param", action="append", help="request field, e.g. max_tokens=4096")
     p_bench.add_argument("--judge", nargs="?", const="auto", help="diagnose misses with a judge")
@@ -223,8 +222,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_bench.add_argument("--max-runs", type=int, help="re-runs per fix search (default 30)")
     p_bench.add_argument("--samples", type=int, metavar="N", help="answers per question (pass@k)")
     p_bench.add_argument("--concurrency", type=int, metavar="N", help="N questions at once")
-    p_bench.add_argument("--allow-code", action="store_true", help="run code (HumanEval+, MBPP+)")
-    p_bench.add_argument("--sandbox", choices=["auto", "subprocess", "docker"])
     p_bench.add_argument("--out", metavar="PATH", help="keep answers here; resumes a stopped run")
     p_bench.add_argument("--json", metavar="PATH", help="write the full result as JSON")
     p_bench.add_argument("--html", metavar="PATH", help="write a shareable HTML report")

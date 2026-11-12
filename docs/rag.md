@@ -6,7 +6,7 @@ passages changed.
 
 ```bash
 counterfix eval rag.jsonl --model groq:openai/gpt-oss-120b \
-  --metric contains --metric recall@5 --metric faithfulness --fix 5
+  --metric contains --metric recall@5 --judge --fix 5
 ```
 
 ```text
@@ -40,7 +40,7 @@ One row per question, the passages in rank order:
 | `contexts` (or `context`, `chunks`, `retrieved`, `documents`, `passages`) | retrieved passages, strings or `{"id", "text"}`, best first |
 | `relevant` | gold labels: passage ids, passage texts, or `{id: grade}` |
 | `gold_passages` | gold passage texts that were not retrieved (lets the fix search prove a retrieval miss) |
-| `answer` | reference answer (for `contains`, `context_recall`, the judge) |
+| `answer` | reference answer (for `contains` and the judge) |
 | `response` | a recorded answer: score your pipeline's output without calling a model |
 
 With passages and no template, counterfix builds the prompt: a short system message, the
@@ -51,19 +51,11 @@ numbered passages, then the question. A `--template` can place them with `{conte
 | Metric | Measures | Needs |
 | --- | --- | --- |
 | `hit`, `recall`, `precision`, `mrr`, `ndcg` (each also `@k`) | retrieval quality from gold labels (trec_eval definitions) | labels, no LLM |
-| `faithfulness` | share of the answer's claims the passages support | judge |
-| `context_precision` | are the useful passages ranked first (RAGAS average precision) | judge |
-| `context_recall` | share of the reference's statements found in the passages | judge, reference |
-| `answer_relevancy` | does the answer address the question: 1, 0.5 or 0 | judge |
-| `citations` | share of cited sentences (`[n]`) that the cited passage supports | judge |
-| `answer_correctness` | does the answer agree with the reference in meaning: 1, 0.5 or 0 (passes at 1) | judge, reference |
 
-!!! warning "Deprecated in 0.3, planned for removal in 0.4"
-    The judge-scored metrics (`faithfulness`, `context_precision`, `context_recall`, `answer_relevancy`, `citations`, `answer_correctness`): use [Ragas](https://docs.ragas.io) or [DeepEval](https://deepeval.com). The label-based retrieval metrics and the F10/F11 diagnosis stay.
-
-Judge metrics use one judge call each per answer and follow the RAGAS definitions. They
-use the same judge as `--judge` (or the one counterfix picks from your keys), and turn on
-judge diagnosis of the misses, which is what finds F11.
+For judge-scored metrics (faithfulness, context precision and recall, answer relevancy),
+use [Ragas](https://docs.ragas.io) or [DeepEval](https://deepeval.com): counterfix can read
+their results and explain each failure as F10 or F11 ([how](eval-tools.md)). `--judge`
+turns on the judge diagnosis of the misses, which is what finds F11.
 
 ## Why it failed: F10 and F11
 
@@ -102,7 +94,8 @@ def answer(question: str):
 result = counterfix.evaluate(
     "questions.jsonl",  # question, answer (reference), relevant (gold passage ids)
     app=answer,
-    metrics=["recall@5", "faithfulness", "answer_correctness"],
+    metrics=["recall@5", "contains"],
+    judge=True,  # explain each miss: F10 or F11
     concurrency=4,
 )
 ```
@@ -154,7 +147,7 @@ returned in the same chain by itself.
 
 ## Accuracy
 
-`python bench/eval_rag.py` measures the F10/F11 check and faithfulness on two labelled
+`python bench/eval_rag.py` measures the F10/F11 check on two labelled
 sets, all about fictional organisations so a judge cannot answer from memory:
 
 - **Held-out** (`bench/rag_holdout.jsonl`, 15 items in four new domains): written and

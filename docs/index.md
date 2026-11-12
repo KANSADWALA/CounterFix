@@ -63,6 +63,7 @@ decorator. See [Plug it in](plugs.md).
 
 The same checks over a dataset (`pip install "counterfix[evals]"`): [evaluate a dataset](evals.md) or your own app, [RAG
 evaluation](rag.md) (retriever or model at fault), [code evaluation](code.md) (sandboxed
-tests, pass@k), [benchmarks](benchmarks.md) (MMLU, GSM8K, ARC, TruthfulQA, IFEval,
-HumanEval, MBPP), [safety](safety.md) (prompt injection, personal data, toxicity), and [agents](agents.md)
-(tool choice, loops, task success). Every miss gets a cause and, where one works, a verified fix.
+tests, pass@k), [prompt injection](safety.md) and [agents](agents.md) (tool choice,
+loops, task success), with two [probe sets](benchmarks.md) for injection and tool use.
+Every miss gets a cause and, where one works, a verified fix. Already using DeepEval, Ragas
+or Promptfoo? Point counterfix at their results: [how](eval-tools.md).

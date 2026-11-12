@@ -159,11 +159,10 @@ a verified fix searched for each. Install with `pip install "counterfix[evals]"`
 counterfix eval qa.jsonl --model groq:openai/gpt-oss-120b --metric exact_match --judge --fix 5
 ```
 
-counterfix works alongside your evaluation tools rather than replacing them. Metrics and
-benchmarks those tools already provide (BLEU, ROUGE, BERTScore, judge-scored RAG metrics,
-PII and toxicity, MMLU, GSM8K, HumanEval and the like) still work in 0.3 but are
-deprecated, with a warning that names the tool to use instead, and are planned for removal
-in 0.4.
+counterfix works alongside your evaluation tools rather than replacing them: it keeps only
+the metrics its diagnosis and fixes rely on. For BLEU, ROUGE, BERTScore, judge-scored RAG
+metrics, PII and toxicity, use DeepEval, Ragas or Promptfoo (and bring their results to
+counterfix); for MMLU, GSM8K or HumanEval, use lm-evaluation-harness or EvalPlus.
 
 | Area | What you get | Guide |
 | --- | --- | --- |
@@ -171,6 +170,7 @@ in 0.4.
 | RAG | Retrieval metrics from gold labels, and whether the retriever (F10) or the model (F11) caused each miss | [RAG evaluation](https://kansadwala.github.io/CounterFix/rag/) |
 | Code | Tests run in a sandbox, failures named (F12), pass@k, fixes such as sending the error back | [Code evaluation](https://kansadwala.github.io/CounterFix/code/) |
 | Prompt injection | Canary probes and a judge check (F13), with verified fixes | [Safety](https://kansadwala.github.io/CounterFix/safety/) |
+| Your evaluation tool's results | DeepEval, Ragas and Promptfoo failures explained and fixed | [DeepEval, Ragas and Promptfoo](https://kansadwala.github.io/CounterFix/eval-tools/) |
 | Agents | Tool misuse (F14) from OpenAI, LangGraph, Anthropic or OpenTelemetry runs | [Agents and tool calls](https://kansadwala.github.io/CounterFix/agents/) |
 | Speed and confidence | Latency, TTFT and tokens/s percentiles; token confidence where logprobs exist | [Speed](https://kansadwala.github.io/CounterFix/speed/), [Confidence](https://kansadwala.github.io/CounterFix/confidence/) |
 
@@ -353,19 +353,19 @@ Done:
 - OpenTelemetry export and GenAI span reader; streams; RAG context; MCP server ✅
 - Released on PyPI (`pip install counterfix`), docs site, releases by trusted publishing ✅
 - Evaluation, wave 1: `counterfix eval`, reference metrics, TTFT and speed/cost, verified speed fixes ✅
-- RAG evaluation: retrieval and judge metrics, F10 retrieval miss vs F11 context ignored, verified RAG fixes ✅
+- RAG evaluation: retrieval metrics, F10 retrieval miss vs F11 context ignored, verified RAG fixes ✅
 - OpenAI Responses API in `guard()`; evaluate your own app or RAG pipeline (`--app`) ✅
 - Code evaluation: sandboxed tests, F12 with its causes, verified code fixes, pass@k ✅
-- Benchmarks: MMLU, GSM8K, ARC, TruthfulQA, IFEval, HumanEval(+), MBPP(+), checked against lm-eval ✅
-- Safety: prompt injection (F13, probes and judge check, verified fixes), PII, toxicity; token confidence and perplexity ✅
+- Prompt injection (F13: probes and a judge check, verified fixes); token confidence ✅
 - Agents and tool calls: trajectories from any framework, F14 checks, `tool_call` metric, verified tool-choice fixes ✅
 - Trust in the metrics: a labelled set and measured accuracy for every judge-based check, and a human spot check of the labels ✅
+- 0.4: works with your evaluation tools (your own test as the pass test, DeepEval, Ragas and Promptfoo results diagnosed and fixed); parts that duplicated them removed ✅
 
 Next:
 
 1. A public dataset of diagnosed failures with their verified fixes
 2. Larger labelled sets and full profiles for more models
-3. A BFCL loader, so the tool-use benchmark can compare models
+3. A BFCL loader, so the tool-use probe set can compare models
 
 ## License
 

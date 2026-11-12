@@ -172,11 +172,6 @@ def evaluate(
     )
     out_path = Path(out) if out else None
     cache = _cached(out_path, result.model)
-    from counterfix.evals.metrics import JudgeMetric
-
-    judged_metrics = [m for m in chosen if isinstance(m, JudgeMetric) and m.judge is None]
-    if judged_metrics and judge in (False, None):
-        judge = True  # judge metrics need a judge; it also explains the misses (F10/F11)
     judging = judge not in (False, None)
     if judging:  # choose once, before any call: a missing key fails fast, not mid-run
         from counterfix.judges.auto import resolve_judge
@@ -188,8 +183,6 @@ def evaluate(
         target = model.split(":", 1)[-1] if isinstance(model, str) else None
         wanted = None if judge in (True, "auto") else judge
         judge = resolve_judge(wanted, target_model=target)[0]
-        for m in judged_metrics:
-            m.bind(judge)
 
     records: list[tuple[EvalItem, CallRecord]] = []
     live = caller is not None or run is not None

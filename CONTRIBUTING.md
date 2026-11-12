@@ -47,11 +47,9 @@ check has its own labelled set and script:
 
 ```bash
 python bench/eval_judges.py --offline   # F3 to F9 on the main seed, from cached verdicts
-python bench/eval_rag.py                # faithfulness, F10 and F11 (rag_seed, rag_holdout)
+python bench/eval_rag.py                # F10 and F11 (rag_seed, rag_holdout)
 python bench/eval_injection.py          # F13
 python bench/eval_agents.py             # F14 task success
-python bench/eval_metrics.py            # answer_relevancy, answer_correctness, context metrics
-python bench/code_parity.py             # the code checker against EvalPlus (Linux, macOS)
 ```
 
 Live runs need free `GROQ_API_KEY` / `GEMINI_API_KEY` keys or Ollama; see `bench/` and

@@ -70,21 +70,8 @@ pass_at_k(n=20, c=3, k=10)
 check_code(answer, {"test_list": ["assert add(1, 2) == 3"]}, allow=True).why
 ```
 
-## HumanEval+ and MBPP+
-
-!!! warning "Deprecated in 0.3, planned for removal in 0.4"
-    Use [EvalPlus](https://github.com/evalplus/evalplus) directly. Running model-written code against your own tests (`--metric tests`) and naming why it failed (F12) stay.
-
-The [benchmarks](benchmarks.md) `humaneval+` and `mbpp+` are scored by EvalPlus itself
-(`pip install "counterfix[code]"`), so their pass@1 is EvalPlus's number; counterfix adds
-the cause of each failure and the fix search. EvalPlus runs code in its own guarded child
-process, not in counterfix's Docker sandbox.
-
 ## Accuracy
 
-`bench/code_parity.py` scores the reference solution, a stub that returns None, and a
-solution cut after one line for all 164 HumanEval+ problems, once with counterfix's
-checker (original HumanEval tests) and once with EvalPlus's base tests. They agree on
-491 of 492 verdicts; the one difference is HumanEval/32, whose reference solution
-passes the original tests but not EvalPlus's base check. Details in
-[Measured results](results.md#code).
+counterfix's checker agrees with EvalPlus's base tests on 491 of 492 verdicts over the
+HumanEval+ problems ([Measured results](results.md#code)). For HumanEval(+) and MBPP(+)
+benchmark scores, use [EvalPlus](https://github.com/evalplus/evalplus) directly.

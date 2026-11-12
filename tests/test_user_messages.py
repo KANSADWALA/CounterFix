@@ -31,8 +31,8 @@ def test_did_you_mean_hints():
         )
     from counterfix.evals.benchmarks import run_benchmark
 
-    with pytest.raises(ValueError, match="did you mean 'gsm8k'"):
-        run_benchmark("gsm8", model="ollama:x")
+    with pytest.raises(ValueError, match="did you mean 'injection'"):
+        run_benchmark("injecton", model="ollama:x")
     from counterfix.core.presets import caller_for
 
     with pytest.raises(ValueError, match="did you mean 'ollama'"):

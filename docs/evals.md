@@ -134,20 +134,20 @@ default; graded ones report a number and fail nothing unless you give a threshol
 | `exact_match` | normalised answer equals a reference (SQuAD rules) | core |
 | `f1` | word overlap with the best reference (SQuAD F1) | core |
 | `contains` | a reference appears in the answer, as whole words | core |
-| `rouge_l` | ROUGE-L F-measure; same numbers as Google's `rouge-score` | core |
-| `bleu`, `chrf` | sentence BLEU and chrF from `sacrebleu`, scaled 0 to 1 | `[metrics]` |
 | `choice` | the option letter chosen ("The answer is (B)") equals the reference | core |
 | `number` | the final number (after `####`, in `\boxed{}`, or last) equals the reference | core |
 | `json_valid` | the answer is JSON, and matches `schema=` when given; a miss is F2 | core |
 | `json_match` | share of the reference's fields the answer gets right; a miss is F2 | core |
-| `embedding_similarity` | cosine similarity of sentence embeddings (local model) | `[semantic]` |
-| `bertscore` | BERTScore F1 (local model) | `[semantic]` |
-| `answer_correctness` | a judge decides whether the answer agrees with the reference in meaning (1, 0.5, 0) | a judge |
 | `latency`, `ttft` | milliseconds; pass at or under the threshold, e.g. `latency:2000` | core |
-| `hit`, `recall`, `precision`, `mrr`, `ndcg` (and `@k`), `faithfulness`, `context_precision`, `context_recall`, `answer_relevancy`, `citations` | RAG: see [RAG evaluation](rag.md) | labels or a judge |
+| `hit`, `recall`, `precision`, `mrr`, `ndcg` (and `@k`) | retrieval from gold labels: see [RAG evaluation](rag.md) | labels |
+| `tests` | runs model-written code against your tests (F12): see [Code evaluation](code.md) | opt-in |
+| `confidence` | token confidence from logprobs: see [Confidence](confidence.md) | logprobs |
+| `tool_call` | right tool and arguments (F14): see [Agents](agents.md) | core |
 
-!!! warning "Deprecated in 0.3, planned for removal in 0.4"
-    `rouge_l`, `bleu`, `chrf`, `embedding_similarity`, `bertscore` and `answer_correctness`, and the judge-scored RAG metrics: use sacrebleu, rouge-score, bert-score, Ragas or DeepEval, or your evaluation tool's metrics. They still work in 0.3 with a warning.
+These are the metrics counterfix's diagnosis and fixes rely on. For ROUGE, BLEU, embedding
+scores, judge-scored RAG metrics, PII or toxicity, use your evaluation tool (DeepEval,
+Ragas, Promptfoo ...), wrap its scorer in your own metric (below), or bring its results
+file: see [DeepEval, Ragas and Promptfoo](eval-tools.md).
 
 With several references (a list), a metric takes the best match. A metric that names a
 failure type (`json_valid` and `json_match` name F2) adds that cause to a miss, so the

@@ -2,8 +2,24 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
-## Unreleased
+## 0.4.0 (2026-11-13)
 
+counterfix now works with the evaluation tools you already use, and drops the parts that
+copied them. See [Upgrading to 0.4](https://kansadwala.github.io/CounterFix/migrating/).
+
+- **Removed: evaluation features other tools already provide** (deprecated in 0.3): the
+  metrics `bleu`, `chrf`, `rouge_l`, `bertscore`, `embedding_similarity`, `faithfulness`,
+  `answer_relevancy`, `answer_correctness`, `context_precision`, `context_recall`,
+  `citations`, `pii`, `toxicity`, `ifeval` and `evalplus`; the benchmarks MMLU, GSM8K,
+  ARC, TruthfulQA, IFEval, HumanEval(+) and MBPP(+); `counterfix.evals.safety` and
+  `counterfix.evals.perplexity`; and the extras `metrics`, `semantic`, `safety`,
+  `benchmarks` and `code`. Use DeepEval, Ragas, Promptfoo, lm-evaluation-harness or
+  EvalPlus, and bring their results to counterfix. `counterfix benchmark` now runs the two
+  probe sets that test what counterfix diagnoses: `injection` (F13) and `tools` (F14).
+- **Removed: the 0.2 module paths** (`counterfix.adapters`, `counterfix.detectors`,
+  `counterfix.engine` ...), which 0.3 kept working with a warning. The short names
+  (`counterfix.evaluate`, `counterfix.context`, `counterfix.otel` ...) stay.
+- **Removed: the ignored `need=` option** of `fix()`, `fix_item()` and `speed_fix()`.
 - **DeepEval, Ragas and Promptfoo results:** `counterfix diagnose results.json` and
   `counterfix fix results.json` read the results file of these tools (detected from the
   file, or `--from TOOL`) and explain or fix the test cases they failed. Promptfoo calls

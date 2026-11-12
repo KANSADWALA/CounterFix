@@ -123,23 +123,13 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     from counterfix.evals.benchmarks import BENCHMARKS, run_benchmark
 
     if args.list or not args.name:
-        print("benchmarks (data downloaded when run; licence from each dataset card):")
+        print("probe sets (for MMLU, GSM8K, HumanEval ... use lm-evaluation-harness or EvalPlus):")
         for b in BENCHMARKS.values():
-            extra = "" if b.extra == "core" else f"  [needs counterfix[{b.extra}]"
-            extra += (", --allow-code]" if b.runs_code else "]") if extra else ""
-            print(f"  {b.name:<12} {b.title}\n  {'':<12} {b.source} · {b.licence}{extra}")
+            print(f"  {b.name:<12} {b.title}\n  {'':<12} {b.source} · {b.licence}")
         return 0
     if not args.model and not args.app:
         print("give --model SPEC (or --app MODULE:FN)")
         return 2
-    import os
-
-    from counterfix.detect.code.sandbox import ALLOW_ENV, SANDBOX_ENV
-
-    if args.allow_code:
-        os.environ[ALLOW_ENV] = "1"
-    if args.sandbox:
-        os.environ[SANDBOX_ENV] = args.sandbox
     judge: Any = False
     if args.judge:
         judge = _cli_judge(args.judge)

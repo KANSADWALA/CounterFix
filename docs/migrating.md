@@ -1,27 +1,12 @@
-# Migrating to 0.3
+# Upgrading to 0.4
 
-Nothing that worked in 0.2 stops working in 0.3. Three things change how it looks.
+0.4 removes what 0.3 had marked for removal. If your code ran on 0.3 without warnings, it
+runs on 0.4 unchanged.
 
-## 1. A smaller top level
+## Old module paths are gone
 
-`import counterfix` now lists 12 names: `guard`, `watch`, `diagnose`, `fix`, `configure`,
-`Config`, `Diagnosis`, `FixResult`, `FailureType`, `CallRecord`, `Message` and `log_to`.
-Every other 0.2 name (`counterfix.evaluate`, `counterfix.RuleStore`,
-`counterfix.litellm_callback`, ...) still imports from `counterfix`, without a warning; it
-loads on first use, so `import counterfix` is faster.
-
-Common settings no longer need a `Config`:
-
-```python
-client = counterfix.guard(OpenAI(), log="calls.jsonl", sample_rate=0.05, mode="retry")
-```
-
-## 2. New module paths
-
-Every module now sits in a layered package. The old paths still import, giving the same
-module objects (so `isinstance` and monkeypatching behave as before), with a
-`DeprecationWarning`; they are planned to go in 0.4. Type checkers such as mypy do not
-follow the old paths, so typed code should switch now.
+0.3 moved every module into a layered package and kept the 0.2 paths working with a
+warning. In 0.4 the old paths no longer import; use the new ones:
 
 | Old path | New path |
 | --- | --- |
@@ -39,7 +24,6 @@ follow the old paths, so typed code should switch now.
 | `counterfix.metrics` | `counterfix.evals.metrics` |
 | `counterfix.otel` | `counterfix.integrations.otel` |
 | `counterfix.perf` | `counterfix.runtime.perf` |
-| `counterfix.perplexity` | `counterfix.evals.perplexity` |
 | `counterfix.presets` | `counterfix.core.presets` |
 | `counterfix.profiles` | `counterfix.fixes.profiles` |
 | `counterfix.rag` | `counterfix.detect.retrieval` |
@@ -47,34 +31,35 @@ follow the old paths, so typed code should switch now.
 | `counterfix.rules` | `counterfix.fixes` |
 | `counterfix.rules.store` | `counterfix.core.rules` |
 | `counterfix.safe_eval` | `counterfix._internal.safe_eval` |
-| `counterfix.safety` | `counterfix.evals.safety` |
 | `counterfix.text` | `counterfix._internal.text` |
 | `counterfix.verify` | `counterfix.fixes.verify` |
 
-`counterfix.context()`, `counterfix.otel`, `counterfix.perf`, `counterfix.background` and
-`counterfix.metrics` keep working as short names, without a warning.
+`counterfix.context()`, `counterfix.evaluate`, `counterfix.otel`, `counterfix.perf`,
+`counterfix.background` and `counterfix.metrics` remain as short names.
 
-## 3. Evaluation features that other tools already provide
+## Evaluation features other tools already provide are gone
 
 counterfix explains why a call failed and verifies fixes; it works alongside evaluation
-tools rather than replacing them. These still work in 0.3 but warn (`FutureWarning`) and
-are planned for removal in 0.4:
+tools rather than replacing them. These are removed in 0.4:
 
-| Deprecated | Use instead |
+| Removed | Use instead |
 | --- | --- |
 | metrics `bleu`, `chrf`, `rouge_l` | sacrebleu, rouge-score, or your evaluation tool |
 | metrics `bertscore`, `embedding_similarity` | bert-score, sentence-transformers, or your evaluation tool |
 | metrics `faithfulness`, `answer_relevancy`, `answer_correctness`, `context_precision`, `context_recall`, `citations` | Ragas or DeepEval |
-| metric `pii`, `counterfix.evals.safety.find_pii` | Microsoft Presidio |
-| metric `toxicity`, `counterfix.evals.safety.toxicity_scores` | Detoxify |
+| metric `pii`, `counterfix.evals.safety` | Microsoft Presidio |
+| metric `toxicity` | Detoxify |
 | benchmarks `mmlu`, `gsm8k`, `arc`, `truthfulqa`, `ifeval`, metric `ifeval` | lm-evaluation-harness |
 | benchmarks `humaneval`, `humaneval+`, `mbpp`, `mbpp+`, metric `evalplus` | EvalPlus |
 | `counterfix.evals.perplexity` | lm-evaluation-harness |
+| extras `metrics`, `semantic`, `safety`, `benchmarks`, `code` | (not needed) |
+| the ignored `need=` option of `fix()` and `speed_fix()` | (drop it) |
 
 Staying: the simple checks (`exact_match`, `contains`, `f1`, `number`, `choice`,
 `json_valid`, `json_match`, `latency`, `ttft`), the label-based retrieval metrics, `tests`
 (F12), `tool_call` (F14), `injection` (F13), `confidence`, and the `injection` and `tools`
-probe benchmarks.
+probe sets.
 
-To see every warning your code triggers, run it once with `python -W error::FutureWarning
--W error::DeprecationWarning`.
+To keep a removed tool's verdict in the loop, bring its results file
+([DeepEval, Ragas and Promptfoo](eval-tools.md)) or wrap it as your own check
+([Fix with your own test](your-check.md)).

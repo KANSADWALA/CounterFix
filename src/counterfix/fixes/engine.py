@@ -133,7 +133,6 @@ def fix(
     judge: Any = None,
     caller: ModelCaller | None = None,
     runs: int = DEFAULT_RUNS,
-    need: int | None = None,
     max_runs: int = 30,
     check_retry: bool = True,
     profile: Any = "auto",
@@ -150,8 +149,7 @@ def fix(
     ``runs`` is how often the plain retry and each change are re-run; ``alpha`` the
     chance, across the search, of calling a useless change verified. ``check_retry=False``
     skips the plain retry and assumes it never passes: use it only for failures you know
-    repeat every time (a fixed token limit), or "verified" means less. ``need`` is no
-    longer used (it was the old "2 of 3" rule) and only warns.
+    repeat every time (a fixed token limit), or "verified" means less.
 
     ``check`` is your own test of an answer (see :data:`Check`). With it, a re-run passes
     when your check passes and no new failure appears; counterfix's diagnosis still
@@ -160,13 +158,6 @@ def fix(
     a targeted change needs a cause. An error raised by your check on the original call
     is raised to you as :class:`CheckError`; one raised on a re-run counts that run as a
     fail."""
-    if need is not None:
-        warnings.warn(
-            "fix(need=...) is ignored: a change is now verified when it beats the plain "
-            "retry (see counterfix.fixes.verify)",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     from counterfix.core.attach import target_record as _target
     from counterfix.detect import default_detectors, judge_detectors
     from counterfix.diagnose import diagnose

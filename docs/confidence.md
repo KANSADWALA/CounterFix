@@ -1,4 +1,4 @@
-# Confidence and perplexity
+# Token confidence
 
 ## Token confidence from the API
 
@@ -43,24 +43,3 @@ and wrong. counterfix never reports a failure from confidence alone.
 
 `counterfix setup --test` asks each configured provider once (a 5-token request) and
 prints "available" or "not available", so you know before a run.
-
-## Corpus perplexity with a local model
-
-!!! warning "Deprecated in 0.3, planned for removal in 0.4"
-    Use [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) for perplexity. Token confidence from the API (above) stays: it is evidence for F4.
-
-Chat APIs do not give probabilities for the text you send, so perplexity of a corpus
-needs the model's weights (`pip install "counterfix[semantic]"`):
-
-```python
-from counterfix.evals.perplexity import perplexity
-
-perplexity(texts, model="gpt2-large", stride=512).value
-```
-
-It uses the sliding-window method of the
-[Hugging Face perplexity guide](https://huggingface.co/docs/transformers/perplexity):
-windows of the model's context length move `stride` tokens at a time, and each window
-scores only tokens no earlier window scored. `bench/perplexity_check.py` reproduces the
-guide's GPT-2 large result on WikiText-2: measured 16.44 with stride 512, the guide's own
-figure. On a small GPU, `dtype="float16"` halves the memory (that run used it).

@@ -60,14 +60,13 @@ def fix_item(
     caller: ModelCaller,
     *,
     runs: int = 6,
-    need: int | None = None,
     max_runs: int = 30,
     must_clear: set[FailureType] | None = None,
     on_run: Callable[[int, str], None] | None = None,
     alpha: float = 0.05,
 ) -> ItemFix:
     """Search for a change that makes this item pass clearly more often than a plain
-    retry (see :mod:`counterfix.fixes.verify`; ``need`` is no longer used).
+    retry (see :mod:`counterfix.fixes.verify`).
 
     A plain retry runs first; if it passes too often for any change to beat, no change
     is claimed. Then the
@@ -134,15 +133,6 @@ def fix_item(
             attempt.verified = attempt.passed > 0 and attempt.p_value <= at
         return attempt
 
-    if need is not None:
-        import warnings
-
-        warnings.warn(
-            "fix_item(need=...) is ignored: a change is now verified when it beats the "
-            "plain retry (see counterfix.fixes.verify)",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     result.retry = trial(
         FixTry(name="plain_retry", description="Re-run unchanged"),
         record.messages,

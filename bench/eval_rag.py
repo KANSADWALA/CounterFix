@@ -8,9 +8,9 @@ never used to change the rules; quote this one).
     python bench/eval_rag.py --judge groq:qwen/qwen3.8-27b
     python bench/eval_rag.py --offline               (report from cached verdicts only)
 
-For every item: the free label check (F10 from gold labels), the judge's context-use
-check (ok / F10 retrieval miss / F11 context ignored) and the faithfulness metric, with
-each judge alone and, when there are several, as a majority-vote panel (no extra calls).
+For every item: the free label check (F10 from gold labels) and the judge's context-use
+check (ok / F10 retrieval miss / F11 context ignored), with each judge alone and, when
+there are several, as a majority-vote panel (no extra calls).
 Accuracy comes with a 95% Wilson interval, clear and hard items are reported apart, and
 every disagreement with a label is listed. Writes bench/results/rag.md. Verdicts are
 cached in bench/cache/judges.jsonl (shared with eval_judges.py).
@@ -45,7 +45,6 @@ from counterfix.core.presets import (  # noqa: E402
 )
 from counterfix.detect import ContextUseCheck, RetrievalLabelCheck  # noqa: E402
 from counterfix.detect.retrieval import record  # noqa: E402
-from counterfix.evals.metrics import Faithfulness  # noqa: E402
 from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
 from counterfix.judges.base import Judge  # noqa: E402
 
@@ -143,21 +142,12 @@ def section(
     free: list[str] | None = None,
 ) -> list[str]:
     check = ContextUseCheck(judge)
-    faith = Faithfulness().bind(judge)
     truth = [r["label"]["cause"] for r in rows]
-    pred, faith_rows = [], []
-    for row, rec in zip(rows, recs, strict=True):
+    pred = []
+    for rec in recs:
         if progress is not None:
             progress.step(name)
         pred.append(predicted_cause(rec, check))
-        want = row["label"]["faithful"]
-        if want is None:
-            continue
-        r = faith.score(rec)
-        if r.reason.startswith("judge failed"):
-            faith_rows.append((row, want, None, r.reason))
-            continue
-        faith_rows.append((row, want, r.value is None or r.value == 1.0, r.reason))
 
     lines = [
         "",
@@ -196,26 +186,11 @@ def section(
             f"**{errors} item(s) could not be judged** (a judge error, or not in the cache "
             "with --offline); accuracy is over the judged items only.",
         ]
-    scored = [f for f in faith_rows if f[2] is not None]
-    agree = sum(f[1] == f[2] for f in scored)
-    lines += [
-        "",
-        f"Faithfulness (every claim supported, or not) agrees with the label on {agree} of "
-        f"{len(scored)} items ({wilson(agree, len(scored))}); "
-        f"{sum(r['label']['faithful'] is None for r in rows)} items have no faithfulness "
-        f"label and {len(faith_rows) - len(scored)} could not be judged.",
-        "",
-        *confusion(truth, pred),
-    ]
+    lines += ["", *confusion(truth, pred)]
     wrong = [
         f"- {r['id']} ({r['kind']}): label {t}, judged {p}"
         for r, t, p in zip(rows, truth, pred, strict=True)
         if p not in (t, "error")
-    ]
-    wrong += [
-        f"- {row['id']} ({row['kind']}): faithfulness label {want}, judged {got}: {why[:120]}"
-        for row, want, got, why in scored
-        if want != got
     ]
     if wrong:
         lines += ["", "Disagreements with the labels:", "", *wrong]

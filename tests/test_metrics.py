@@ -12,13 +12,7 @@ from counterfix.evals.metrics import (
     extract_number,
     get_metric,
     normalize,
-    rouge_l,
     token_f1,
-)
-
-# Exercises a feature deprecated in 0.3 (removed in 0.4): its FutureWarning is expected.
-DEPRECATED_IN_0_3 = pytest.mark.filterwarnings(
-    "ignore:.*will be removed in counterfix:FutureWarning"
 )
 
 
@@ -72,33 +66,6 @@ def test_missing_reference_and_failed_calls() -> None:
     assert none.value is None and "no reference" in none.reason
     failed = m.score(CallRecord(error="APIConnectionError: down"), "x")
     assert failed.passed is False and "failed" in failed.reason
-
-
-def test_rouge_l_matches_rouge_score_package() -> None:
-    rouge_scorer = pytest.importorskip("rouge_score.rouge_scorer")
-    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
-    pairs = [
-        ("The quick brown fox jumps over the lazy dog", "A quick brown dog jumps on the lazy fox"),
-        ("police killed the gunman", "the gunman was shot down by police"),
-        ("Hello, World! 123", "hello world 1234"),
-        ("nothing in common", "zzz yyy"),
-    ]
-    for pred, ref in pairs:
-        expected = scorer.score(ref, pred)["rougeL"].fmeasure
-        assert rouge_l(pred, ref) == pytest.approx(expected, abs=1e-6)
-
-
-@DEPRECATED_IN_0_3
-def test_bleu_and_chrf_match_sacrebleu() -> None:
-    sacrebleu = pytest.importorskip("sacrebleu")
-    pred, refs = "The cat is on the mat.", ["There is a cat on the mat.", "A cat is on the mat."]
-    rec = answer(pred)
-    assert get_metric("bleu").score(rec, refs).value == pytest.approx(
-        sacrebleu.sentence_bleu(pred, refs).score / 100, abs=1e-6
-    )
-    assert get_metric("chrf").score(rec, refs).value == pytest.approx(
-        sacrebleu.sentence_chrf(pred, refs).score / 100, abs=1e-6
-    )
 
 
 @pytest.mark.parametrize(
@@ -173,9 +140,11 @@ def test_speed_metrics_are_lower_is_better() -> None:
 
 
 def test_registry_names_and_errors() -> None:
-    assert set(METRICS) >= {"exact_match", "f1", "rouge_l", "choice", "number", "latency"}
+    assert set(METRICS) >= {"exact_match", "f1", "choice", "number", "latency"}
     with pytest.raises(ValueError, match="unknown metric"):
         get_metric("nope")
+    for gone in ("rouge_l", "bleu", "bertscore", "faithfulness", "pii", "toxicity"):
+        assert gone not in METRICS  # use your evaluation tool for these
 
 
 @pytest.mark.parametrize(
