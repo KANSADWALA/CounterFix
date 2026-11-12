@@ -9,6 +9,9 @@ call failed and proves which fix works, alongside your evaluation and tracing to
 than in place of them. Nothing that worked in 0.2.1 stops working; see
 [Migrating to 0.3](https://kansadwala.github.io/CounterFix/migrating/).
 
+- A `MODEL@http://host/v1` model spec without the OpenAI SDK installed now says what to
+  install (`pip install "counterfix[openai]"`) instead of failing with a bare
+  `ModuleNotFoundError`, as `provider:model` specs already did.
 - **Evaluation features that other tools already provide are deprecated** (planned for
   removal in 0.4). They keep working, with a `FutureWarning` that names what to use
   instead: the metrics `bleu`, `chrf`, `rouge_l`, `bertscore`, `embedding_similarity`, the

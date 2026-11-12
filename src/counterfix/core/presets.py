@@ -126,7 +126,12 @@ def caller_for(spec: str, *, timeout: float | None = None) -> Any:
     """
     load_env_file(Path.cwd() / ".env")
     if "@http" in spec:
-        from openai import OpenAI
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise ImportError(
+                'this needs the OpenAI SDK: pip install "counterfix[openai]"'
+            ) from exc
 
         model, base_url = spec.split("@", 1)
         client = OpenAI(

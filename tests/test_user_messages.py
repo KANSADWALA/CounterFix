@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import sys
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -164,8 +165,28 @@ def test_rerun_caller_takes_every_documented_spec() -> None:
 
     from counterfix.cli import _rerun_caller
 
-    caller = _rerun_caller("my-model@http://127.0.0.1:9/v1")  # no call is made here
-    assert "my-model" in caller.name
     with pytest.raises(SystemExit) as stop:
         _rerun_caller("nope:model")
     assert stop.value.code == 2
+    pytest.importorskip("openai")  # the MODEL@URL form needs the OpenAI SDK (CI has none)
+    caller = _rerun_caller("my-model@http://127.0.0.1:9/v1")  # no call is made here
+    assert "my-model" in caller.name
+
+
+def test_url_spec_without_the_openai_sdk_says_what_to_install(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import builtins
+
+    from counterfix.core.presets import caller_for
+
+    real_import = builtins.__import__
+
+    def no_openai(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "openai" or name.startswith("openai."):
+            raise ImportError("No module named 'openai'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_openai)
+    with pytest.raises(ImportError, match=r'pip install "counterfix\[openai\]"'):
+        caller_for("my-model@http://127.0.0.1:9/v1")
