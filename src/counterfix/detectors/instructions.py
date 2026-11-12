@@ -16,13 +16,13 @@ import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from counterfix._internal.text import normalise_numbers, straight_quotes
 from counterfix.core.config import Config
 from counterfix.core.detector import SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType, PrescriptionKind
 from counterfix.detectors.basic import LENGTH_REASONS
-from counterfix.text import normalise_numbers, straight_quotes
 
 # --- reading the answer -------------------------------------------------------------------
 

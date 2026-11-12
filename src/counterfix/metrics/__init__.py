@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from counterfix._suggest import did_you_mean
+from counterfix._internal.suggest import did_you_mean
 from counterfix.metrics.base import Metric, MetricResult, references
 from counterfix.metrics.code import TestsPass
 from counterfix.metrics.confidence import Confidence

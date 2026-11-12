@@ -15,16 +15,20 @@ from __future__ import annotations
 import importlib
 from typing import TYPE_CHECKING, Any
 
+from counterfix import _compat
+
+_compat.install()  # old 0.2 module paths keep importing (see counterfix._compat)
+
 # The core loop, loaded eagerly. ``context``, ``diagnose`` and ``lint`` are also the names of
 # submodules, so they must be bound here before any submodule import can shadow them.
-from counterfix.adapters import guard, watch
-from counterfix.context import context
-from counterfix.core import CallRecord, Config, Diagnosis, FailureType, Message
-from counterfix.diagnose import diagnose
-from counterfix.engine import FixResult, fix
-from counterfix.judges.auto import configure
-from counterfix.lint import lint
-from counterfix.report import log_to
+from counterfix.adapters import guard, watch  # noqa: E402
+from counterfix.context import context  # noqa: E402
+from counterfix.core import CallRecord, Config, Diagnosis, FailureType, Message  # noqa: E402
+from counterfix.diagnose import diagnose  # noqa: E402
+from counterfix.engine import FixResult, fix  # noqa: E402
+from counterfix.judges.auto import configure  # noqa: E402
+from counterfix.lint import lint  # noqa: E402
+from counterfix.report import log_to  # noqa: E402
 
 __version__ = "0.2.1"
 

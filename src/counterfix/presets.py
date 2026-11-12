@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from counterfix._suggest import did_you_mean
+from counterfix._internal.suggest import did_you_mean
 from counterfix.core.caller import OpenAICompatibleCaller
 
 # provider -> (base_url or None for the SDK default, API key variable or None, default model)

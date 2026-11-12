@@ -26,7 +26,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from counterfix._suggest import did_you_mean
+from counterfix._internal.suggest import did_you_mean
 from counterfix.metrics.base import Metric
 from counterfix.metrics.extract import ChoiceMatch, NumberMatch
 

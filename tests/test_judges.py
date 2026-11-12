@@ -9,6 +9,7 @@ import pytest
 
 from conftest import FakeClient, FakeCompletions, make_response
 from counterfix import CallRecord, Config, FailureType, Message
+from counterfix._internal.safe_eval import UnsafeExpression, safe_eval
 from counterfix.core.caller import ModelCaller, OpenAICompatibleCaller
 from counterfix.detectors import (
     AmbiguityCheck,
@@ -29,7 +30,6 @@ from counterfix.judges import (
     parse_reply,
     render,
 )
-from counterfix.safe_eval import UnsafeExpression, safe_eval
 
 TASK = JudgeTask(
     name="t",
@@ -368,7 +368,7 @@ def test_cache_offline_mode_never_calls_the_judge(tmp_path: Path) -> None:
 
 
 def test_safe_eval_comprehensions() -> None:
-    from counterfix.safe_eval import UnsafeExpression, safe_eval
+    from counterfix._internal.safe_eval import UnsafeExpression, safe_eval
 
     assert safe_eval("sum(int(c) for c in str(987654321987))") == 69
     assert safe_eval("len([c for c in 'strawberry' if c == 'r'])") == 3
@@ -473,7 +473,7 @@ def test_safe_eval_stops_runaway_work() -> None:
 
     import pytest
 
-    from counterfix.safe_eval import UnsafeExpression, safe_eval
+    from counterfix._internal.safe_eval import UnsafeExpression, safe_eval
 
     start = time.perf_counter()
     with pytest.raises(UnsafeExpression, match="too much work"):

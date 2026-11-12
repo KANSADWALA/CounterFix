@@ -119,7 +119,7 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 # re-exports: eager ones for the core loop, the rest only for type checkers (loaded lazily)
 "src/counterfix/__init__.py" = ["F401"]
 # non-ASCII punctuation, spaces and quotes are what these modules look for
-"src/counterfix/text.py" = ["RUF001"]
+"src/counterfix/_internal/text.py" = ["RUF001"]
 "src/counterfix/detectors/instructions.py" = ["RUF001"]
 
 [tool.mypy]
@@ -181,7 +181,7 @@ layers = [
   "counterfix.rules",
   "counterfix._profile_store",
   "counterfix.core",
-  "counterfix._suggest | counterfix.text | counterfix.safe_eval",
+  "counterfix._internal",
 ]
 ignore_imports = [
   # The metric registry knows three benchmark scorers by name (``--metric ifeval``).

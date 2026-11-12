@@ -6,6 +6,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from counterfix._internal.safe_eval import UnsafeExpression, safe_eval
+from counterfix._internal.text import normalise_numbers
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector, SkipCheck
 from counterfix.core.diagnosis import Evidence, Finding, Prescription
@@ -16,8 +18,6 @@ from counterfix.detectors.instructions import extract_constraints, mentions
 from counterfix.detectors.refusal import _REFUSAL
 from counterfix.judges import tasks
 from counterfix.judges.base import Judge, JudgeTask, Verdict
-from counterfix.safe_eval import UnsafeExpression, safe_eval
-from counterfix.text import normalise_numbers
 
 _CONSTRAINT = re.compile(
     r"\b(must|never|always|do not|don't|only|exactly|at most|at least|no more than|under|"
