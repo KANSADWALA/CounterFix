@@ -114,7 +114,7 @@ settings, so it needs `model=` and is off for apps.
 Score what your pipeline already produced, with its passages:
 
 ```python
-from counterfix.rag import record, record_from_llamaindex
+from counterfix.detect.retrieval import record, record_from_llamaindex
 
 rec = record(question, answer, retrieved_docs, relevant=["doc-7"], reference="...")
 counterfix.diagnose(rec)  # F10 / F11 with a judge

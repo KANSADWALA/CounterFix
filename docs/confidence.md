@@ -14,7 +14,7 @@ On a guarded call, read it from the response:
 
 ```python
 import counterfix
-from counterfix import confidence
+from counterfix.detect import confidence
 from openai import OpenAI
 
 client = counterfix.guard(OpenAI())
@@ -50,7 +50,7 @@ Chat APIs do not give probabilities for the text you send, so perplexity of a co
 needs the model's weights (`pip install "counterfix[semantic]"`):
 
 ```python
-from counterfix.perplexity import perplexity
+from counterfix.evals.perplexity import perplexity
 
 perplexity(texts, model="gpt2-large", stride=512).value
 ```

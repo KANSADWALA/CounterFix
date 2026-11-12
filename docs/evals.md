@@ -157,7 +157,7 @@ create it) for a pass/fail metric; without one it is reported as a graded number
 fails nothing:
 
 ```python
-from counterfix.metrics import Metric
+from counterfix.evals.metrics import Metric
 
 
 class ShortAnswer(Metric):

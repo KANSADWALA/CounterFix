@@ -64,7 +64,7 @@ counts only when the re-runs pass the tests clearly more often than a plain retr
 temperature above 0 for distinct samples, e.g. `--param temperature=0.8`.
 
 ```python
-from counterfix.code import pass_at_k, check_code
+from counterfix.detect.code import pass_at_k, check_code
 
 pass_at_k(n=20, c=3, k=10)
 check_code(answer, {"test_list": ["assert add(1, 2) == 3"]}, allow=True).why

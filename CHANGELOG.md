@@ -36,6 +36,44 @@ same checks run over a dataset. Nothing that worked in 0.2.1 stops working.
   `counterfix.code.check` and stored profiles to an internal module the fix engine can
   read. One exception is listed in the contract: the metric registry's three benchmark
   scorers.
+- **New package layout.** Every module now sits in one of nine subpackages, layered
+  (each imports only from those below it, checked in CI): `_internal`, `core`, `judges`,
+  `detect`, `fixes`, `runtime`, `integrations`, `evals`, plus `lint`; only `cli`,
+  `diagnose` and `testing` stay at the top. The old module paths still import, giving the
+  very same module objects (so `isinstance`, monkeypatching and private names behave as
+  before), with a `DeprecationWarning`; they are planned to go in 0.4. Type checkers do
+  not follow the old paths, so typed code should switch. `counterfix.context()`,
+  `counterfix.otel`, `counterfix.perf`, `counterfix.background` and `counterfix.metrics`
+  keep working as before, without a warning.
+
+  | Old path | New path |
+  | --- | --- |
+  | `counterfix.adapters` | `counterfix.integrations` |
+  | `counterfix.agents` | `counterfix.detect.agents` |
+  | `counterfix.background` | `counterfix.runtime.background` |
+  | `counterfix.benchmarks` | `counterfix.evals.benchmarks` |
+  | `counterfix.capabilities` | `counterfix.integrations.capabilities` |
+  | `counterfix.code` | `counterfix.detect.code` |
+  | `counterfix.confidence` | `counterfix.detect.confidence` |
+  | `counterfix.context` | `counterfix.runtime.context` |
+  | `counterfix.detectors` | `counterfix.detect` |
+  | `counterfix.engine` | `counterfix.fixes.engine` |
+  | `counterfix.mcp_server` | `counterfix.integrations.mcp_server` |
+  | `counterfix.metrics` | `counterfix.evals.metrics` |
+  | `counterfix.otel` | `counterfix.integrations.otel` |
+  | `counterfix.perf` | `counterfix.runtime.perf` |
+  | `counterfix.perplexity` | `counterfix.evals.perplexity` |
+  | `counterfix.presets` | `counterfix.core.presets` |
+  | `counterfix.profiles` | `counterfix.fixes.profiles` |
+  | `counterfix.rag` | `counterfix.detect.retrieval` |
+  | `counterfix.report` | `counterfix.runtime.report` |
+  | `counterfix.rules` | `counterfix.fixes` |
+  | `counterfix.rules.store` | `counterfix.core.rules` |
+  | `counterfix.safe_eval` | `counterfix._internal.safe_eval` |
+  | `counterfix.safety` | `counterfix.evals.safety` |
+  | `counterfix.text` | `counterfix._internal.text` |
+  | `counterfix.verify` | `counterfix.fixes.verify` |
+
 - `Config.rules` is typed as `RuleStore | None`: a wrong value now fails when the Config
   is built (pydantic `ValidationError`) instead of on the first retry (`TypeError`).
 - A test now freezes the 0.2.1 public surface (every top-level name, module path and

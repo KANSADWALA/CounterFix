@@ -109,7 +109,7 @@ The guarded client behaves like the original: sync or async, `stream=True`,
 and stay checked, and your type checker sees the client you passed. Two things differ:
 `isinstance(client, OpenAI)` is False (pass `client.unwrapped` where a library insists on
 the real object), and type checkers do not know `response.diagnosis`, so typed code can use
-`counterfix.adapters.get_diagnosis(response)`. Callbacks only observe; they never change a
+`counterfix.integrations.get_diagnosis(response)`. Callbacks only observe; they never change a
 reply. Details: [Plug it in](https://kansadwala.github.io/CounterFix/plugs/).
 
 ## In production

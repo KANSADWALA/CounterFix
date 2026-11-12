@@ -57,7 +57,7 @@ Built in, with nothing to install: email addresses, phone numbers, payment card 
 checksum), IPv4 addresses and API keys (OpenAI, Anthropic, Groq, Google, AWS, GitHub,
 Hugging Face). Reports mask what they found. With `pip install "counterfix[safety]"`
 (Python 3.11+), the option `engine="presidio"` adds Microsoft Presidio (names, places and
-more ID formats). In Python: `counterfix.safety.find_pii(text)`.
+more ID formats). In Python: `from counterfix.evals.safety import find_pii`, then `find_pii(text)`.
 
 ## Toxicity
 

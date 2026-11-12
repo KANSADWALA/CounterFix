@@ -40,12 +40,12 @@ use them as a smoke test for your tool setup, not to rank models.
 
 ## Agent runs: loops, unknown tools, missing calls, task success
 
-Turn a run into a record with `counterfix.agents.record(task, run)` and diagnose it, or
+Turn a run into a record with `agents.record(task, run)` and diagnose it, or
 return the run from your app in `evaluate(app=...)`:
 
 ```python
 import counterfix
-from counterfix import agents
+from counterfix.detect import agents
 
 result = my_agent.invoke({"messages": [("user", task)]})  # LangGraph
 rec = agents.record(task, result, tools=my_tools, expect_tools=["search_web"])

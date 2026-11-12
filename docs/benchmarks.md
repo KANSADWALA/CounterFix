@@ -58,7 +58,7 @@ log-likelihood scoring of local models, use lm-evaluation-harness directly.
 ## From Python
 
 ```python
-from counterfix.benchmarks import run_benchmark
+from counterfix.evals.benchmarks import run_benchmark
 
 result = run_benchmark("gsm8k", model="ollama:qwen2.5:3b", limit=200, fix=5)
 print(result.text())
