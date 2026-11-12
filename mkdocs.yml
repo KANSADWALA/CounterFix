@@ -30,6 +30,7 @@ nav:
       - Diagnose a call: diagnose.md
       - Verified fixes: fixes.md
       - Fix with your own test: your-check.md
+      - DeepEval, Ragas and Promptfoo: eval-tools.md
       - Prompt regression tests: testing.md
   - In production:
       - In production: production.md

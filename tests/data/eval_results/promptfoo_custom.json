@@ -1,0 +1,705 @@
+{
+ "evalId": "eval-JSh-2026-11-12T17:57:17",
+ "results": {
+  "version": 3,
+  "timestamp": "2026-11-12T17:57:17.260Z",
+  "prompts": [
+   {
+    "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+    "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+    "id": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "provider": "my-model",
+    "metrics": {
+     "score": 1,
+     "testPassCount": 1,
+     "testFailCount": 1,
+     "testErrorCount": 0,
+     "testCacheHitCount": 0,
+     "assertPassCount": 1,
+     "assertFailCount": 1,
+     "totalLatencyMs": 16,
+     "tokenUsage": {
+      "prompt": 6,
+      "completion": 4,
+      "cached": 0,
+      "total": 10,
+      "numRequests": 2,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "namedScores": {},
+     "namedScoresCount": {},
+     "namedScoreWeights": {},
+     "cost": 0
+    }
+   },
+   {
+    "id": "c0335cedbab6917393d9ab742bc01762985fa6e4ff63b984e1428115ef9167c4",
+    "raw": "Answer: {{question}}",
+    "label": "Answer: {{question}}",
+    "provider": "my-model",
+    "metrics": {
+     "score": 1,
+     "testPassCount": 1,
+     "testFailCount": 1,
+     "testErrorCount": 0,
+     "testCacheHitCount": 0,
+     "assertPassCount": 1,
+     "assertFailCount": 1,
+     "totalLatencyMs": 15,
+     "tokenUsage": {
+      "prompt": 6,
+      "completion": 4,
+      "cached": 0,
+      "total": 10,
+      "numRequests": 2,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "namedScores": {},
+     "namedScoresCount": {},
+     "namedScoreWeights": {},
+     "cost": 0
+    }
+   }
+  ],
+  "results": [
+   {
+    "cost": 0,
+    "error": "Expected output to contain \"Neptune\"",
+    "gradingResult": {
+     "pass": false,
+     "score": 0,
+     "reason": "Expected output to contain \"Neptune\"",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0
+     },
+     "componentResults": [
+      {
+       "pass": false,
+       "score": 0,
+       "reason": "Expected output to contain \"Neptune\"",
+       "assertion": {
+        "type": "contains",
+        "value": "Neptune"
+       }
+      }
+     ]
+    },
+    "id": "ceeb8c1a-d6ab-4777-9e4c-ad885d4a69dc",
+    "latencyMs": 9,
+    "namedScores": {},
+    "prompt": {
+     "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"List the planets\"}]",
+     "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+     "config": {}
+    },
+    "promptId": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "promptIdx": 0,
+    "provider": {
+     "id": "file://provider.js",
+     "label": "my-model"
+    },
+    "response": {
+     "output": "Mercury\nVenus",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     }
+    },
+    "score": 0,
+    "success": false,
+    "testCase": {
+     "vars": {
+      "question": "List the planets"
+     },
+     "assert": [
+      {
+       "type": "contains",
+       "value": "Neptune"
+      }
+     ],
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 0,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "List the planets"
+    },
+    "metadata": {
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 1
+   },
+   {
+    "cost": 0,
+    "error": "Expected output to contain \"Neptune\"",
+    "gradingResult": {
+     "pass": false,
+     "score": 0,
+     "reason": "Expected output to contain \"Neptune\"",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0
+     },
+     "componentResults": [
+      {
+       "pass": false,
+       "score": 0,
+       "reason": "Expected output to contain \"Neptune\"",
+       "assertion": {
+        "type": "contains",
+        "value": "Neptune"
+       }
+      }
+     ]
+    },
+    "id": "05d0f162-c94b-4982-8940-c8efdaf4d8d3",
+    "latencyMs": 8,
+    "namedScores": {},
+    "prompt": {
+     "raw": "Answer: List the planets",
+     "label": "Answer: {{question}}",
+     "config": {}
+    },
+    "promptId": "c0335cedbab6917393d9ab742bc01762985fa6e4ff63b984e1428115ef9167c4",
+    "promptIdx": 1,
+    "provider": {
+     "id": "file://provider.js",
+     "label": "my-model"
+    },
+    "response": {
+     "output": "Mercury\nVenus",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     }
+    },
+    "score": 0,
+    "success": false,
+    "testCase": {
+     "vars": {
+      "question": "List the planets"
+     },
+     "assert": [
+      {
+       "type": "contains",
+       "value": "Neptune"
+      }
+     ],
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 0,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "List the planets"
+    },
+    "metadata": {
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 1
+   },
+   {
+    "cost": 0,
+    "gradingResult": {
+     "pass": true,
+     "score": 1,
+     "reason": "All assertions passed",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0
+     },
+     "componentResults": [
+      {
+       "pass": true,
+       "score": 1,
+       "reason": "Assertion passed",
+       "assertion": {
+        "type": "equals",
+        "value": "Paris"
+       }
+      }
+     ]
+    },
+    "id": "41b0dca3-1559-4d2a-8a75-bd6e45997dd2",
+    "latencyMs": 7,
+    "namedScores": {},
+    "prompt": {
+     "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"Capital of France?\"}]",
+     "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+     "config": {}
+    },
+    "promptId": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "promptIdx": 0,
+    "provider": {
+     "id": "file://provider.js",
+     "label": "my-model"
+    },
+    "response": {
+     "output": "Paris",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     }
+    },
+    "score": 1,
+    "success": true,
+    "testCase": {
+     "vars": {
+      "question": "Capital of France?"
+     },
+     "assert": [
+      {
+       "type": "equals",
+       "value": "Paris"
+      }
+     ],
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 1,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "Capital of France?"
+    },
+    "metadata": {
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 0
+   },
+   {
+    "cost": 0,
+    "gradingResult": {
+     "pass": true,
+     "score": 1,
+     "reason": "All assertions passed",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0
+     },
+     "componentResults": [
+      {
+       "pass": true,
+       "score": 1,
+       "reason": "Assertion passed",
+       "assertion": {
+        "type": "equals",
+        "value": "Paris"
+       }
+      }
+     ]
+    },
+    "id": "743b9042-6815-43fd-b433-898933ca3975",
+    "latencyMs": 7,
+    "namedScores": {},
+    "prompt": {
+     "raw": "Answer: Capital of France?",
+     "label": "Answer: {{question}}",
+     "config": {}
+    },
+    "promptId": "c0335cedbab6917393d9ab742bc01762985fa6e4ff63b984e1428115ef9167c4",
+    "promptIdx": 1,
+    "provider": {
+     "id": "file://provider.js",
+     "label": "my-model"
+    },
+    "response": {
+     "output": "Paris",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     }
+    },
+    "score": 1,
+    "success": true,
+    "testCase": {
+     "vars": {
+      "question": "Capital of France?"
+     },
+     "assert": [
+      {
+       "type": "equals",
+       "value": "Paris"
+      }
+     ],
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 1,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "Capital of France?"
+    },
+    "metadata": {
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 0
+   }
+  ],
+  "stats": {
+   "successes": 2,
+   "failures": 2,
+   "errors": 0,
+   "tokenUsage": {
+    "prompt": 12,
+    "completion": 8,
+    "cached": 0,
+    "total": 20,
+    "numRequests": 4,
+    "completionDetails": {
+     "reasoning": 0,
+     "acceptedPrediction": 0,
+     "rejectedPrediction": 0,
+     "cacheReadInputTokens": 0,
+     "cacheCreationInputTokens": 0
+    },
+    "assertions": {
+     "total": 0,
+     "prompt": 0,
+     "completion": 0,
+     "cached": 0,
+     "numRequests": 0,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     }
+    }
+   },
+   "durationMs": 55,
+   "evaluationDurationMs": 55
+  }
+ },
+ "config": {
+  "tags": {},
+  "description": "fmt probe",
+  "prompts": [
+   "file:///project/chat.json",
+   "Answer: {{question}}"
+  ],
+  "providers": [
+   {
+    "id": "file://provider.js",
+    "label": "my-model",
+    "config": {
+     "temperature": 0.2,
+     "max_tokens": 64
+    }
+   }
+  ],
+  "tests": [
+   {
+    "vars": {
+     "question": "List the planets"
+    },
+    "assert": [
+     {
+      "type": "contains",
+      "value": "Neptune"
+     }
+    ]
+   },
+   {
+    "vars": {
+     "question": "Capital of France?"
+    },
+    "assert": [
+     {
+      "type": "equals",
+      "value": "Paris"
+     }
+    ]
+   }
+  ],
+  "env": {},
+  "outputPath": [
+   "results.json"
+  ],
+  "extensions": [],
+  "metadata": {},
+  "evaluateOptions": {},
+  "basePath": "/project"
+ },
+ "shareableUrl": null,
+ "metadata": {
+  "promptfooVersion": "0.125.1",
+  "nodeVersion": "v22.23.4",
+  "platform": "linux",
+  "arch": "x64",
+  "exportedAt": "2026-11-12T17:57:17.374Z",
+  "evaluationCreatedAt": "2026-11-12T17:57:17.260Z"
+ },
+ "vars": [
+  "question"
+ ],
+ "runtimeOptions": {
+  "eventSource": "cli",
+  "showProgressBar": false,
+  "repeat": 1,
+  "maxConcurrency": 4,
+  "cache": false
+ }
+}

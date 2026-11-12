@@ -221,7 +221,7 @@ def fix(
         if check is not None:
             result.stopped = (f"your check fails ({why})" if why else "your check fails") + (
                 ", but counterfix found no cause it can target, so no change was tried"
-                + (" (a judge may find one: pass judge=...)" if judge is False else "")
+                + (" (with a judge, facts and premises are checked too)" if judge is False else "")
             )
         else:
             result.stopped = "nothing to fix"

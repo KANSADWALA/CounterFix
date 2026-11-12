@@ -83,6 +83,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_diag.add_argument(
         "--fail-on-failure", action="store_true", help="exit with code 1 if any call failed (CI)"
     )
+    p_diag.add_argument(
+        "--from",
+        dest="source",
+        choices=["auto", "promptfoo", "deepeval", "ragas"],
+        help="read a results file of this evaluation tool instead of a counterfix log"
+        " (auto: detect it)",
+    )
+    p_diag.add_argument(
+        "--threshold",
+        action="append",
+        metavar="NAME=V",
+        help="Ragas: pass mark per score, NAME=0.8 (higher is better) or NAME<=0.3",
+    )
     p_diag.set_defaults(func=cmd_diagnose)
     p_fix = sub.add_parser("fix", help="find verified fixes for the failed calls in a log")
     p_fix.add_argument("log", help="JSONL log of calls")
@@ -100,6 +113,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     p_fix.add_argument("--max-runs", type=int, default=30, help="re-runs per call (default 30)")
     p_fix.add_argument("--out", metavar="PATH", help="save results as JSON lines")
+    p_fix.add_argument(
+        "--from",
+        dest="source",
+        choices=["auto", "promptfoo", "deepeval", "ragas"],
+        help="read a results file of this evaluation tool instead of a counterfix log"
+        " (auto: detect it)",
+    )
+    p_fix.add_argument(
+        "--threshold",
+        action="append",
+        metavar="NAME=V",
+        help="Ragas: pass mark per score, NAME=0.8 (higher is better) or NAME<=0.3",
+    )
+    p_fix.add_argument(
+        "--system",
+        metavar="TEXT|FILE",
+        help="with --from deepeval/ragas: the system prompt your app sends (text or a file)",
+    )
     p_fix.set_defaults(func=cmd_fix)
     p_export = sub.add_parser("export-tests", help="turn verified fixes into pytest cases")
     p_export.add_argument("fixes", help="JSON lines from counterfix fix --out")

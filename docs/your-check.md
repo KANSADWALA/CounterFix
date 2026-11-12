@@ -122,3 +122,6 @@ skipped), and the run reports which of them got a verified fix.
 
 For a whole dataset, use `counterfix.evaluate(..., metrics=[YourMetric()], fix=N)`: see
 [Evaluate a dataset](evals.md) for writing a `Metric`.
+
+Have a DeepEval, Ragas or Promptfoo results file already? Pass it to `counterfix fix`
+directly: see [DeepEval, Ragas and Promptfoo](eval-tools.md).

@@ -18,6 +18,19 @@ from counterfix.judges.base import Judge
 from counterfix.lint import JUDGE_RULES, RULES, lint
 
 
+def _results_file(args: argparse.Namespace) -> bool:
+    """True (and says so) when a file that is not a counterfix log is an evaluation tool's
+    results file, so ``--from`` can be left out."""
+    from counterfix.integrations.eval_results import detect_tool
+
+    tool = detect_tool(args.log)
+    if tool is None:
+        return False
+    print(f"Reading {args.log} as {tool} results (--from {tool}).")
+    args.source = tool
+    return True
+
+
 def cmd_lint(args: argparse.Namespace) -> int:
     rules = args.rules.split(",") if args.rules else None
     known = {**RULES, **JUDGE_RULES}
@@ -56,6 +69,10 @@ def cmd_lint(args: argparse.Namespace) -> int:
 
 def cmd_diagnose(args: argparse.Namespace) -> int:
     """Check every call in a JSONL log and print, save or render what was found."""
+    if getattr(args, "source", None) or _results_file(args):
+        from counterfix.cli.results import cmd_diagnose_results
+
+        return cmd_diagnose_results(args)
     from counterfix.diagnose import diagnose
     from counterfix.runtime.report import html_report, load_log, log_line, text_report
 
@@ -91,6 +108,10 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
 
 def cmd_fix(args: argparse.Namespace) -> int:
     """Run the counterfactual engine on every flagged call in a log; save what worked."""
+    if getattr(args, "source", None) or _results_file(args):
+        from counterfix.cli.results import cmd_fix_results
+
+        return cmd_fix_results(args)
     from counterfix.core.presets import load_env_file
     from counterfix.diagnose import diagnose
     from counterfix.fixes.engine import CheckError, fix

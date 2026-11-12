@@ -1,0 +1,4 @@
+user_input,retrieved_contexts,response,reference,exact_match,string_present
+Capital of France?,['Paris is the capital of France.'],Paris,Paris,1.0,1.0
+List the planets,['There are eight planets.'],"Mercury
+Venus",Neptune,0.0,0.0

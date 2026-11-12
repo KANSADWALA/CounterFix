@@ -1,0 +1,1 @@
+[{"user_input":"Capital of France?","retrieved_contexts":["Paris is the capital of France."],"response":"Paris","reference":"Paris","exact_match":1.0,"string_present":1.0},{"user_input":"List the planets","retrieved_contexts":["There are eight planets."],"response":"Mercury\nVenus","reference":"Neptune","exact_match":0.0,"string_present":0.0}]

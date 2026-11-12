@@ -4,6 +4,16 @@ All notable changes to counterfix. Versions follow [semantic versioning](https:/
 
 ## Unreleased
 
+- **DeepEval, Ragas and Promptfoo results:** `counterfix diagnose results.json` and
+  `counterfix fix results.json` read the results file of these tools (detected from the
+  file, or `--from TOOL`) and explain or fix the test cases they failed. Promptfoo calls
+  are re-run as sent, with deterministic assertions re-checked as the pass test;
+  model-graded ones are not faked. DeepEval and Ragas files hold only the test input, so
+  re-running needs `--caller` (and `--system` for your app's system prompt). Ragas scores
+  need `--threshold NAME=V` (or `NAME<=V`). In Python:
+  `counterfix.integrations.eval_results.read_results`. Read from files written by
+  DeepEval 4.3, Ragas 0.4 and Promptfoo 0.125. See
+  [DeepEval, Ragas and Promptfoo](https://kansadwala.github.io/CounterFix/eval-tools/).
 - **Fix with your own test:** `counterfix.fix(response, check=my_test)` and
   `counterfix fix calls.jsonl --check checks.py:my_test`. Your check (a function, a
   counterfix `Metric`, or a wrapper around a DeepEval or Ragas metric) decides whether a

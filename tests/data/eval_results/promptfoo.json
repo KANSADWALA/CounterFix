@@ -1,0 +1,959 @@
+{
+ "evalId": "eval-PqT-2026-11-12T17:57:59",
+ "results": {
+  "version": 3,
+  "timestamp": "2026-11-12T17:57:59.221Z",
+  "prompts": [
+   {
+    "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+    "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+    "id": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "provider": "openai:chat:gpt-4o-mini",
+    "metrics": {
+     "score": 1,
+     "testPassCount": 1,
+     "testFailCount": 1,
+     "testErrorCount": 0,
+     "testCacheHitCount": 0,
+     "assertPassCount": 1,
+     "assertFailCount": 2,
+     "totalLatencyMs": 66,
+     "tokenUsage": {
+      "prompt": 6,
+      "completion": 4,
+      "cached": 0,
+      "total": 10,
+      "numRequests": 2,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 5,
+       "prompt": 3,
+       "completion": 2,
+       "cached": 0,
+       "numRequests": 1,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "namedScores": {},
+     "namedScoresCount": {},
+     "namedScoreWeights": {},
+     "cost": 3.2999999999999997e-06
+    }
+   },
+   {
+    "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+    "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+    "id": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "provider": "groq:llama-3.1-8b-instant",
+    "metrics": {
+     "score": 1,
+     "testPassCount": 1,
+     "testFailCount": 1,
+     "testErrorCount": 0,
+     "testCacheHitCount": 0,
+     "assertPassCount": 1,
+     "assertFailCount": 2,
+     "totalLatencyMs": 117,
+     "tokenUsage": {
+      "prompt": 6,
+      "completion": 4,
+      "cached": 0,
+      "total": 10,
+      "numRequests": 2,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 5,
+       "prompt": 3,
+       "completion": 2,
+       "cached": 0,
+       "numRequests": 1,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "namedScores": {},
+     "namedScoresCount": {},
+     "namedScoreWeights": {},
+     "cost": 0
+    }
+   }
+  ],
+  "results": [
+   {
+    "cost": 1.6499999999999999e-06,
+    "error": "names two planets",
+    "gradingResult": {
+     "pass": false,
+     "score": 0,
+     "reason": "names two planets",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 5,
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     },
+     "componentResults": [
+      {
+       "pass": false,
+       "score": 0,
+       "reason": "Expected output to contain \"neptune\"",
+       "assertion": {
+        "type": "icontains",
+        "value": "neptune"
+       }
+      },
+      {
+       "assertion": {
+        "type": "llm-rubric",
+        "value": "names all eight planets",
+        "provider": {
+         "id": "openai:chat:gpt-4o-mini",
+         "config": {
+          "apiBaseUrl": "http://127.0.0.1:8765/v1"
+         }
+        }
+       },
+       "pass": false,
+       "score": 0,
+       "reason": "names two planets",
+       "tokensUsed": {
+        "total": 5,
+        "prompt": 3,
+        "completion": 2,
+        "cached": 0,
+        "numRequests": 1,
+        "completionDetails": {
+         "reasoning": 0,
+         "acceptedPrediction": 0,
+         "rejectedPrediction": 0
+        }
+       },
+       "metadata": {
+        "http": {
+         "status": 200,
+         "statusText": "OK",
+         "headers": {
+          "content-length": "319",
+          "content-type": "application/json",
+          "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+          "server": "BaseHTTP/0.6 Python/3.13.18"
+         }
+        },
+        "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\nMercury\\nVenus\\n</Output>\\n<Rubric>\\nnames all eight planets\\n</Rubric>\"}]"
+       }
+      }
+     ]
+    },
+    "id": "ad1a28db-b18e-4412-bd61-21bee5433703",
+    "latencyMs": 22,
+    "namedScores": {},
+    "prompt": {
+     "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"List the planets\"}]",
+     "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+     "config": {}
+    },
+    "promptId": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "promptIdx": 0,
+    "provider": {
+     "id": "openai:chat:gpt-4o-mini",
+     "label": ""
+    },
+    "response": {
+     "output": "Mercury\nVenus",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "cached": false,
+     "latencyMs": 22,
+     "finishReason": "length",
+     "cost": 1.6499999999999999e-06,
+     "guardrails": {
+      "flagged": false
+     },
+     "metadata": {
+      "http": {
+       "status": 200,
+       "statusText": "OK",
+       "headers": {
+        "content-length": "269",
+        "content-type": "application/json",
+        "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+        "server": "BaseHTTP/0.6 Python/3.13.18"
+       }
+      }
+     }
+    },
+    "score": 0,
+    "success": false,
+    "testCase": {
+     "vars": {
+      "question": "List the planets"
+     },
+     "assert": [
+      {
+       "type": "icontains",
+       "value": "neptune"
+      },
+      {
+       "type": "llm-rubric",
+       "value": "names all eight planets",
+       "provider": {
+        "id": "openai:chat:gpt-4o-mini",
+        "config": {
+         "apiBaseUrl": "http://127.0.0.1:8765/v1"
+        }
+       }
+      }
+     ],
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 0,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 5,
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "List the planets"
+    },
+    "metadata": {
+     "http": {
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "content-length": "269",
+       "content-type": "application/json",
+       "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+       "server": "BaseHTTP/0.6 Python/3.13.18"
+      }
+     },
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 1
+   },
+   {
+    "cost": 0,
+    "error": "names two planets",
+    "gradingResult": {
+     "pass": false,
+     "score": 0,
+     "reason": "names two planets",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 5,
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     },
+     "componentResults": [
+      {
+       "pass": false,
+       "score": 0,
+       "reason": "Expected output to contain \"neptune\"",
+       "assertion": {
+        "type": "icontains",
+        "value": "neptune"
+       }
+      },
+      {
+       "assertion": {
+        "type": "llm-rubric",
+        "value": "names all eight planets",
+        "provider": {
+         "id": "openai:chat:gpt-4o-mini",
+         "config": {
+          "apiBaseUrl": "http://127.0.0.1:8765/v1"
+         }
+        }
+       },
+       "pass": false,
+       "score": 0,
+       "reason": "names two planets",
+       "tokensUsed": {
+        "total": 5,
+        "prompt": 3,
+        "completion": 2,
+        "cached": 0,
+        "numRequests": 1,
+        "completionDetails": {
+         "reasoning": 0,
+         "acceptedPrediction": 0,
+         "rejectedPrediction": 0
+        }
+       },
+       "metadata": {
+        "http": {
+         "status": 200,
+         "statusText": "OK",
+         "headers": {
+          "content-length": "319",
+          "content-type": "application/json",
+          "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+          "server": "BaseHTTP/0.6 Python/3.13.18"
+         }
+        },
+        "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\nMercury\\nVenus\\n</Output>\\n<Rubric>\\nnames all eight planets\\n</Rubric>\"}]"
+       }
+      }
+     ]
+    },
+    "id": "2e33511e-b80b-48e5-a64a-7074188cae7e",
+    "latencyMs": 55,
+    "namedScores": {},
+    "prompt": {
+     "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"List the planets\"}]",
+     "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+     "config": {}
+    },
+    "promptId": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "promptIdx": 1,
+    "provider": {
+     "id": "groq:llama-3.1-8b-instant",
+     "label": ""
+    },
+    "response": {
+     "output": "Mercury\nVenus",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "cached": false,
+     "latencyMs": 55,
+     "finishReason": "length",
+     "guardrails": {
+      "flagged": false
+     },
+     "metadata": {
+      "http": {
+       "status": 200,
+       "statusText": "OK",
+       "headers": {
+        "content-length": "278",
+        "content-type": "application/json",
+        "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+        "server": "BaseHTTP/0.6 Python/3.13.18"
+       }
+      }
+     }
+    },
+    "score": 0,
+    "success": false,
+    "testCase": {
+     "vars": {
+      "question": "List the planets"
+     },
+     "assert": [
+      {
+       "type": "icontains",
+       "value": "neptune"
+      },
+      {
+       "type": "llm-rubric",
+       "value": "names all eight planets",
+       "provider": {
+        "id": "openai:chat:gpt-4o-mini",
+        "config": {
+         "apiBaseUrl": "http://127.0.0.1:8765/v1"
+        }
+       }
+      }
+     ],
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 0,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 5,
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "List the planets"
+    },
+    "metadata": {
+     "http": {
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "content-length": "278",
+       "content-type": "application/json",
+       "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+       "server": "BaseHTTP/0.6 Python/3.13.18"
+      }
+     },
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 1
+   },
+   {
+    "cost": 1.6499999999999999e-06,
+    "gradingResult": {
+     "pass": true,
+     "score": 1,
+     "reason": "All assertions passed",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0
+     },
+     "componentResults": [
+      {
+       "pass": true,
+       "score": 1,
+       "reason": "Assertion passed",
+       "assertion": {
+        "type": "equals",
+        "value": "{{expected}}"
+       },
+       "metadata": {
+        "renderedAssertionValue": "Paris"
+       }
+      }
+     ]
+    },
+    "id": "98a955f1-8036-4a77-9a9e-89ed8ee7af5d",
+    "latencyMs": 44,
+    "namedScores": {},
+    "prompt": {
+     "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"Capital of France?\"}]",
+     "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+     "config": {}
+    },
+    "promptId": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "promptIdx": 0,
+    "provider": {
+     "id": "openai:chat:gpt-4o-mini",
+     "label": ""
+    },
+    "response": {
+     "output": "Paris",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "cached": false,
+     "latencyMs": 44,
+     "finishReason": "stop",
+     "cost": 1.6499999999999999e-06,
+     "guardrails": {
+      "flagged": false
+     },
+     "metadata": {
+      "http": {
+       "status": 200,
+       "statusText": "OK",
+       "headers": {
+        "content-length": "258",
+        "content-type": "application/json",
+        "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+        "server": "BaseHTTP/0.6 Python/3.13.18"
+       }
+      }
+     }
+    },
+    "score": 1,
+    "success": true,
+    "testCase": {
+     "assert": [
+      {
+       "type": "equals",
+       "value": "{{expected}}"
+      }
+     ],
+     "vars": {
+      "question": "Capital of France?",
+      "expected": "Paris"
+     },
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 1,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "Capital of France?",
+     "expected": "Paris"
+    },
+    "metadata": {
+     "http": {
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "content-length": "258",
+       "content-type": "application/json",
+       "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+       "server": "BaseHTTP/0.6 Python/3.13.18"
+      }
+     },
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 0
+   },
+   {
+    "cost": 0,
+    "gradingResult": {
+     "pass": true,
+     "score": 1,
+     "reason": "All assertions passed",
+     "namedScores": {},
+     "tokensUsed": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0
+     },
+     "componentResults": [
+      {
+       "pass": true,
+       "score": 1,
+       "reason": "Assertion passed",
+       "assertion": {
+        "type": "equals",
+        "value": "{{expected}}"
+       },
+       "metadata": {
+        "renderedAssertionValue": "Paris"
+       }
+      }
+     ]
+    },
+    "id": "d9769eec-7845-4c0a-94da-312b25b5e9b1",
+    "latencyMs": 62,
+    "namedScores": {},
+    "prompt": {
+     "raw": "[{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"Capital of France?\"}]",
+     "label": "chat.json: [{\"role\":\"system\",\"content\":\"You are terse.\"},{\"role\":\"user\",\"content\":\"{{question}}\"}]",
+     "config": {}
+    },
+    "promptId": "5df204657128bfbb773c5687e5df9f6229908098daeabc2e2cefab0e9a6fb2e2",
+    "promptIdx": 1,
+    "provider": {
+     "id": "groq:llama-3.1-8b-instant",
+     "label": ""
+    },
+    "response": {
+     "output": "Paris",
+     "tokenUsage": {
+      "prompt": 3,
+      "completion": 2,
+      "cached": 0,
+      "total": 5,
+      "numRequests": 1,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      },
+      "assertions": {
+       "total": 0,
+       "prompt": 0,
+       "completion": 0,
+       "cached": 0,
+       "numRequests": 0,
+       "completionDetails": {
+        "reasoning": 0,
+        "acceptedPrediction": 0,
+        "rejectedPrediction": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0
+       }
+      }
+     },
+     "cached": false,
+     "latencyMs": 62,
+     "finishReason": "stop",
+     "guardrails": {
+      "flagged": false
+     },
+     "metadata": {
+      "http": {
+       "status": 200,
+       "statusText": "OK",
+       "headers": {
+        "content-length": "267",
+        "content-type": "application/json",
+        "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+        "server": "BaseHTTP/0.6 Python/3.13.18"
+       }
+      }
+     }
+    },
+    "score": 1,
+    "success": true,
+    "testCase": {
+     "assert": [
+      {
+       "type": "equals",
+       "value": "{{expected}}"
+      }
+     ],
+     "vars": {
+      "question": "Capital of France?",
+      "expected": "Paris"
+     },
+     "options": {},
+     "metadata": {}
+    },
+    "testIdx": 1,
+    "tokenUsage": {
+     "prompt": 3,
+     "completion": 2,
+     "cached": 0,
+     "total": 5,
+     "numRequests": 1,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     },
+     "assertions": {
+      "total": 0,
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "numRequests": 0,
+      "completionDetails": {
+       "reasoning": 0,
+       "acceptedPrediction": 0,
+       "rejectedPrediction": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    "vars": {
+     "question": "Capital of France?",
+     "expected": "Paris"
+    },
+    "metadata": {
+     "http": {
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "content-length": "267",
+       "content-type": "application/json",
+       "date": "Thu, 12 Nov 2026 17:57:59 GMT",
+       "server": "BaseHTTP/0.6 Python/3.13.18"
+      }
+     },
+     "_promptfooFileMetadata": {}
+    },
+    "failureReason": 0
+   }
+  ],
+  "stats": {
+   "successes": 2,
+   "failures": 2,
+   "errors": 0,
+   "tokenUsage": {
+    "prompt": 12,
+    "completion": 8,
+    "cached": 0,
+    "total": 20,
+    "numRequests": 4,
+    "completionDetails": {
+     "reasoning": 0,
+     "acceptedPrediction": 0,
+     "rejectedPrediction": 0,
+     "cacheReadInputTokens": 0,
+     "cacheCreationInputTokens": 0
+    },
+    "assertions": {
+     "total": 10,
+     "prompt": 6,
+     "completion": 4,
+     "cached": 0,
+     "numRequests": 2,
+     "completionDetails": {
+      "reasoning": 0,
+      "acceptedPrediction": 0,
+      "rejectedPrediction": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+     }
+    }
+   },
+   "durationMs": 126,
+   "evaluationDurationMs": 126
+  }
+ },
+ "config": {
+  "tags": {},
+  "prompts": [
+   "file:///project/chat.json"
+  ],
+  "providers": [
+   {
+    "id": "openai:chat:gpt-4o-mini",
+    "config": {
+     "temperature": 0.2,
+     "max_tokens": 64,
+     "apiBaseUrl": "http://127.0.0.1:8765/v1"
+    }
+   },
+   {
+    "id": "groq:llama-3.1-8b-instant",
+    "config": {
+     "apiBaseUrl": "http://127.0.0.1:8765/openai/v1"
+    }
+   }
+  ],
+  "tests": [
+   {
+    "vars": {
+     "question": "List the planets"
+    },
+    "assert": [
+     {
+      "type": "icontains",
+      "value": "neptune"
+     },
+     {
+      "type": "llm-rubric",
+      "value": "names all eight planets",
+      "provider": {
+       "id": "openai:chat:gpt-4o-mini",
+       "config": {
+        "apiBaseUrl": "http://127.0.0.1:8765/v1"
+       }
+      }
+     }
+    ]
+   },
+   {
+    "assert": [
+     {
+      "type": "equals",
+      "value": "{{expected}}"
+     }
+    ],
+    "vars": {
+     "question": "Capital of France?",
+     "expected": "Paris"
+    }
+   }
+  ],
+  "env": {},
+  "outputPath": [
+   "results2.json"
+  ],
+  "extensions": [],
+  "metadata": {},
+  "evaluateOptions": {},
+  "basePath": "/project"
+ },
+ "shareableUrl": null,
+ "metadata": {
+  "promptfooVersion": "0.125.1",
+  "nodeVersion": "v22.23.4",
+  "platform": "linux",
+  "arch": "x64",
+  "exportedAt": "2026-11-12T17:57:59.394Z",
+  "evaluationCreatedAt": "2026-11-12T17:57:59.221Z"
+ },
+ "vars": [
+  "question",
+  "expected"
+ ],
+ "runtimeOptions": {
+  "eventSource": "cli",
+  "showProgressBar": false,
+  "repeat": 1,
+  "maxConcurrency": 4,
+  "cache": false
+ }
+}

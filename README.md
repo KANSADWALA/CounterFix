@@ -20,6 +20,18 @@ counterfix works alongside your evaluation and tracing tools (DeepEval, Ragas, P
 Langfuse, MLflow, ...): they tell you *that* calls fail and how often; counterfix tells you
 *why* one failed and which change verifiably fixes it.
 
+Already have a results file from one of them? Point counterfix at it:
+
+```bash
+promptfoo eval -o results.json        # or a DeepEval test_run_*.json, or Ragas scores as CSV
+counterfix diagnose results.json      # which cause (F1 to F14) behind each failed test case
+counterfix fix results.json           # a change that verifiably fixes it
+```
+
+Promptfoo files are re-run exactly as sent, with your deterministic assertions as the pass
+test; DeepEval and Ragas files need `--caller` to re-run. See
+[DeepEval, Ragas and Promptfoo](https://kansadwala.github.io/CounterFix/eval-tools/).
+
 > **Status: alpha** (latest version in the PyPI badge above). Everything below works today: live checks, judge checks,
 > verified fixes, reports, regression tests, profiles, dataset and RAG evaluation, code
 > evaluation, benchmarks, prompt-injection and personal-data checks, token confidence,
