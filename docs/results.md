@@ -151,9 +151,9 @@ Known weak spots:
 ## Code
 
 counterfix's own code checker was checked against EvalPlus (2026-11-10, with a script
-retired in 0.4 along with the HumanEval benchmark). For all 164 HumanEval+ problems it scores three
-answers: the reference solution, a stub that returns None, and a solution cut after its
-first line. Each answer is scored by counterfix (original HumanEval tests, subprocess
+retired in 0.4 along with the HumanEval benchmark). For all 164 HumanEval+ problems it
+scored three answers: the reference solution, a stub that returns None, and a solution cut
+after its first line. Each answer is scored by counterfix (original HumanEval tests, subprocess
 sandbox) and by EvalPlus's base tests.
 
 | Answer | counterfix passes | EvalPlus passes |

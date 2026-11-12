@@ -330,8 +330,8 @@ pytest
 ```
 
 Optional extras: `openai`, `anthropic`, `litellm`, `langchain`, `llamaindex`, `otel`,
-`semantic`, `metrics`, `eval`, `code`, `benchmarks`, `safety`, `mcp`, `cache`, `cli`,
-`report`, `jev`.
+`eval`, `mcp`, `cache`, `cli`, `report`, `jev`; bundles `evals` (dataset runs, reports
+and the command line) and `all`.
 
 `python bench/dev_walkthrough.py SPEC` uses the library as a developer would against a real
 model (about 40 small calls) and prints OK or the error for each step.

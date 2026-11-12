@@ -19,10 +19,11 @@ Python 3.10 or newer. The tests make no live API calls and need no key.
 ```bash
 ruff check . && ruff format --check .
 mypy
+lint-imports      # the package layers (see [tool.importlinter] in pyproject.toml)
 pytest
 ```
 
-CI runs the same three on Python 3.10 to 3.14, plus a strict docs build
+CI runs the same four on Python 3.10 to 3.14, plus a strict docs build
 (`pip install -e ".[docs]"`, then `mkdocs build --strict`).
 
 - **Add a test** for every bug fix or new check. A check that flags something should also
