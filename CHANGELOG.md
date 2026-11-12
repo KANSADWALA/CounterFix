@@ -74,6 +74,13 @@ same checks run over a dataset. Nothing that worked in 0.2.1 stops working.
   | `counterfix.text` | `counterfix._internal.text` |
   | `counterfix.verify` | `counterfix.fixes.verify` |
 
+- **The five largest files are split** (no behaviour change; every name they exported
+  still imports from the same path): the fix engine (1018 lines) into the search,
+  result models and one interventions module per failure type; the eval runner (870)
+  into running, results, scoring and fixes, asking and sampling; the instruction checks
+  (847) into a package by kind of instruction; the command line (805) into a package by
+  group of commands (`python -m counterfix.cli` also works); and the OpenAI wrapper (532)
+  into `guard()` and the guarded client. No source file is over 460 lines.
 - `Config.rules` is typed as `RuleStore | None`: a wrong value now fails when the Config
   is built (pydantic `ValidationError`) instead of on the first retry (`TypeError`).
 - A test now freezes the 0.2.1 public surface (every top-level name, module path and
