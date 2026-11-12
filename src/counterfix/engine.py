@@ -846,12 +846,30 @@ def fix(
         )
     from counterfix.detectors import default_detectors, judge_detectors
     from counterfix.diagnose import _target, diagnose
-    from counterfix.judges.auto import resolve_judge
+    from counterfix.judges.auto import NoJudgeError, resolve_judge
 
     record, client = _target(target)
     reuse = isinstance(target, Diagnosis) and (target.judge or judge is False)
     found = target if reuse else None
-    diagnosis = found or diagnose(record, judge=judge)
+    if found is not None:
+        diagnosis = found
+    else:
+        try:  # the target, not the bare record: it carries the client a judge can fall back on
+            diagnosis = diagnose(target, judge=judge)
+        except NoJudgeError:
+            if judge is not None:
+                raise
+            # No judge anywhere: cut-off answers, broken JSON and missed instructions are
+            # still found and fixed by the live checks; say what was skipped.
+            warnings.warn(
+                "counterfix: no judge found, so fix() used the live checks only (truncation, "
+                "format, instructions, ...). Set GROQ_API_KEY or GEMINI_API_KEY (free), or "
+                "call counterfix.configure(judge=...), to also check facts and premises.",
+                UserWarning,
+                stacklevel=2,
+            )
+            diagnosis = diagnose(target, judge=False)
+            judge = False
     result = FixResult(record_id=record.id, diagnosis=diagnosis)
     failures = sorted(diagnosis.model_failures, key=lambda f: -f.confidence)
     if not failures:
@@ -862,7 +880,12 @@ def fix(
         f.failure_type not in (F.TRUNCATION, F.FORMAT_BREAK) for f in failures
     )  # (F7 can be checked without one: FragilityCheck falls back to a heuristic)
     chosen = (
-        resolve_judge(None if judge is True else judge, target_model=record.model)[0]
+        resolve_judge(
+            None if judge is True else judge,
+            target_model=record.model,
+            fallback_client=client,
+            fallback_provider=record.provider,
+        )[0]
         if judges_needed
         else None
     )

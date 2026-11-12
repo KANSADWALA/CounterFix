@@ -212,3 +212,44 @@ def test_need_is_ignored_with_a_warning() -> None:
     model = Scripted(lambda m, p: ("Mercury ... Neptune.", "stop"))
     with pytest.warns(DeprecationWarning, match="need"):
         counterfix.fix(cut_off(), judge=False, caller=model, need=2)
+
+
+# --- fix() with no judge anywhere -------------------------------------------------------
+
+
+def _no_judges(monkeypatch: Any) -> None:
+    import counterfix.judges.auto as auto
+
+    monkeypatch.setattr(auto, "detect_judges", lambda avoid_model=None: [])
+    monkeypatch.setattr(auto, "_configured", None)
+    monkeypatch.delenv(auto.ENV_VAR, raising=False)
+
+
+def test_fix_without_any_judge_still_fixes_a_live_failure(monkeypatch: Any) -> None:
+    import pytest
+
+    _no_judges(monkeypatch)
+    model = Scripted(
+        lambda m, p: (
+            ("Mercury ... Neptune.", "stop") if p["max_tokens"] > 20 else ("Mercury", "length")
+        )
+    )
+    with pytest.warns(UserWarning, match="live checks only"):
+        result = counterfix.fix(cut_off(), caller=model)  # judge=None: none to be found
+    assert result.fix is not None and result.fix.name == "raise_max_tokens"
+    assert result.diagnosis.judge is None
+
+
+def test_fix_with_a_named_judge_that_is_missing_still_raises(monkeypatch: Any) -> None:
+    import pytest
+
+    from counterfix.judges.auto import NoJudgeError
+
+    _no_judges(monkeypatch)
+
+    def no_such_judge(*args: Any, **kwargs: Any) -> Any:
+        raise NoJudgeError("named judge unavailable")
+
+    monkeypatch.setattr("counterfix.judges.auto.build_judge", no_such_judge)
+    with pytest.raises(NoJudgeError):
+        counterfix.fix(cut_off(), judge="groq:missing", caller=Scripted(lambda m, p: ("", "stop")))
