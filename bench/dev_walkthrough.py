@@ -68,7 +68,7 @@ def _():
     assert any(f.failure_type.value == "F1" for f in r.diagnosis.findings), "F1 expected"
 
 
-@step("diagnose with a judge (false premise)")
+@step("diagnose with a judge (a question with a false premise)")
 def _():
     r = ask(client(), "Why did Einstein win his third Nobel Prize?", max_tokens=1500)
     print(r.choices[0].message.content[:160])
@@ -199,5 +199,6 @@ def _():
 
 
 print("\n\nSummary")
+width = max(len(name) for name, _ in results)
 for name, status in results:
-    print(f"  {name:<45} {status[:110]}")
+    print(f"  {name:<{width}}  {status[:110]}")
