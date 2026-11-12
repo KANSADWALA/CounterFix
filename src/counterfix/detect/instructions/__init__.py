@@ -22,152 +22,62 @@ from counterfix.core.types import FailureType, PrescriptionKind
 from counterfix.detect.basic import LENGTH_REASONS
 from counterfix.detect.instructions.constraint import (
     _CMP as _CMP,
-)
-from counterfix.detect.instructions.constraint import (
     _COMPARE as _COMPARE,
-)
-from counterfix.detect.instructions.constraint import (
     _RELATION as _RELATION,
-)
-from counterfix.detect.instructions.constraint import (
     Constraint as Constraint,
-)
-from counterfix.detect.instructions.constraint import (
     _counted as _counted,
-)
-from counterfix.detect.instructions.constraint import (
     _per_item as _per_item,
 )
 from counterfix.detect.instructions.counts import (
     _ITEM_COUNT as _ITEM_COUNT,
-)
-from counterfix.detect.instructions.counts import (
     _PARAGRAPH_COUNT as _PARAGRAPH_COUNT,
-)
-from counterfix.detect.instructions.counts import (
     _SENTENCE_COUNT as _SENTENCE_COUNT,
-)
-from counterfix.detect.instructions.counts import (
     _WORD_COUNT as _WORD_COUNT,
-)
-from counterfix.detect.instructions.counts import (
     _item_counts as _item_counts,
-)
-from counterfix.detect.instructions.counts import (
     _numbered as _numbered,
-)
-from counterfix.detect.instructions.counts import (
     _paragraph_counts as _paragraph_counts,
-)
-from counterfix.detect.instructions.counts import (
     _sentence_counts as _sentence_counts,
-)
-from counterfix.detect.instructions.counts import (
     _word_counts as _word_counts,
-)
-from counterfix.detect.instructions.counts import (
     paragraphs as paragraphs,
 )
 from counterfix.detect.instructions.language import (
     _AMERICAN as _AMERICAN,
-)
-from counterfix.detect.instructions.language import (
     _AMERICAN_RE as _AMERICAN_RE,
-)
-from counterfix.detect.instructions.language import (
     _BRITISH as _BRITISH,
-)
-from counterfix.detect.instructions.language import (
     _BRITISH_RE as _BRITISH_RE,
-)
-from counterfix.detect.instructions.language import (
     _LANGUAGE as _LANGUAGE,
-)
-from counterfix.detect.instructions.language import (
     _OR_WORDS as _OR_WORDS,
-)
-from counterfix.detect.instructions.language import (
     _SCRIPTS as _SCRIPTS,
-)
-from counterfix.detect.instructions.language import (
     _language as _language,
-)
-from counterfix.detect.instructions.language import (
     _spelling as _spelling,
-)
-from counterfix.detect.instructions.language import (
     _title as _title,
-)
-from counterfix.detect.instructions.language import (
     script_share as script_share,
 )
 from counterfix.detect.instructions.reading import (
     _FENCE as _FENCE,
-)
-from counterfix.detect.instructions.reading import (
     _HEADING as _HEADING,
-)
-from counterfix.detect.instructions.reading import (
     _ITEM as _ITEM,
-)
-from counterfix.detect.instructions.reading import (
     _MARKUP as _MARKUP,
-)
-from counterfix.detect.instructions.reading import (
     _NUM as _NUM,
-)
-from counterfix.detect.instructions.reading import (
     _SENTENCE_END as _SENTENCE_END,
-)
-from counterfix.detect.instructions.reading import (
     _SPLIT as _SPLIT,
-)
-from counterfix.detect.instructions.reading import (
     _TRAILING_JUNK as _TRAILING_JUNK,
-)
-from counterfix.detect.instructions.reading import (
     _WORD_NUMBERS as _WORD_NUMBERS,
-)
-from counterfix.detect.instructions.reading import (
     _core as _core,
-)
-from counterfix.detect.instructions.reading import (
     _lines as _lines,
-)
-from counterfix.detect.instructions.reading import (
     _number as _number,
-)
-from counterfix.detect.instructions.reading import (
     _plain as _plain,
-)
-from counterfix.detect.instructions.reading import (
     is_numbered as is_numbered,
-)
-from counterfix.detect.instructions.reading import (
     list_items as list_items,
-)
-from counterfix.detect.instructions.reading import (
     sentences as sentences,
-)
-from counterfix.detect.instructions.reading import (
     words as words,
 )
 from counterfix.detect.instructions.wording import (
     _FORBID_HEAD as _FORBID_HEAD,
-)
-from counterfix.detect.instructions.wording import (
     _QUOTED as _QUOTED,
-)
-from counterfix.detect.instructions.wording import (
     _forbidden_words as _forbidden_words,
-)
-from counterfix.detect.instructions.wording import (
     _letter_case as _letter_case,
-)
-from counterfix.detect.instructions.wording import (
     _question_ending as _question_ending,
-)
-from counterfix.detect.instructions.wording import (
     _start_rules as _start_rules,
 )
 

@@ -14,9 +14,11 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from counterfix.core.convert import LOGPROBS_KEY as LOGPROBS_KEY
-from counterfix.core.convert import summarize as summarize
-from counterfix.core.convert import token_logprobs as token_logprobs
+from counterfix.core.convert import (
+    LOGPROBS_KEY as LOGPROBS_KEY,
+    summarize as summarize,
+    token_logprobs as token_logprobs,
+)
 from counterfix.core.record import CallRecord
 
 

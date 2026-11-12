@@ -100,6 +100,9 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
+[tool.ruff.lint.isort]
+combine-as-imports = true  # re-exports (X as X) stay one statement per module
+
 [tool.ruff.lint.per-file-ignores]
 "bench/make_seed.py" = ["E501"]  # prompt text is data
 "bench/make_rag_seed.py" = ["E501"]  # passage text is data

@@ -24,26 +24,12 @@ from counterfix.core.caller import DailyLimitError, ModelCaller
 from counterfix.core.record import CallRecord, Message
 from counterfix.fixes._profile_store import (
     PROBES as PROBES,
-)
-from counterfix.fixes._profile_store import (
     SHIPPED as SHIPPED,
-)
-from counterfix.fixes._profile_store import (
     TASKS as TASKS,
-)
-from counterfix.fixes._profile_store import (
     Profile as Profile,
-)
-from counterfix.fixes._profile_store import (
     home as home,
-)
-from counterfix.fixes._profile_store import (
     load as load,
-)
-from counterfix.fixes._profile_store import (
     profile_path as profile_path,
-)
-from counterfix.fixes._profile_store import (
     save as save,
 )
 
