@@ -194,6 +194,25 @@ def test_cli_diagnose_detects_the_tool(capsys: pytest.CaptureFixture[str]) -> No
     assert "4 test case(s), 2 failed in the tool, 2 with a cause counterfix found." in out
 
 
+def test_cli_diagnose_names_the_judge_plainly(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from counterfix.judges.base import JudgeTask, Verdict
+
+    class Judge:
+        name = "fake:judge"
+
+        def ask(self, task: JudgeTask) -> Verdict:  # the first label of every task
+            return Verdict(task=task.name, label=task.labels[0], confidence=0.9, reason="r")
+
+    import counterfix.cli.results as results
+
+    monkeypatch.setattr(results, "_cli_judge", lambda choice: Judge())
+    assert main(["diagnose", str(DATA / "deepeval_test_run.json"), "--judge"]) == 0
+    out = capsys.readouterr().out
+    assert "judged by fake:judge\n" in out and "passed to diagnose()" not in out
+
+
 def test_cli_fix_reruns_the_promptfoo_call(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

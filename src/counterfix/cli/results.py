@@ -59,6 +59,7 @@ def cmd_diagnose_results(args: argparse.Namespace) -> int:
             print("  the call itself errored, so there is no answer to diagnose")
             continue
         report = diagnose(case.record, judge=judge if judge is not None else False)
+        report.judge = judge.name if judge is not None else None  # its source was printed
         reports.append(report)
         if report.model_failures:
             explained += case.failed
