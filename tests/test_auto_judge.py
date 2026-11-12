@@ -88,7 +88,9 @@ def test_lists_and_commas_make_a_panel(clean: pytest.MonkeyPatch) -> None:
     clean.setattr(auto, "build_judge", auto.build_judge)  # keep the panel logic real
     from counterfix.judges import JudgePanel
 
-    clean.setattr("counterfix.presets.make_caller", lambda spec, timeout=None: _NamedCaller(spec))
+    clean.setattr(
+        "counterfix.core.presets.make_caller", lambda spec, timeout=None: _NamedCaller(spec)
+    )
     panel = auto.build_judge("groq:a, gemini:b")
     assert isinstance(panel, JudgePanel) and len(panel.judges) == 2
 

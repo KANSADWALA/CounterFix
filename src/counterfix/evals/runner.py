@@ -10,7 +10,7 @@ diagnosed (with the judge when ``judge`` is set), so the report groups the misse
 cause. With ``fix=N``, up to N missed items get a counterfactual fix search: a plain
 retry first, then one targeted change at a time, and a change counts only when the item
 passes its metrics with no new failure clearly more often than a plain retry (the test
-in :mod:`counterfix.verify`).
+in :mod:`counterfix.fixes.verify`).
 """
 
 from __future__ import annotations
@@ -305,7 +305,7 @@ def fix_item(
     alpha: float = 0.05,
 ) -> ItemFix:
     """Search for a change that makes this item pass clearly more often than a plain
-    retry (see :mod:`counterfix.verify`; ``need`` is no longer used).
+    retry (see :mod:`counterfix.fixes.verify`; ``need`` is no longer used).
 
     A plain retry runs first; if it passes too often for any change to beat, no change
     is claimed. Then the
@@ -315,8 +315,8 @@ def fix_item(
     also be gone. ``on_run(calls, change)`` is called before each re-run (for progress).
     """
     from counterfix.detect import default_detectors
-    from counterfix.engine import INTERVENTIONS
-    from counterfix.verify import beatable, level, p_value, settled
+    from counterfix.fixes.engine import INTERVENTIONS
+    from counterfix.fixes.verify import beatable, level, p_value, settled
 
     result = ItemFix()
     checks = default_detectors()
@@ -377,7 +377,7 @@ def fix_item(
 
         warnings.warn(
             "fix_item(need=...) is ignored: a change is now verified when it beats the "
-            "plain retry (see counterfix.verify)",
+            "plain retry (see counterfix.fixes.verify)",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -429,7 +429,7 @@ def _caller(model: str | ModelCaller) -> ModelCaller:
     if not isinstance(model, str):
         return model
     from counterfix.core.caller import RateLimitedCaller
-    from counterfix.presets import caller_for, pace_for
+    from counterfix.core.presets import caller_for, pace_for
 
     return RateLimitedCaller(caller_for(model, timeout=120), pace_for(model))
 
@@ -644,7 +644,7 @@ def evaluate(
         from counterfix.judges.auto import resolve_judge
 
         if isinstance(model, str):
-            from counterfix.presets import load_env_file
+            from counterfix.core.presets import load_env_file
 
             load_env_file(Path.cwd() / ".env")
         target = model.split(":", 1)[-1] if isinstance(model, str) else None

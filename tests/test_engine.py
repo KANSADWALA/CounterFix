@@ -194,7 +194,7 @@ def test_a_change_that_cannot_help_is_rarely_called_verified() -> None:
 
 
 def test_verification_statistics() -> None:
-    from counterfix.verify import beatable, level, p_value, wins
+    from counterfix.fixes.verify import beatable, level, p_value, wins
 
     at = level(0.05, 3)
     assert round(p_value(0, 6, 6, 6), 4) == 0.0011

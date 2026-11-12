@@ -153,7 +153,7 @@ def load_cases(path: str | Path) -> list[dict[str, Any]]:
 def caller_from_spec(spec: str) -> ModelCaller:
     """A caller from ``provider:model``, ``anthropic:model`` or ``MODEL@http(s)://base-url``
     (OpenAI-compatible; the key comes from ``OPENAI_API_KEY`` if set)."""
-    from counterfix.presets import caller_for
+    from counterfix.core.presets import caller_for
 
     return cast(ModelCaller, caller_for(spec))
 
@@ -161,7 +161,7 @@ def caller_from_spec(spec: str) -> ModelCaller:
 def _default_caller(case: dict[str, Any]) -> ModelCaller | None:
     import os
 
-    from counterfix.presets import PRESETS, load_env_file, make_caller
+    from counterfix.core.presets import PRESETS, load_env_file, make_caller
 
     load_env_file(Path.cwd() / ".env")
     spec = case.get("spec")

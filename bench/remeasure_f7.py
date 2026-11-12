@@ -16,9 +16,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from counterfix import profiles  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
-from counterfix.presets import load_env_file, make_caller, rpm_for  # noqa: E402
+from counterfix.core.presets import load_env_file, make_caller, rpm_for  # noqa: E402
+from counterfix.fixes import profiles  # noqa: E402
 
 
 def main() -> None:

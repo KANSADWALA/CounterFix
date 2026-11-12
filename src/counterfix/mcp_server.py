@@ -130,8 +130,8 @@ def fix_call(
     groq:openai/gpt-oss-120b) with one change at a time; a fix counts only if it passes
     clearly more often than re-running the call unchanged. Makes real model calls with
     your keys."""
-    from counterfix.engine import fix
-    from counterfix.presets import load_env_file
+    from counterfix.core.presets import load_env_file
+    from counterfix.fixes.engine import fix
 
     load_env_file(Path.cwd() / ".env")
     record = _record(prompt, answer, system, model, max_tokens, finish_reason, None, None)
@@ -151,7 +151,7 @@ def fix_call(
 
 def compare_profiles(old: str, new: str) -> str:
     """Failure rates per task for two models (profile files or model names)."""
-    from counterfix import profiles
+    from counterfix.fixes import profiles
 
     a, b = profiles.load(old), profiles.load(new)
     if a is None or b is None:
@@ -162,7 +162,7 @@ def compare_profiles(old: str, new: str) -> str:
 def route_models(models: list[str], max_failure: float = 0.2) -> dict[str, str | None]:
     """For each task type, the cheapest of these models (cheapest first, or by profile
     cost) whose measured failure rate is at most max_failure."""
-    from counterfix import profiles
+    from counterfix.fixes import profiles
 
     found = [p for p in (profiles.load(m) for m in models) if p is not None]
     return profiles.route(found, max_failure)

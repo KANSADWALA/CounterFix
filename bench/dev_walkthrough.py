@@ -18,8 +18,8 @@ import traceback
 from pathlib import Path
 
 import counterfix
+from counterfix.core.presets import PRESETS, load_env_file
 from counterfix.detect import confidence
-from counterfix.presets import PRESETS, load_env_file
 
 load_env_file(Path.cwd() / ".env")
 SPEC = sys.argv[1] if len(sys.argv) > 1 else "ollama:qwen2.5:3b"

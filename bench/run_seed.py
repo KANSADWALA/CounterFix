@@ -26,9 +26,9 @@ sys.path.insert(0, str(ROOT))
 
 from bench.seed import SeedItem, load_seed  # noqa: E402
 from counterfix import Config, FailureType, lint, record_from_openai, run_detectors  # noqa: E402
+from counterfix.core.presets import PRESETS, load_env_file, make_client  # noqa: E402
 from counterfix.detect import default_detectors  # noqa: E402
 from counterfix.detect.fmt import SCHEMA_METADATA_KEY  # noqa: E402
-from counterfix.presets import PRESETS, load_env_file, make_client  # noqa: E402
 
 RESULTS = ROOT / "bench" / "results" / "phase2"
 LIVE_TYPES = {FailureType.TRUNCATION, FailureType.FORMAT_BREAK, FailureType.OVER_REFUSAL}

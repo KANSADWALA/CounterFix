@@ -31,12 +31,7 @@ from bench.seed import load_seed  # noqa: E402
 from counterfix import CallRecord, Config, FailureType, Message, run_detectors  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
 from counterfix.core.detector import Detector  # noqa: E402
-from counterfix.detect import default_detectors, judge_detectors  # noqa: E402
-from counterfix.detect.fmt import SCHEMA_METADATA_KEY  # noqa: E402
-from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
-from counterfix.judges.base import Judge  # noqa: E402
-from counterfix.judges.tasks import REFERENCE_KEY  # noqa: E402
-from counterfix.presets import (  # noqa: E402
+from counterfix.core.presets import (  # noqa: E402
     JUDGE_MODELS,
     judge_params,
     load_env_file,
@@ -45,6 +40,11 @@ from counterfix.presets import (  # noqa: E402
     rpm_for,
     supports_json_mode,
 )
+from counterfix.detect import default_detectors, judge_detectors  # noqa: E402
+from counterfix.detect.fmt import SCHEMA_METADATA_KEY  # noqa: E402
+from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
+from counterfix.judges.base import Judge  # noqa: E402
+from counterfix.judges.tasks import REFERENCE_KEY  # noqa: E402
 
 RESULTS = ROOT / "bench" / "results"
 CACHE = ROOT / "bench" / "cache" / "judges.jsonl"

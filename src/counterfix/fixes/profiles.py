@@ -20,32 +20,32 @@ import json
 from pathlib import Path
 from typing import Any
 
-from counterfix._profile_store import (
-    PROBES as PROBES,
-)
-from counterfix._profile_store import (
-    SHIPPED as SHIPPED,
-)
-from counterfix._profile_store import (
-    TASKS as TASKS,
-)
-from counterfix._profile_store import (
-    Profile as Profile,
-)
-from counterfix._profile_store import (
-    home as home,
-)
-from counterfix._profile_store import (
-    load as load,
-)
-from counterfix._profile_store import (
-    profile_path as profile_path,
-)
-from counterfix._profile_store import (
-    save as save,
-)
 from counterfix.core.caller import DailyLimitError, ModelCaller
 from counterfix.core.record import CallRecord, Message
+from counterfix.fixes._profile_store import (
+    PROBES as PROBES,
+)
+from counterfix.fixes._profile_store import (
+    SHIPPED as SHIPPED,
+)
+from counterfix.fixes._profile_store import (
+    TASKS as TASKS,
+)
+from counterfix.fixes._profile_store import (
+    Profile as Profile,
+)
+from counterfix.fixes._profile_store import (
+    home as home,
+)
+from counterfix.fixes._profile_store import (
+    load as load,
+)
+from counterfix.fixes._profile_store import (
+    profile_path as profile_path,
+)
+from counterfix.fixes._profile_store import (
+    save as save,
+)
 
 
 def load_probes(path: str | Path | None = None) -> list[dict[str, Any]]:
@@ -78,7 +78,7 @@ def build_profile(
 ) -> Profile:
     """Run the probe suite on one model and measure it (``fix=True`` also learns fixes)."""
     from counterfix.diagnose import diagnose
-    from counterfix.engine import fix as run_fix
+    from counterfix.fixes.engine import fix as run_fix
     from counterfix.judges.auto import resolve_judge
 
     inner = getattr(caller, "caller", caller)  # unwrap RateLimitedCaller

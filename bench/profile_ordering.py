@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from counterfix import Message, fix, profiles  # noqa: E402
-from counterfix.presets import make_caller  # noqa: E402
+from counterfix.core.presets import make_caller  # noqa: E402
 
 SPEC = "ollama:qwen2.5:3b"
 PROMPTS = [

@@ -14,7 +14,7 @@ from pathlib import Path
 from openai import OpenAI
 
 import counterfix
-from counterfix.presets import PRESETS, load_env_file
+from counterfix.core.presets import PRESETS, load_env_file
 
 load_env_file(Path.cwd() / ".env")
 provider = next((p for p in ("groq", "gemini") if os.environ.get(PRESETS[p][1] or "")), None)

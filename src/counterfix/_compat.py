@@ -27,6 +27,13 @@ MOVED: dict[str, str] = {
     "counterfix.confidence": "counterfix.detect.confidence",
     "counterfix.rag": "counterfix.detect.retrieval",
     "counterfix.agents": "counterfix.detect.agents",
+    "counterfix.engine": "counterfix.fixes.engine",
+    "counterfix.verify": "counterfix.fixes.verify",
+    "counterfix.profiles": "counterfix.fixes.profiles",
+    "counterfix._profile_store": "counterfix.fixes._profile_store",
+    "counterfix.presets": "counterfix.core.presets",
+    "counterfix.rules": "counterfix.fixes",
+    "counterfix.rules.store": "counterfix.core.rules",
 }
 
 

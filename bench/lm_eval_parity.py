@@ -28,8 +28,8 @@ import sys
 from pathlib import Path
 
 from counterfix.benchmarks import get_benchmark
+from counterfix.core.presets import PRESETS, parse_spec
 from counterfix.evals import evaluate
-from counterfix.presets import PRESETS, parse_spec
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "results" / "lm_eval_parity_last.md"  # the curated summary: lm_eval_parity.md

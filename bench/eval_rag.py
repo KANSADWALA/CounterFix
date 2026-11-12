@@ -36,18 +36,18 @@ sys.path.insert(0, str(ROOT))
 from bench.eval_judges import CACHE, _NamedOnly, default_judges  # noqa: E402
 from counterfix import Config, run_detectors  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
-from counterfix.detect import ContextUseCheck, RetrievalLabelCheck  # noqa: E402
-from counterfix.detect.retrieval import record  # noqa: E402
-from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
-from counterfix.judges.base import Judge  # noqa: E402
-from counterfix.metrics import Faithfulness  # noqa: E402
-from counterfix.presets import (  # noqa: E402
+from counterfix.core.presets import (  # noqa: E402
     judge_params,
     load_env_file,
     make_caller,
     rpm_for,
     supports_json_mode,
 )
+from counterfix.detect import ContextUseCheck, RetrievalLabelCheck  # noqa: E402
+from counterfix.detect.retrieval import record  # noqa: E402
+from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
+from counterfix.judges.base import Judge  # noqa: E402
+from counterfix.metrics import Faithfulness  # noqa: E402
 
 SEED = ROOT / "bench" / "rag_seed.jsonl"
 HOLDOUT = ROOT / "bench" / "rag_holdout.jsonl"

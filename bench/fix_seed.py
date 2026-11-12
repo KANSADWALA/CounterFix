@@ -29,14 +29,14 @@ sys.path.insert(0, str(ROOT))
 from bench.eval_judges import CACHE, labelled_records  # noqa: E402
 from counterfix import CallRecord, fix  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
-from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
-from counterfix.presets import (  # noqa: E402
+from counterfix.core.presets import (  # noqa: E402
     judge_params,
     load_env_file,
     make_caller,
     rpm_for,
     supports_json_mode,
 )
+from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
 
 ROWS = ROOT / "bench" / "results" / "fixes.jsonl"
 JUDGES = ["groq:qwen/qwen3.8-27b", "gemini:gemini-3.5-flash-lite"]
@@ -103,7 +103,7 @@ def report(rows: list[dict]) -> str:
         f"{len(rows)} labelled failures ({len(rows) - len(ok)} errors). Judges: "
         f"{', '.join(JUDGES)} (panel). A run passes when the failure is gone with no new "
         "failure; a change counts as a fix only if it passes clearly more often than a plain "
-        "retry (one-sided Fisher exact test, see counterfix.verify).",
+        "retry (one-sided Fisher exact test, see counterfix.fixes.verify).",
         "",
         "| Measure | Result |",
         "| --- | --- |",
@@ -157,8 +157,8 @@ def load_rows(path: Path = ROWS) -> dict[str, dict]:
 def learn(rows: list[dict]) -> list[Path]:
     """Set each model's fix statistics in its shipped profile from these rows (rebuilt from
     scratch each time, so running it twice does not double the counts)."""
-    from counterfix.engine import INTERVENTIONS
-    from counterfix.profiles import SHIPPED, Profile, load, profile_path, save
+    from counterfix.fixes.engine import INTERVENTIONS
+    from counterfix.fixes.profiles import SHIPPED, Profile, load, profile_path, save
 
     kind = {i.name: i.failure_type.value for i in INTERVENTIONS}
     by_model: dict[str, Profile] = {}

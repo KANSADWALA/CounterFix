@@ -31,7 +31,7 @@ def test_did_you_mean_hints():
 
     with pytest.raises(ValueError, match="did you mean 'gsm8k'"):
         run_benchmark("gsm8", model="ollama:x")
-    from counterfix.presets import caller_for
+    from counterfix.core.presets import caller_for
 
     with pytest.raises(ValueError, match="did you mean 'ollama'"):
         caller_for("olama:qwen2.5:3b")
@@ -95,7 +95,7 @@ def test_confidence_reads_a_guarded_response():
 def test_fix_explain_says_new_for_a_new_failure():
     from counterfix import FailureType, Finding
     from counterfix.core.diagnosis import Diagnosis
-    from counterfix.engine import FixAttempt, FixResult
+    from counterfix.fixes.engine import FixAttempt, FixResult
 
     d = Diagnosis(
         record_id="r1", findings=[Finding(failure_type=FailureType.TRUNCATION, confidence=0.95)]

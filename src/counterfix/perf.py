@@ -309,22 +309,22 @@ def speed_fix(
     re-runs the original model (default: the provider preset named on the record).
 
     A change is verified when it meets the target clearly more often than the plain
-    retry, by the same test as :func:`counterfix.fix` (see :mod:`counterfix.verify`).
+    retry, by the same test as :func:`counterfix.fix` (see :mod:`counterfix.fixes.verify`).
     ``need`` is no longer used and only warns.
     """
     import warnings
 
-    from counterfix.verify import beatable, level, p_value, settled
+    from counterfix.fixes.verify import beatable, level, p_value, settled
 
     if need is not None:
         warnings.warn(
             "speed_fix(need=...) is ignored: a change is now verified when it beats the "
-            "plain retry (see counterfix.verify)",
+            "plain retry (see counterfix.fixes.verify)",
             DeprecationWarning,
             stacklevel=2,
         )
     from counterfix.detect import default_detectors
-    from counterfix.engine import _caller_for
+    from counterfix.fixes.engine import _caller_for
 
     rerun = caller or _caller_for(record, None)
     result = SpeedFixResult(record_id=record.id, target_ms=target_ms)

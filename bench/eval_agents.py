@@ -28,10 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 from bench.eval_judges import CACHE, _NamedOnly  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
-from counterfix.detect import agents  # noqa: E402
-from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
-from counterfix.judges.tasks import agent_task  # noqa: E402
-from counterfix.presets import (  # noqa: E402
+from counterfix.core.presets import (  # noqa: E402
     JUDGE_MODELS,
     judge_params,
     load_env_file,
@@ -39,6 +36,9 @@ from counterfix.presets import (  # noqa: E402
     rpm_for,
     supports_json_mode,
 )
+from counterfix.detect import agents  # noqa: E402
+from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
+from counterfix.judges.tasks import agent_task  # noqa: E402
 
 SEED = ROOT / "bench" / "agent_seed.jsonl"
 OUT = ROOT / "bench" / "results" / "agents.md"

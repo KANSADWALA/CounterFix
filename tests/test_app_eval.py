@@ -109,7 +109,7 @@ def test_load_callable(tmp_path):
 
 def test_caller_specs(monkeypatch):
     pytest.importorskip("openai")
-    from counterfix.presets import caller_for, pace_for
+    from counterfix.core.presets import caller_for, pace_for
 
     c = caller_for("my-model@http://localhost:8000/v1")
     assert c.name.endswith("my-model") or "my-model" in c.name

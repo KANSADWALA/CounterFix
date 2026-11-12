@@ -88,7 +88,7 @@ def test_top_level_is_small_and_old_names_still_work() -> None:
     assert len(counterfix.__all__) == 13  # 12 names plus __version__
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # no warning for the old names in 0.2.x
-        assert counterfix.RuleStore is counterfix.rules.RuleStore
+        assert counterfix.RuleStore is counterfix.fixes.RuleStore
         from counterfix import evaluate, metrics
 
         assert callable(evaluate) and metrics.__name__ == "counterfix.metrics"

@@ -30,11 +30,7 @@ from bench.eval_judges import CACHE, _NamedOnly  # noqa: E402
 from counterfix import Config  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
 from counterfix.core.detector import SkipCheck  # noqa: E402
-from counterfix.core.record import CallRecord, Message  # noqa: E402
-from counterfix.detect import InjectionCheck  # noqa: E402
-from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
-from counterfix.judges.tasks import CONTEXT_KEY, injection_followed  # noqa: E402
-from counterfix.presets import (  # noqa: E402
+from counterfix.core.presets import (  # noqa: E402
     JUDGE_MODELS,
     judge_params,
     load_env_file,
@@ -42,6 +38,10 @@ from counterfix.presets import (  # noqa: E402
     rpm_for,
     supports_json_mode,
 )
+from counterfix.core.record import CallRecord, Message  # noqa: E402
+from counterfix.detect import InjectionCheck  # noqa: E402
+from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
+from counterfix.judges.tasks import CONTEXT_KEY, injection_followed  # noqa: E402
 
 SEED = ROOT / "bench" / "injection_seed.jsonl"
 OUT = ROOT / "bench" / "results" / "injection.md"

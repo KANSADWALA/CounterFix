@@ -15,7 +15,7 @@ def probe_logprobs(spec: str) -> tuple[bool, str]:
     provider = spec.partition(":")[0]
     if provider == "anthropic":
         return False, "the Anthropic API has no token probabilities"
-    from counterfix.presets import caller_for
+    from counterfix.core.presets import caller_for
 
     caller: Any = caller_for(spec, timeout=30)
     client = caller.client

@@ -53,8 +53,8 @@ def _print_issue(issue: LintIssue) -> None:
 
 def _cli_judge(choice: str) -> Judge | None:
     """The judge for ``--judge`` ("auto" picks one from your keys, reading .env); None on error."""
+    from counterfix.core.presets import load_env_file
     from counterfix.judges.auto import NoJudgeError, resolve_judge
-    from counterfix.presets import load_env_file
 
     load_env_file(Path.cwd() / ".env")
     try:
@@ -142,9 +142,9 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
 
 def cmd_fix(args: argparse.Namespace) -> int:
     """Run the counterfactual engine on every flagged call in a log; save what worked."""
+    from counterfix.core.presets import load_env_file
     from counterfix.diagnose import diagnose
-    from counterfix.engine import fix
-    from counterfix.presets import load_env_file
+    from counterfix.fixes.engine import fix
     from counterfix.report import load_log
 
     load_env_file(Path.cwd() / ".env")
@@ -410,7 +410,7 @@ def _rerun_caller(spec: str) -> Any:
     """A paced caller for any model spec the CLI takes (provider:model, anthropic:model,
     MODEL@http://host/v1); prints the problem and exits 2 on a spec it cannot use."""
     from counterfix.core.caller import RateLimitedCaller
-    from counterfix.presets import caller_for, pace_for
+    from counterfix.core.presets import caller_for, pace_for
 
     try:
         return RateLimitedCaller(caller_for(spec, timeout=120), pace_for(spec))
@@ -428,7 +428,7 @@ def _judge_arg(choice: str | None) -> Judge | bool | None:
 
 def cmd_profile(args: argparse.Namespace) -> int:
     """Run the probe suite on one model and save its profile."""
-    from counterfix import profiles
+    from counterfix.fixes import profiles
 
     judge = _judge_arg(args.judge)
     if judge is None:
@@ -452,7 +452,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 def cmd_compare(args: argparse.Namespace) -> int:
     """Two profiles side by side, or a log of calls re-run on another model."""
-    from counterfix import profiles
+    from counterfix.fixes import profiles
 
     if args.model is None:
         if len(args.items) != 2:
@@ -506,7 +506,7 @@ def _short_prompt(record: Any) -> str:
 
 def cmd_drift(args: argparse.Namespace) -> int:
     """Re-run the probes; exit 1 when a task's failure rate moved since the stored profile."""
-    from counterfix import profiles
+    from counterfix.fixes import profiles
 
     old = profiles.load(args.spec)
     if old is None:
@@ -532,7 +532,7 @@ def cmd_drift(args: argparse.Namespace) -> int:
 
 def cmd_route(args: argparse.Namespace) -> int:
     """The cheapest model per task, from profiles (cheapest first, or by cost_per_mtok)."""
-    from counterfix import profiles
+    from counterfix.fixes import profiles
 
     loaded = [profiles.load(x) for x in args.profiles]
     missing = [x for x, p in zip(args.profiles, loaded, strict=True) if p is None]
@@ -566,6 +566,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     import os
     import time
 
+    from counterfix.core.presets import PRESETS, load_env_file
     from counterfix.judges.auto import (
         ENV_VAR,
         NoJudgeError,
@@ -573,7 +574,6 @@ def cmd_setup(args: argparse.Namespace) -> int:
         ollama_models,
         resolve_judge,
     )
-    from counterfix.presets import PRESETS, load_env_file
 
     env_file = Path.cwd() / ".env"
     load_env_file(env_file)

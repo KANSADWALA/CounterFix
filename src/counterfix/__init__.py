@@ -25,7 +25,7 @@ from counterfix.adapters import guard, watch  # noqa: E402
 from counterfix.context import context  # noqa: E402
 from counterfix.core import CallRecord, Config, Diagnosis, FailureType, Message  # noqa: E402
 from counterfix.diagnose import diagnose  # noqa: E402
-from counterfix.engine import FixResult, fix  # noqa: E402
+from counterfix.fixes.engine import FixResult, fix  # noqa: E402
 from counterfix.judges.auto import configure  # noqa: E402
 from counterfix.lint import lint  # noqa: E402
 from counterfix.report import log_to  # noqa: E402
@@ -71,9 +71,9 @@ _LAZY: dict[str, tuple[str, str | None]] = {
     "hooks": ("counterfix.core", "hooks"),
     "run_detectors": ("counterfix.core", "run_detectors"),
     # fixes
-    "FixAttempt": ("counterfix.engine", "FixAttempt"),
-    "FixRule": ("counterfix.rules", "FixRule"),
-    "RuleStore": ("counterfix.rules", "RuleStore"),
+    "FixAttempt": ("counterfix.fixes.engine", "FixAttempt"),
+    "FixRule": ("counterfix.fixes", "FixRule"),
+    "RuleStore": ("counterfix.fixes", "RuleStore"),
     # judges, lint, runtime
     "NoJudgeError": ("counterfix.judges.auto", "NoJudgeError"),
     "SelfJudgeWarning": ("counterfix.judges.auto", "SelfJudgeWarning"),
@@ -128,9 +128,9 @@ if TYPE_CHECKING:
         hooks,
         run_detectors,
     )
-    from counterfix.engine import FixAttempt
     from counterfix.evals import EvalResult, evaluate
+    from counterfix.fixes import FixRule, RuleStore
+    from counterfix.fixes.engine import FixAttempt
     from counterfix.judges.auto import NoJudgeError, SelfJudgeWarning
     from counterfix.lint import LintIssue
     from counterfix.report import load_log
-    from counterfix.rules import FixRule, RuleStore

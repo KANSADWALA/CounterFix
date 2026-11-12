@@ -9,7 +9,7 @@ Then, for each failure found (most confident first), it tries the interventions 
 cause, one at a time, each re-run up to ``runs`` times. A run passes when the failure is
 gone and no new failure appears. A change counts as a verified fix only if it passes
 clearly more often than the plain retry: a one-sided Fisher exact test at ``alpha``
-(0.05) divided by the number of changes the search may try (see :mod:`counterfix.verify`).
+(0.05) divided by the number of changes the search may try (see :mod:`counterfix.fixes.verify`).
 If the plain retry passes so often that no change could be shown to do better, no change
 is claimed. Runs stop once the outcome is settled, the engine stops at the first verified
 fix, and ``max_runs`` caps the calls to the model being fixed (judge calls come on top).
@@ -33,8 +33,8 @@ from counterfix.core.detector import Detector, run_detectors
 from counterfix.core.diagnosis import Diagnosis, Finding, Prescription
 from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType, PrescriptionKind
+from counterfix.fixes.verify import DEFAULT_ALPHA, DEFAULT_RUNS, beatable, level, p_value, settled
 from counterfix.judges.tasks import CONTEXT_KEY
-from counterfix.verify import DEFAULT_ALPHA, DEFAULT_RUNS, beatable, level, p_value, settled
 
 F = FailureType
 Change = tuple[list[Message], dict[str, Any]]
@@ -717,7 +717,7 @@ class FixAttempt(BaseModel):
     passed: int = 0
     verified: bool = False
     """For a change: it passed clearly more often than the plain retry (see
-    :mod:`counterfix.verify`). For the plain retry: it passed so often that no change
+    :mod:`counterfix.fixes.verify`). For the plain retry: it passed so often that no change
     could be shown to do better."""
     p_value: float | None = None
     """For a change: the one-sided Fisher exact p-value against the plain retry."""
@@ -804,7 +804,7 @@ def _caller_for(record: CallRecord, client: Any) -> ModelCaller:
         from counterfix.core.caller import OpenAICompatibleCaller
 
         return OpenAICompatibleCaller(client, record.model, provider=record.provider)
-    from counterfix.presets import PRESETS, make_caller
+    from counterfix.core.presets import PRESETS, make_caller
 
     if record.provider in PRESETS:
         return make_caller(f"{record.provider}:{record.model}")
@@ -840,7 +840,7 @@ def fix(
     if need is not None:
         warnings.warn(
             "fix(need=...) is ignored: a change is now verified when it beats the plain "
-            "retry (see counterfix.verify)",
+            "retry (see counterfix.fixes.verify)",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -974,7 +974,7 @@ def fix(
             )
             return result
     if profile == "auto":
-        from counterfix._profile_store import load
+        from counterfix.fixes._profile_store import load
 
         profile = load(record.model) if record.model else None
     for finding in failures:

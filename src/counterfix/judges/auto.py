@@ -127,7 +127,7 @@ def _is_embedding(model: dict[str, Any]) -> bool:
 def detect_judges(avoid_model: str | None = None) -> list[tuple[str, str]]:
     """Judges available on this machine as (spec, where it came from), best first.
     Models from the same family as ``avoid_model`` go last."""
-    from counterfix.presets import JUDGE_MODELS, PRESETS
+    from counterfix.core.presets import JUDGE_MODELS, PRESETS
 
     found: list[tuple[str, str]] = []
     for provider in KEY_ORDER:
@@ -160,8 +160,8 @@ def build_judge(choice: JudgeChoice) -> Judge:
 
         return JevJudge()
     from counterfix.core.caller import RateLimitedCaller
+    from counterfix.core.presets import judge_params, make_caller, rpm_for, supports_json_mode
     from counterfix.judges.llm import LLMJudge
-    from counterfix.presets import judge_params, make_caller, rpm_for, supports_json_mode
 
     return LLMJudge(
         RateLimitedCaller(make_caller(spec), rpm_for(spec)),

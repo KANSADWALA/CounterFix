@@ -8,7 +8,7 @@ tests/test_profiles.py checks every intervention is listed, so rerun this after 
 from pathlib import Path
 
 from counterfix.core.types import FailureType
-from counterfix.engine import ESCALATION, INTERVENTIONS
+from counterfix.fixes.engine import ESCALATION, INTERVENTIONS
 
 OUT = Path(__file__).resolve().parents[1] / "docs" / "failures"
 OUT.mkdir(parents=True, exist_ok=True)

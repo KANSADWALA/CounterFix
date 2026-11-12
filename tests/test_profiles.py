@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 import counterfix
-from counterfix import profiles
 from counterfix.cli import main
-from counterfix.profiles import Profile
+from counterfix.fixes import profiles
+from counterfix.fixes.profiles import Profile
 from test_engine import Scripted, cut_off
 
 
@@ -83,7 +83,7 @@ def test_build_compare_drift_route(tmp_path: Path) -> None:
 
 
 def test_docs_list_every_intervention_on_its_failure_page() -> None:
-    from counterfix.engine import INTERVENTIONS
+    from counterfix.fixes.engine import INTERVENTIONS
 
     docs = Path(__file__).resolve().parents[1] / "docs" / "failures"
     for iv in INTERVENTIONS:

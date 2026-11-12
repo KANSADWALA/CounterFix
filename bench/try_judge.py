@@ -12,10 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from counterfix.core.presets import judge_params, load_env_file, make_caller  # noqa: E402
 from counterfix.judges import LLMJudge  # noqa: E402
 from counterfix.judges.base import JudgeTask  # noqa: E402
 from counterfix.judges.llm import parse_reply, to_verdict  # noqa: E402
-from counterfix.presets import judge_params, load_env_file, make_caller  # noqa: E402
 
 
 def main() -> None:

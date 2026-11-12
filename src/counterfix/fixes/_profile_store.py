@@ -1,7 +1,7 @@
 """Stored model profiles: the Profile model and where profiles are saved and loaded.
 
-Split from :mod:`counterfix.profiles` so the fix engine can read a profile without
-importing the code that measures one. Import from ``counterfix.profiles``.
+Split from :mod:`counterfix.fixes.profiles` so the fix engine can read a profile without
+importing the code that measures one. Import from ``counterfix.fixes.profiles``.
 """
 
 from __future__ import annotations
@@ -14,8 +14,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-PROBES = Path(__file__).with_name("data") / "probes.jsonl"
-SHIPPED = Path(__file__).with_name("data") / "profiles"  # measured profiles, see bench/
+DATA = Path(__file__).resolve().parent.parent / "data"  # src/counterfix/data
+PROBES = DATA / "probes.jsonl"
+SHIPPED = DATA / "profiles"  # measured profiles, see bench/
 
 TASKS = {
     "F1": "long answers under a token limit",

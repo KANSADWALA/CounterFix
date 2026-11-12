@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from counterfix import CallRecord, Config, guard
-from counterfix.presets import PRESETS, load_env_file
+from counterfix.core.presets import PRESETS, load_env_file
 
 PROVIDERS = PRESETS  # kept for backwards compatibility with earlier scripts
 

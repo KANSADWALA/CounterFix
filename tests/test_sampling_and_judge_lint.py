@@ -9,8 +9,8 @@ import pytest
 
 from counterfix import CallRecord, Config, FailureType, Message, SkipCheck, lint
 from counterfix.cli import main
+from counterfix.core.presets import PRESETS, load_env_file, make_client, parse_spec
 from counterfix.detect.sampling import SamplingCheck, same_meaning_heuristic
-from counterfix.presets import PRESETS, load_env_file, make_client, parse_spec
 from test_judges import FixedJudge
 
 

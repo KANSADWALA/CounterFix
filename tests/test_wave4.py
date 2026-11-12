@@ -19,8 +19,8 @@ from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType
 from counterfix.detect.confidence import describe, mean_probability
 from counterfix.detect.injection import CanaryCheck, InjectionCheck, canary_found
-from counterfix.engine import INTERVENTIONS
 from counterfix.evals import evaluate
+from counterfix.fixes.engine import INTERVENTIONS
 from counterfix.judges.base import Verdict
 from counterfix.judges.tasks import CONTEXT_KEY
 from counterfix.metrics import get_metric
