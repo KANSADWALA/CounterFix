@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from counterfix.core.diagnosis import Diagnosis
 from counterfix.core.record import CallRecord
-
-if TYPE_CHECKING:
-    from counterfix.rules.store import RuleStore
+from counterfix.core.rules import RuleStore
 
 DiagnosisHook = Callable[[CallRecord, Diagnosis], None]
 
@@ -50,8 +48,8 @@ class Config(BaseModel):
     """Extra LLM calls allowed per live call. In 'flag' mode this is ignored (no extra calls).
     In 'retry' mode, 0 means one retry."""
 
-    rules: Any = None
-    """A RuleStore of fixes used in retry mode. None uses the built-in rules."""
+    rules: RuleStore | None = None
+    """The fixes used in retry mode. None uses the built-in rules."""
 
     on_diagnosis: DiagnosisHook | None = None
     """Optional callback run after every live diagnosis, e.g. ``log_to("calls.jsonl")``."""
@@ -78,10 +76,6 @@ class Config(BaseModel):
         return self.max_extra_calls or 1
 
     def rule_store(self) -> RuleStore:
-        from counterfix.rules.store import RuleStore
-
         if self.rules is None:
             self.rules = RuleStore()
-        if not isinstance(self.rules, RuleStore):
-            raise TypeError("Config.rules must be a RuleStore")
         return self.rules

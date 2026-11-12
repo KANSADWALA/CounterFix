@@ -142,7 +142,7 @@ def caller_for(spec: str, *, timeout: float | None = None) -> Any:
             from anthropic import Anthropic
         except ImportError as exc:
             raise ImportError("this needs the Anthropic SDK: pip install anthropic") from exc
-        from counterfix.adapters.anthropic import AnthropicCaller
+        from counterfix.core.caller import AnthropicCaller
 
         if not os.environ.get("ANTHROPIC_API_KEY"):
             raise RuntimeError("set ANTHROPIC_API_KEY in your environment or .env file")

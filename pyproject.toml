@@ -67,6 +67,7 @@ dev = [
   "pytest-recording>=0.13",
   "ruff==0.17.0",  # pinned: CI must format and lint exactly like local runs
   "mypy==2.4.0",
+  "import-linter==2.15",  # layer check: lint-imports
   "types-jsonschema",
   "sacrebleu>=2.4",
   "rouge-score>=0.1.2",
@@ -144,3 +145,46 @@ warn_unused_ignores = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+# Layers, highest first: a module may import only from layers below it. Run `lint-imports`.
+# Matches the target layout in the restructure plan, spelled with today's module names.
+[tool.importlinter]
+root_package = "counterfix"
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: entry points > evaluation > integrations > fixes > detection > judges > core"
+type = "layers"
+layers = [
+  "counterfix.__main__",
+  "counterfix.cli",
+  "counterfix.mcp_server",
+  "counterfix.benchmarks",
+  "counterfix.evals | counterfix.testing | counterfix.profiles",
+  "counterfix.metrics",
+  "counterfix.safety | counterfix.perplexity | counterfix.capabilities",
+  "counterfix.otel",
+  "counterfix.adapters",
+  "counterfix.background",
+  "counterfix.report",
+  "counterfix.perf",
+  "counterfix.engine",
+  "counterfix.verify",
+  "counterfix.diagnose",
+  "counterfix.detectors | counterfix.lint | counterfix.context",
+  "counterfix.code",
+  "counterfix.rag",
+  "counterfix.agents",
+  "counterfix.confidence",
+  "counterfix.judges",
+  "counterfix.presets",
+  "counterfix.rules",
+  "counterfix._profile_store",
+  "counterfix.core",
+  "counterfix._suggest | counterfix.text | counterfix.safe_eval",
+]
+ignore_imports = [
+  # The metric registry knows three benchmark scorers by name (``--metric ifeval``).
+  # Both packages move under counterfix.evals in the restructure, which ends this.
+  "counterfix.metrics -> counterfix.benchmarks.*",
+]

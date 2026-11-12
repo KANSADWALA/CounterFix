@@ -325,7 +325,7 @@ def record_from_output(
         if output.latency_ms is None:
             output.latency_ms = latency_ms
         return output
-    from counterfix.adapters import get_diagnosis
+    from counterfix.core.attach import get_diagnosis
 
     diagnosis = get_diagnosis(output) if not isinstance(output, (str, Mapping, tuple)) else None
     if diagnosis is not None and diagnosis.record is not None:

@@ -207,7 +207,7 @@ def _calls_of(message: Any, step: int) -> list[ToolCall]:
 
 def from_records(records: Iterable[Any], task: str | None = None) -> Trajectory:
     """A trajectory from one record (or guarded response) per model call, in order."""
-    from counterfix.adapters import get_diagnosis
+    from counterfix.core.attach import get_diagnosis
 
     recs: list[CallRecord] = []
     for r in records:
@@ -229,7 +229,7 @@ def from_spans(spans: Iterable[Mapping[str, Any]], task: str | None = None) -> T
     spans are model turns, ``execute_tool`` spans are tool calls (``gen_ai.tool.name``,
     ``gen_ai.tool.call.arguments``, ``gen_ai.tool.call.result``, opt-in in the
     conventions, so arguments and results may be missing)."""
-    from counterfix.otel import record_from_span
+    from counterfix.core.convert import record_from_span
 
     calls: list[ToolCall] = []
     turns, final, first = 0, None, task

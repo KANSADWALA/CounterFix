@@ -12,53 +12,21 @@ right, and sure and wrong; it is a signal, not a verdict.
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable
 from typing import Any
 
+from counterfix.core.convert import LOGPROBS_KEY as LOGPROBS_KEY
+from counterfix.core.convert import summarize as summarize
+from counterfix.core.convert import token_logprobs as token_logprobs
 from counterfix.core.record import CallRecord
-
-LOGPROBS_KEY = "logprobs"
-
-
-def _get(obj: Any, key: str) -> Any:
-    if obj is None:
-        return None
-    return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
-
-
-def token_logprobs(choice: Any) -> list[tuple[str, float]]:
-    """(token, logprob) pairs from a chat-completion choice (or a stream chunk's choice)."""
-    content = _get(_get(choice, "logprobs"), "content") or []
-    out: list[tuple[str, float]] = []
-    for item in content:
-        lp = _get(item, "logprob")
-        if isinstance(lp, (int, float)) and not isinstance(lp, bool) and math.isfinite(lp):
-            out.append((str(_get(item, "token") or ""), float(lp)))
-    return out
-
-
-def summarize(pairs: Iterable[tuple[str, float]], keep: int = 5) -> dict[str, Any] | None:
-    """{"n", "mean", "min", "lowest": [[token, logprob], ...]} or None with no tokens."""
-    items = list(pairs)
-    if not items:
-        return None
-    values = [lp for _, lp in items]
-    lowest = sorted(items, key=lambda p: p[1])[:keep]
-    return {
-        "n": len(values),
-        "mean": sum(values) / len(values),
-        "min": min(values),
-        "lowest": [[t, round(lp, 4)] for t, lp in lowest],
-    }
 
 
 def _as_record(target: Any) -> CallRecord:
     """A CallRecord from a record, a Diagnosis or a guarded response."""
     if isinstance(target, CallRecord):
         return target
-    from counterfix.diagnose import _target
+    from counterfix.core.attach import target_record
 
-    return _target(target)[0]
+    return target_record(target)[0]
 
 
 def of(record: Any) -> dict[str, Any] | None:

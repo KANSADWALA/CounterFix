@@ -27,6 +27,17 @@ same checks run over a dataset. Nothing that worked in 0.2.1 stops working.
   the checked model (with `SelfJudgeWarning`, as `diagnose()` already did), and with no
   model at all it fixes what the live checks find and warns that facts and premises were
   not checked. A judge you name explicitly that cannot be built still raises.
+- **Layers are now checked in CI** (`lint-imports`, with `import-linter` in the dev
+  extra): lower modules may not import higher ones. To get there, a few helpers moved
+  down into `counterfix.core`, with every old import path kept: `RuleStore` and
+  `FixRule` (`core.rules`), turning OpenAI, Anthropic and OpenTelemetry responses into
+  records plus token log probabilities (`core.convert`), `AnthropicCaller`
+  (`core.caller`), `get_diagnosis` (`core.attach`); `extract_code` moved to
+  `counterfix.code.check` and stored profiles to an internal module the fix engine can
+  read. One exception is listed in the contract: the metric registry's three benchmark
+  scorers.
+- `Config.rules` is typed as `RuleStore | None`: a wrong value now fails when the Config
+  is built (pydantic `ValidationError`) instead of on the first retry (`TypeError`).
 - A test now freezes the 0.2.1 public surface (every top-level name, module path and
   subpackage export, and both entry points), so later restructuring cannot break imports
   unnoticed.

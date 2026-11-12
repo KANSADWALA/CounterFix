@@ -18,7 +18,7 @@ from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
 
-from counterfix.adapters.openai_compat import _get
+from counterfix.core.convert import _get
 from counterfix.core.record import Timing
 
 

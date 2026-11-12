@@ -7,6 +7,7 @@ from collections import OrderedDict
 from typing import Any
 
 from counterfix.core.diagnosis import Diagnosis
+from counterfix.core.record import CallRecord
 
 ATTR = "diagnosis"
 _FALLBACK_LIMIT = 2048
@@ -42,3 +43,16 @@ def get_diagnosis(response: Any) -> Diagnosis | None:
     if stored is not None and stored[0] is response:
         return stored[1]
     return None
+
+
+def target_record(target: Any) -> tuple[CallRecord, Any]:
+    """(record, raw client or None) from a record, a diagnosis or a guarded response."""
+    if isinstance(target, CallRecord):
+        return target, None
+    diagnosis = target if isinstance(target, Diagnosis) else get_diagnosis(target)
+    if diagnosis is None or diagnosis.record is None:
+        raise TypeError(
+            "diagnose() needs a CallRecord, or a response from a client wrapped with "
+            "counterfix.guard()"
+        )
+    return diagnosis.record, diagnosis._client

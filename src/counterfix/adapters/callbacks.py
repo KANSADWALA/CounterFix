@@ -15,8 +15,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from counterfix.adapters.openai_compat import _get, _Guard, _to_dict, record_from_openai
+from counterfix.adapters.openai_compat import _Guard
 from counterfix.core.config import Config
+from counterfix.core.convert import _get, _to_dict, record_from_openai
 from counterfix.core.detector import Detector
 from counterfix.core.diagnosis import Diagnosis
 from counterfix.core.record import CallRecord, Message, Timing, Usage

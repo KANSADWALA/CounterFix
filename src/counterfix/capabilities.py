@@ -38,7 +38,7 @@ def probe_logprobs(spec: str) -> tuple[bool, str]:
                 return False, f"refused: {str(again)[:120]}"
         else:
             return False, f"refused: {text[:120]}"
-    from counterfix.confidence import token_logprobs
+    from counterfix.core.convert import token_logprobs
 
     choices = getattr(response, "choices", None) or []
     pairs = token_logprobs(choices[0]) if choices else []

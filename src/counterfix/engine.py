@@ -798,7 +798,7 @@ def _caller_for(record: CallRecord, client: Any) -> ModelCaller:
         raise ValueError("fix() needs the record's model to re-run the call")
     if client is not None:
         if not hasattr(client, "chat") and hasattr(client, "messages"):
-            from counterfix.adapters.anthropic import AnthropicCaller
+            from counterfix.core.caller import AnthropicCaller
 
             return AnthropicCaller(client, record.model)
         from counterfix.core.caller import OpenAICompatibleCaller
@@ -844,8 +844,9 @@ def fix(
             DeprecationWarning,
             stacklevel=2,
         )
+    from counterfix.core.attach import target_record as _target
     from counterfix.detectors import default_detectors, judge_detectors
-    from counterfix.diagnose import _target, diagnose
+    from counterfix.diagnose import diagnose
     from counterfix.judges.auto import NoJudgeError, resolve_judge
 
     record, client = _target(target)
@@ -973,7 +974,7 @@ def fix(
             )
             return result
     if profile == "auto":
-        from counterfix.profiles import load
+        from counterfix._profile_store import load
 
         profile = load(record.model) if record.model else None
     for finding in failures:

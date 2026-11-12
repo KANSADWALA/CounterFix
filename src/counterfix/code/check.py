@@ -24,7 +24,21 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from counterfix.code.sandbox import RunResult, Sandbox, run_python
-from counterfix.metrics.extract import extract_code
+
+_FENCE = re.compile(r"```[ \t]*([\w+-]*)[ \t]*\n(.*?)```", re.DOTALL)
+
+
+def extract_code(text: str, language: str | None = "python") -> str:
+    """The last fenced code block (preferring the language asked for), else the text."""
+    blocks: list[tuple[str, str]] = _FENCE.findall(text)
+    if not blocks:
+        return text.strip()
+    if language:
+        tagged = [code for lang, code in blocks if lang.lower() in (language, "py", "")]
+        if tagged:
+            return tagged[-1].strip("\n")
+    return blocks[-1][1].strip("\n")
+
 
 Cause = Literal[
     "no_code", "syntax", "cut_off", "name", "signature", "import", "runtime",

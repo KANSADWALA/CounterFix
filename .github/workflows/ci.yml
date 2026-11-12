@@ -24,6 +24,8 @@ jobs:
         run: ruff check . && ruff format --check .
       - name: Types
         run: mypy --cache-dir /tmp/mypy-cache
+      - name: Layers (lower modules never import higher ones)
+        run: lint-imports
       - name: Tests (no live API calls)
         run: pytest
 

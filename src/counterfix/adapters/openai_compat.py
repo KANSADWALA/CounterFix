@@ -15,12 +15,12 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal, TypeVar, cast
 
-from counterfix.adapters._attach import attach
+from counterfix.core.attach import attach
 from counterfix.core.config import Config
+from counterfix.core.convert import record_from_openai as record_from_openai
 from counterfix.core.detector import Detector, run_detectors
 from counterfix.core.diagnosis import Diagnosis, Finding, RetryAttempt
-from counterfix.core.record import CallRecord, Message, Timing, Usage
-from counterfix.core.sync import clean_params
+from counterfix.core.record import CallRecord, Timing
 from counterfix.core.types import PrescriptionKind
 
 logger = logging.getLogger("counterfix")
@@ -36,85 +36,6 @@ _OPENAI_PATHS = (
 _ANTHROPIC_PATHS = (("messages", "create"),)
 # Client methods that return a new client of the same kind: the copy stays guarded.
 _CLIENT_COPIES = frozenset({"with_options", "copy"})
-
-
-def _get(obj: Any, key: str, default: Any = None) -> Any:
-    """Read ``key`` from a dict or an object attribute."""
-    if obj is None:
-        return default
-    if isinstance(obj, dict):
-        return obj.get(key, default)
-    return getattr(obj, key, default)
-
-
-def _to_dict(obj: Any) -> dict[str, Any]:
-    """Best-effort conversion of SDK objects to plain dicts."""
-    if isinstance(obj, dict):
-        return dict(obj)
-    dump = getattr(obj, "model_dump", None)
-    if callable(dump):
-        try:
-            result = dump()
-            if isinstance(result, dict):
-                return result
-        except Exception:
-            pass
-    try:
-        return dict(vars(obj))
-    except TypeError:
-        return {"value": repr(obj)}
-
-
-def _usage(raw: Any) -> Usage:
-    """Token usage, including reasoning tokens when the provider reports them."""
-    usage = Usage.model_validate(_to_dict(raw))
-    details = _get(raw, "completion_tokens_details")
-    reasoning_tokens = _get(details, "reasoning_tokens")
-    if isinstance(reasoning_tokens, int):
-        usage.reasoning_tokens = reasoning_tokens
-    return usage
-
-
-def record_from_openai(
-    request: dict[str, Any],
-    response: Any,
-    *,
-    latency_ms: float | None = None,
-    provider: str | None = None,
-) -> CallRecord:
-    """Build a :class:`CallRecord` from chat-completions kwargs and the response."""
-    messages = [Message.model_validate(_to_dict(m)) for m in request.get("messages") or []]
-    params = clean_params({k: v for k, v in request.items() if k not in ("messages", "model")})
-
-    choices = _get(response, "choices") or []
-    first = choices[0] if len(choices) > 0 else None
-    message = _get(first, "message")
-    raw_tool_calls = _get(message, "tool_calls")
-    usage_raw = _get(response, "usage")
-    usage = _usage(usage_raw) if usage_raw is not None else None
-    # Reasoning models: Groq/OpenAI-style "reasoning", vLLM/DeepSeek-style "reasoning_content".
-    reasoning = _get(message, "reasoning") or _get(message, "reasoning_content")
-
-    metadata: dict[str, Any] = {"n_choices": len(choices)}
-    if first is not None and _get(first, "logprobs") is not None:
-        from counterfix.confidence import LOGPROBS_KEY, summarize, token_logprobs
-
-        summary = summarize(token_logprobs(first))
-        if summary is not None:
-            metadata[LOGPROBS_KEY] = summary
-    return CallRecord(
-        provider=provider,
-        model=_get(response, "model") or request.get("model"),
-        messages=messages,
-        params=params,
-        response_text=_get(message, "content"),
-        reasoning_text=reasoning if isinstance(reasoning, str) else None,
-        finish_reason=_get(first, "finish_reason"),
-        tool_calls=[_to_dict(t) for t in raw_tool_calls] if raw_tool_calls else None,
-        usage=usage,
-        latency_ms=latency_ms,
-        metadata=metadata,
-    )
 
 
 class _Guard:

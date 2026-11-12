@@ -9,6 +9,7 @@ import time
 from collections.abc import Sequence
 from typing import Any, Protocol, runtime_checkable
 
+from counterfix.core.convert import record_from_anthropic, record_from_openai
 from counterfix.core.record import CallRecord, Message
 from counterfix.core.sync import rerun_params, resolve
 
@@ -56,8 +57,6 @@ class OpenAICompatibleCaller:
         return f"{self.provider}:{self.model}" if self.provider else self.model
 
     def complete(self, messages: Sequence[Message | dict[str, Any]], **params: Any) -> CallRecord:
-        from counterfix.adapters.openai_compat import record_from_openai
-
         payload = [
             m.model_dump(exclude_none=True) if isinstance(m, Message) else dict(m) for m in messages
         ]
@@ -210,3 +209,38 @@ def retry_after(exc: Exception) -> float | None:
         amount = float(match.group(2))
         return minutes * 60 + (amount / 1000 if match.group(3).lower() == "ms" else amount)
     return None
+
+
+class AnthropicCaller:
+    """A ModelCaller over an Anthropic client (``messages.create``), for re-runs."""
+
+    def __init__(self, client: Any, model: str, *, provider: str = "anthropic"):
+        from counterfix.core.sync import sync_client
+
+        unwrapped = getattr(client, "unwrapped", None)
+        self.client = sync_client(unwrapped if unwrapped is not None else client)
+        self.model, self.provider = model, provider
+
+    @property
+    def name(self) -> str:
+        return f"{self.provider}:{self.model}"
+
+    def complete(self, messages: Any, **params: Any) -> CallRecord:
+        import time
+
+        payload = [
+            m.model_dump(exclude_none=True) if isinstance(m, Message) else dict(m) for m in messages
+        ]
+        system = "\n".join(Message.model_validate(m).text for m in payload if m["role"] == "system")
+        request: dict[str, Any] = {
+            "model": self.model,
+            "messages": [m for m in payload if m["role"] != "system"],
+            "max_tokens": 1024,
+            **rerun_params(params),
+        }
+        if system:
+            request["system"] = system
+        start = time.perf_counter()
+        response = resolve(self.client.messages.create(**request))
+        ms = (time.perf_counter() - start) * 1000
+        return record_from_anthropic(request, response, latency_ms=ms, provider=self.provider)

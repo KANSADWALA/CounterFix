@@ -15,25 +15,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from counterfix.adapters import get_diagnosis
+from counterfix.core.attach import target_record as _target
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector, run_detectors
 from counterfix.core.diagnosis import Diagnosis
 from counterfix.core.record import CallRecord
 from counterfix.judges.auto import JudgeChoice, resolve_judge
-
-
-def _target(target: Any) -> tuple[CallRecord, Any]:
-    """(record, raw client or None) from a record, a diagnosis or a guarded response."""
-    if isinstance(target, CallRecord):
-        return target, None
-    diagnosis = target if isinstance(target, Diagnosis) else get_diagnosis(target)
-    if diagnosis is None or diagnosis.record is None:
-        raise TypeError(
-            "diagnose() needs a CallRecord, or a response from a client wrapped with "
-            "counterfix.guard()"
-        )
-    return diagnosis.record, diagnosis._client
 
 
 def diagnose(

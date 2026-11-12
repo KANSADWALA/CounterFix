@@ -26,14 +26,14 @@ runs the live checks on every finished chat span and sends the result to
 
 from __future__ import annotations
 
-import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from counterfix.core.config import Config, DiagnosisHook
+from counterfix.core.convert import record_from_span as record_from_span
 from counterfix.core.detector import Detector
 from counterfix.core.diagnosis import Diagnosis
-from counterfix.core.record import CallRecord, Message, Usage
+from counterfix.core.record import CallRecord
 
 
 def attributes(record: CallRecord, diagnosis: Diagnosis) -> dict[str, Any]:
@@ -124,70 +124,6 @@ def metrics(meter: Any = None) -> DiagnosisHook:
                 tokens.record(usage.completion_tokens, {**base, "gen_ai.token.type": "output"})
 
     return hook
-
-
-def _json(value: Any) -> Any:
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError:
-            return None
-    return value
-
-
-def _parts_text(message: Mapping[str, Any]) -> str:
-    """Text of a GenAI semconv message ({"role", "parts": [{"type": "text", ...}]})."""
-    if "content" in message:
-        return Message(role="x", content=message["content"]).text
-    texts = [p.get("content") or p.get("text") or "" for p in message.get("parts") or []]
-    return "\n".join(t for t in texts if isinstance(t, str))
-
-
-def record_from_span(attrs: Mapping[str, Any], *, latency_ms: float | None = None) -> CallRecord:
-    """A CallRecord from a GenAI span's attributes."""
-    messages: list[Message] = []
-    answer: str | None = None
-    finish: str | None = None
-    inputs = _json(attrs.get("gen_ai.input.messages"))
-    if isinstance(inputs, list):
-        messages = [Message(role=m.get("role", "user"), content=_parts_text(m)) for m in inputs]
-    else:  # older layout: gen_ai.prompt.0.role / .content
-        n = 0
-        while f"gen_ai.prompt.{n}.content" in attrs or f"gen_ai.prompt.{n}.role" in attrs:
-            role = attrs.get(f"gen_ai.prompt.{n}.role", "user")
-            messages.append(Message(role=role, content=attrs.get(f"gen_ai.prompt.{n}.content")))
-            n += 1
-    outputs = _json(attrs.get("gen_ai.output.messages"))
-    if isinstance(outputs, list) and outputs:
-        answer = _parts_text(outputs[0])
-        finish = outputs[0].get("finish_reason")
-    elif "gen_ai.completion.0.content" in attrs:
-        answer = attrs["gen_ai.completion.0.content"]
-        finish = attrs.get("gen_ai.completion.0.finish_reason")
-    reasons = attrs.get("gen_ai.response.finish_reasons")
-    if finish is None and isinstance(reasons, list | tuple) and reasons:
-        finish = reasons[0]
-    params = {}
-    if (limit := attrs.get("gen_ai.request.max_tokens")) is not None:
-        params["max_tokens"] = limit
-    if (temp := attrs.get("gen_ai.request.temperature")) is not None:
-        params["temperature"] = temp
-    usage = None
-    if "gen_ai.usage.input_tokens" in attrs or "gen_ai.usage.output_tokens" in attrs:
-        usage = Usage(
-            prompt_tokens=attrs.get("gen_ai.usage.input_tokens"),
-            completion_tokens=attrs.get("gen_ai.usage.output_tokens"),
-        )
-    return CallRecord(
-        provider=attrs.get("gen_ai.system") or attrs.get("gen_ai.provider.name"),
-        model=attrs.get("gen_ai.response.model") or attrs.get("gen_ai.request.model"),
-        messages=messages,
-        params=params,
-        response_text=answer,
-        finish_reason=finish,
-        usage=usage,
-        latency_ms=latency_ms,
-    )
 
 
 class SpanChecker:
