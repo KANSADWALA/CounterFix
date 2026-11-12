@@ -15,414 +15,89 @@ in :mod:`counterfix.fixes.verify`).
 
 from __future__ import annotations
 
-import hashlib
-import inspect
 import json
-import random
-import statistics
 import threading
-import time
 from collections import Counter
-from collections.abc import Callable, Iterable, Mapping, Sequence
-from datetime import datetime, timezone
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 from counterfix.core.caller import DailyLimitError, ModelCaller
-from counterfix.core.config import Config
-from counterfix.core.detector import run_detectors
 from counterfix.core.diagnosis import Diagnosis, Evidence, Finding
-from counterfix.core.record import CallRecord, Message
+from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
+from counterfix.evals.asking import (
+    Progress as Progress,
+)
+from counterfix.evals.asking import (
+    _ask_all as _ask_all,
+)
+from counterfix.evals.asking import (
+    _cached as _cached,
+)
+from counterfix.evals.asking import (
+    _fingerprint as _fingerprint,
+)
+from counterfix.evals.asking import (
+    _question as _question,
+)
+from counterfix.evals.asking import (
+    _run_app as _run_app,
+)
 from counterfix.evals.data import EvalItem, is_suite, load_suite, make_items, read_rows
-from counterfix.evals.metrics import Metric, MetricResult, get_metric
-from counterfix.runtime.perf import SpeedSummary, speed_summary
-
-Progress = Callable[[int, int, str], None]
-
-
-class FixTry(BaseModel):
-    name: str
-    description: str
-    runs: int = 0
-    passed: int = 0
-    verified: bool = False
-    p_value: float | None = None
-    """For a change: the one-sided Fisher exact p-value against the plain retry."""
-    errors: int = 0
-    changed: dict[str, Any] = Field(default_factory=dict)
-    messages: list[Message] | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    why_not: list[str] = Field(default_factory=list)
-    """Why runs that did not pass failed, one entry per reason per run, e.g.
-    "latency over 5000" or "still F1"."""
-
-    @property
-    def observed(self) -> int:
-        return self.runs - self.errors
-
-    def reasons(self) -> str:
-        """The reasons, counted: 'latency over 5000 in 3/3, still F1 in 1/3'."""
-        counts = Counter(self.why_not)
-        return ", ".join(f"{r} in {k}/{self.runs}" for r, k in counts.most_common(3))
-
-
-class ItemFix(BaseModel):
-    """The fix search on one missed item."""
-
-    retry: FixTry | None = None
-    tried: list[FixTry] = Field(default_factory=list)
-    fix: FixTry | None = None
-    calls: int = 0
-    note: str = ""
-
-
-class ItemResult(BaseModel):
-    id: str
-    record: CallRecord
-    reference: Any = None
-    metrics: list[MetricResult] = Field(default_factory=list)
-    passed: bool = True
-    flagged: bool = False
-    """Passed its metrics, but the live checks found a model failure (e.g. a cut-off
-    answer that still met a latency gate)."""
-    causes: list[str] = Field(default_factory=list)
-    """Failure types found on this item, e.g. ["F8"], most confident first."""
-    fix: ItemFix | None = None
-
-    @property
-    def top_cause(self) -> str | None:
-        return self.causes[0] if self.causes else None
-
-
-class MetricSummary(BaseModel):
-    name: str
-    n: int = 0
-    mean: float | None = None
-    ci_low: float | None = None
-    ci_high: float | None = None
-    passed: int = 0
-    failed: int = 0
-    not_scored: int = 0
-    """Items the metric could not score (no reference, no TTFT...). Failed calls count as
-    failed, not here; the mean is over scored items only."""
-    threshold: float | None = None
-    higher_is_better: bool = True
-
-    @property
-    def pass_rate(self) -> float | None:
-        judged = self.passed + self.failed
-        return self.passed / judged if judged else None
-
-
-class EvalResult(BaseModel):
-    name: str
-    model: str | None = None
-    created: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
-    )
-    items: list[ItemResult] = Field(default_factory=list)
-    metrics: list[MetricSummary] = Field(default_factory=list)
-    by_cause: dict[str, int] = Field(default_factory=dict)
-    """Missed items by their top cause; "none found" when no check explained the miss."""
-    flagged_by_cause: dict[str, int] = Field(default_factory=dict)
-    """Items that passed their metrics but that the live checks flagged, by top cause."""
-    fixes: dict[str, int] = Field(default_factory=dict)
-    """Missed items by the verified fix ("no verified fix", "plain retry passes" too)."""
-    fix_tried: int = 0
-    speed: SpeedSummary = Field(default_factory=SpeedSummary)
-    judge: str | None = None
-    judge_errors: list[str] = Field(default_factory=list)
-    """Missed items the judge could not check (e.g. its daily limit), so their cause may
-    be missing: "id: error"."""
-    stopped: str = ""
-    samples: int = 1
-    """Answers per question (``samples=n``); items are then ``id#1`` .. ``id#n``."""
-    pass_at_k: dict[str, dict[int, float]] = Field(default_factory=dict)
-    """With samples > 1: per pass/fail metric, pass@k (unbiased estimator) for each k."""
-    code_causes: dict[str, int] = Field(default_factory=dict)
-    """Code that failed its tests, by sub-cause (syntax, wrong_output, timeout...)."""
-    info: dict[str, Any] = Field(default_factory=dict)
-    """About the run (benchmarks: source, licence, template version, seed, subset)."""
-    notes: list[str] = Field(default_factory=list)
-    """Things to check about the run itself (a fix search that could not run, gold
-    passage ids that never match what was retrieved)."""
-
-    @property
-    def failed(self) -> list[ItemResult]:
-        return [i for i in self.items if not i.passed]
-
-    @property
-    def flagged(self) -> list[ItemResult]:
-        """Passed every metric, yet a live check found a model failure."""
-        return [i for i in self.items if i.passed and i.flagged]
-
-    def metric(self, name: str) -> MetricSummary:
-        for m in self.metrics:
-            if m.name == name:
-                return m
-        raise KeyError(
-            f"no metric {name!r} in this result ({', '.join(m.name for m in self.metrics)})"
-        )
-
-    def text(self) -> str:
-        from counterfix.evals.report import text_report
-
-        return text_report(self)
-
-    def html(self) -> str:
-        from counterfix.evals.report import html_report
-
-        return html_report(self)
-
-    def save(self, path: str | Path) -> Path:
-        """Write the whole result as JSON."""
-        target = Path(path)
-        target.write_text(self.model_dump_json(indent=1), encoding="utf-8")
-        return target
-
-
-def _id_mismatch_note(items: Sequence[ItemResult]) -> str:
-    """A note when items carry gold ``relevant`` ids but no retrieved passage ever matches
-    one: almost always ids from a different scheme (the dataset's vs the retriever's)."""
-    from counterfix.detect.retrieval import RELEVANT_KEY, chunks_of, grades
-
-    labelled = retrieved = matched = 0
-    seen_ids: list[str] = []
-    gold_ids: list[str] = []
-    for i in items:
-        relevant = i.record.metadata.get(RELEVANT_KEY)
-        chunks = chunks_of(i.record)
-        if relevant is None or not chunks:
-            continue
-        labelled += 1
-        retrieved += len(chunks)
-        g = grades(i.record) or []
-        matched += sum(1 for v in g if v > 0)
-        seen_ids += [str(c.id) for c in chunks if c.id is not None][:2]
-        labels = [relevant] if isinstance(relevant, str) else list(relevant)
-        gold_ids += [str(x) for x in labels][:2]
-    if labelled < 2 or matched or not seen_ids:
-        return ""
-    seen = ", ".join(dict.fromkeys(seen_ids[:4]))
-    gold = ", ".join(dict.fromkeys(gold_ids[:4]))
-    return (
-        f"no retrieved passage matched a gold `relevant` id in any of {labelled} items "
-        f"(retrieved ids like {seen}; labelled {gold}). If the ids come from different "
-        "schemes, retrieval metrics and F10 are wrong: label with your retriever's ids, or "
-        "with the passage text."
-    )
-
-
-# --- statistics ------------------------------------------------------------------------------
-
-
-def bootstrap_ci(
-    values: Sequence[float], *, samples: int = 1000, seed: int = 0
-) -> tuple[float | None, float | None]:
-    """95% confidence interval of the mean by bootstrap (seeded, so runs repeat)."""
-    if len(values) < 2:
-        return None, None
-    rng = random.Random(seed)
-    k = len(values)
-    means = sorted(sum(rng.choices(values, k=k)) / k for _ in range(samples))
-    return means[int(0.025 * samples)], means[int(0.975 * samples) - 1]
-
-
-def summarize(name: str, results: Iterable[MetricResult]) -> MetricSummary:
-    rs = list(results)
-    values = [r.value for r in rs if r.value is not None]
-    low, high = bootstrap_ci(values)
-    first = rs[0] if rs else None
-    return MetricSummary(
-        name=name,
-        n=len(values),
-        mean=statistics.fmean(values) if values else None,
-        ci_low=low,
-        ci_high=high,
-        passed=sum(r.passed is True for r in rs),
-        failed=sum(r.passed is False for r in rs),
-        not_scored=sum(r.value is None and r.passed is not False for r in rs),
-        threshold=first.threshold if first else None,
-        higher_is_better=first.higher_is_better if first else True,
-    )
-
-
-# --- one item ---------------------------------------------------------------------------------
-
-
-def score(record: CallRecord, reference: Any, metrics: Sequence[Metric]) -> list[MetricResult]:
-    return [m.score(record, reference) for m in metrics]
-
-
-def _passed(record: CallRecord, results: Sequence[MetricResult]) -> bool:
-    return record.error is None and all(r.passed is not False for r in results)
-
-
-def _with_metric_findings(diagnosis: Diagnosis, results: Sequence[MetricResult]) -> Diagnosis:
-    """Add a finding for each failed metric that names a failure type (e.g. F2)."""
-    have = {f.failure_type for f in diagnosis.findings}
-    for r in results:
-        if r.passed is False and r.failure_type is not None and r.failure_type not in have:
-            diagnosis.findings.append(
-                Finding(
-                    failure_type=r.failure_type,
-                    confidence=0.9,
-                    evidence=[Evidence(detector=f"metric:{r.name}", detail=r.reason)],
-                )
-            )
-            have.add(r.failure_type)
-    from counterfix.core.precedence import resolve
-
-    # a metric can name the root cause (F13, F12): let it supersede live findings it explains
-    kept, suppressed = resolve(diagnosis.findings)
-    diagnosis.findings = kept
-    diagnosis.suppressed = [*diagnosis.suppressed, *suppressed]
-    return diagnosis
-
-
-def _metric_miss(r: MetricResult) -> str:
-    """'latency over 5000' / 'exact_match missed': short, so repeats can be counted."""
-    if r.threshold is not None and r.value is not None and not r.higher_is_better:
-        return f"{r.name} over {r.threshold:g}"
-    return f"{r.name} missed"
-
-
-def fix_item(
-    record: CallRecord,
-    reference: Any,
-    metrics: Sequence[Metric],
-    diagnosis: Diagnosis,
-    caller: ModelCaller,
-    *,
-    runs: int = 6,
-    need: int | None = None,
-    max_runs: int = 30,
-    must_clear: set[FailureType] | None = None,
-    on_run: Callable[[int, str], None] | None = None,
-    alpha: float = 0.05,
-) -> ItemFix:
-    """Search for a change that makes this item pass clearly more often than a plain
-    retry (see :mod:`counterfix.fixes.verify`; ``need`` is no longer used).
-
-    A plain retry runs first; if it passes too often for any change to beat, no change
-    is claimed. Then the
-    engine's interventions for each cause found, most confident cause first. A run
-    counts only when every metric passes and the live checks find nothing new; with
-    ``must_clear`` (a flagged item, whose metrics already pass) those failure types must
-    also be gone. ``on_run(calls, change)`` is called before each re-run (for progress).
-    """
-    from counterfix.detect import default_detectors
-    from counterfix.fixes.engine import INTERVENTIONS
-    from counterfix.fixes.verify import beatable, level, p_value, settled
-
-    result = ItemFix()
-    checks = default_detectors()
-    before = {f.failure_type for f in diagnosis.model_failures}
-    causes = {f.failure_type for f in diagnosis.model_failures}
-    at = level(alpha, sum(1 for i in INTERVENTIONS if i.failure_type in causes))
-    base = [0, 0]
-
-    def trial(
-        attempt: FixTry, messages: list[Message], params: dict[str, Any], is_retry: bool = False
-    ) -> FixTry:
-        for _ in range(runs):
-            if result.calls >= max_runs:
-                break
-            result.calls += 1
-            attempt.runs += 1
-            if on_run is not None:
-                on_run(result.calls, attempt.name)
-            try:
-                new = caller.complete(messages, **params)
-            except DailyLimitError:
-                raise
-            except Exception as exc:
-                attempt.why_not.append(f"call failed ({type(exc).__name__})")
-                attempt.errors += 1
-                continue  # an unreadable run is not evidence either way
-            new.metadata = {**record.metadata, **new.metadata, **attempt.metadata}
-            left = {f.failure_type for f in run_detectors(new, checks, Config()).model_failures}
-            still = (must_clear or set()) & left
-            results = score(new, reference, metrics)
-            if _passed(new, results) and left <= before and not still:
-                attempt.passed += 1
-            else:
-                attempt.why_not += [_metric_miss(r) for r in results if r.passed is False]
-                attempt.why_not += [f"still {t.value}" for t in sorted(still, key=str)]
-                attempt.why_not += [f"new {t.value}" for t in sorted(left - before, key=str)]
-            if is_retry:
-                if not beatable(attempt.passed, attempt.observed, runs, at):
-                    break
-            elif settled(
-                base[0],
-                base[1],
-                attempt.passed,
-                attempt.observed,
-                attempt.observed + (runs - attempt.runs),
-                at,
-            ):
-                break
-        if is_retry:
-            attempt.verified = not beatable(attempt.passed, attempt.observed, runs, at)
-        else:
-            attempt.p_value = p_value(base[0], base[1], attempt.passed, attempt.observed)
-            attempt.verified = attempt.passed > 0 and attempt.p_value <= at
-        return attempt
-
-    if need is not None:
-        import warnings
-
-        warnings.warn(
-            "fix_item(need=...) is ignored: a change is now verified when it beats the "
-            "plain retry (see counterfix.fixes.verify)",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-    result.retry = trial(
-        FixTry(name="plain_retry", description="Re-run unchanged"),
-        record.messages,
-        record.params,
-        is_retry=True,
-    )
-    base[0], base[1] = result.retry.passed, result.retry.observed
-    if result.retry.verified:
-        result.note = "a plain retry passes: the failure was not repeatable"
-        return result
-    failures = sorted(diagnosis.model_failures, key=lambda f: -f.confidence)
-    if not failures:
-        result.note = "no cause found, so no targeted change to try"
-        return result
-    for finding in failures:
-        for iv in INTERVENTIONS:
-            if iv.failure_type is not finding.failure_type:
-                continue
-            change = iv.apply(record, finding)
-            if change is None:
-                continue
-            if result.calls >= max_runs:
-                result.note = f"stopped at the budget of {max_runs} re-runs"
-                return result
-            messages, params = change
-            attempt = FixTry(
-                name=iv.name,
-                description=iv.description,
-                changed={k: v for k, v in params.items() if record.params.get(k) != v},
-                messages=None if messages == record.messages else messages,
-                metadata=iv.metadata(record, finding) if iv.metadata else {},
-            )
-            result.tried.append(trial(attempt, messages, params))
-            if attempt.verified:
-                result.fix = attempt
-                result.note = "stopped at the first verified fix"
-                return result
-    result.note = result.note or "no change beat the plain retry clearly enough"
-    return result
-
-
-# --- the run ----------------------------------------------------------------------------------
+from counterfix.evals.fixing import (
+    _metric_miss as _metric_miss,
+)
+from counterfix.evals.fixing import (
+    _passed as _passed,
+)
+from counterfix.evals.fixing import (
+    _with_metric_findings as _with_metric_findings,
+)
+from counterfix.evals.fixing import (
+    fix_item as fix_item,
+)
+from counterfix.evals.fixing import (
+    score as score,
+)
+from counterfix.evals.metrics import Metric, get_metric
+from counterfix.evals.results import (
+    EvalResult as EvalResult,
+)
+from counterfix.evals.results import (
+    FixTry as FixTry,
+)
+from counterfix.evals.results import (
+    ItemFix as ItemFix,
+)
+from counterfix.evals.results import (
+    ItemResult as ItemResult,
+)
+from counterfix.evals.results import (
+    MetricSummary as MetricSummary,
+)
+from counterfix.evals.results import (
+    _id_mismatch_note as _id_mismatch_note,
+)
+from counterfix.evals.results import (
+    bootstrap_ci as bootstrap_ci,
+)
+from counterfix.evals.results import (
+    summarize as summarize,
+)
+from counterfix.evals.sampling import (
+    SAMPLE_KEY as SAMPLE_KEY,
+)
+from counterfix.evals.sampling import (
+    _check_code_execution as _check_code_execution,
+)
+from counterfix.evals.sampling import (
+    _pass_at_k as _pass_at_k,
+)
+from counterfix.evals.sampling import (
+    _repeat as _repeat,
+)
+from counterfix.runtime.perf import speed_summary
 
 
 def _caller(model: str | ModelCaller) -> ModelCaller:
@@ -432,105 +107,6 @@ def _caller(model: str | ModelCaller) -> ModelCaller:
     from counterfix.core.presets import caller_for, pace_for
 
     return RateLimitedCaller(caller_for(model, timeout=120), pace_for(model))
-
-
-def _fingerprint(item: EvalItem) -> str:
-    """What was asked: a kept answer is reused only for the same messages and params."""
-    payload = json.dumps(
-        [[m.model_dump(mode="json", exclude_none=True) for m in item.messages], item.params],
-        sort_keys=True,
-        default=str,
-    )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
-
-
-def _cached(path: Path | None, model: str | None) -> dict[tuple[str, str], CallRecord]:
-    if path is None or not path.exists():
-        return {}
-    done: dict[tuple[str, str], CallRecord] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            row = json.loads(line)
-            if row.get("model") == model:
-                key = (str(row["id"]), str(row.get("asked", "")))
-                done[key] = CallRecord.model_validate(row["record"])
-    return done
-
-
-def _question(item: EvalItem) -> str:
-    """The question an app is asked: the dataset's question, not the prompt built for it."""
-    from counterfix.detect.retrieval import QUESTION_KEY
-    from counterfix.evals.data import INPUT_KEY
-
-    for key in (QUESTION_KEY, INPUT_KEY):
-        asked = item.metadata.get(key)
-        if isinstance(asked, str) and asked:
-            return asked
-    users = [m for m in item.messages if m.role == "user"]
-    return users[-1].text if users else ""
-
-
-def _run_app(app: Callable[[str], Any], item: EvalItem) -> CallRecord:
-    """Call the user's app on one item and read what it returned."""
-    from counterfix.detect.retrieval import QUESTION_KEY, record_from_output
-
-    question = _question(item)
-    start = time.perf_counter()
-    try:
-        output = app(question)
-        if inspect.isawaitable(output):
-            from counterfix.core.sync import resolve
-
-            output = resolve(output)
-    except DailyLimitError:
-        raise
-    except Exception as exc:
-        return CallRecord(
-            messages=[Message(role="user", content=question)],
-            error=f"{type(exc).__name__}: {exc}",
-            metadata={QUESTION_KEY: question},
-        )
-    latency = (time.perf_counter() - start) * 1000
-    return record_from_output(question, output, latency_ms=latency)
-
-
-def _ask_all(
-    items: Sequence[EvalItem],
-    ask: Callable[[EvalItem], CallRecord],
-    workers: int,
-    progress: Progress | None,
-) -> tuple[list[tuple[EvalItem, CallRecord]], str | None]:
-    """Answer items on ``workers`` threads; results keep the items' order. A daily limit
-    stops new work; items already answered are kept."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    stop = threading.Event()
-    answers: dict[int, CallRecord] = {}
-    stopped: str | None = None
-
-    def one(k: int) -> CallRecord | None:
-        return None if stop.is_set() else ask(items[k])
-
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(one, k): k for k in range(len(items))}
-        done = 0
-        for future in as_completed(futures):
-            k = futures[future]
-            done += 1
-            try:
-                record = future.result()
-            except DailyLimitError as exc:
-                stop.set()
-                stopped = stopped or f"stopped early: {exc}"
-                continue
-            if record is not None:
-                answers[k] = record
-            if progress:
-                progress(done, len(items), items[k].id)
-    ordered = [(items[k], answers[k]) for k in sorted(answers)]
-    if ordered and all(r.error for _, r in ordered) and len(ordered) >= 3:
-        stopped = stopped or f"every call failed ({ordered[0][1].error})"
-    return ordered, stopped
 
 
 def evaluate(
@@ -819,52 +395,3 @@ def evaluate(
             code_tally[str(check["cause"])] += 1
     result.code_causes = dict(code_tally.most_common())
     return result
-
-
-def _check_code_execution(metrics: Sequence[Metric]) -> None:
-    """Fail before any call when a metric would run code that is not allowed to run."""
-    from counterfix.detect.code.sandbox import CodeExecutionDisabled, execution_allowed
-
-    for m in metrics:
-        if getattr(m, "needs_code_execution", False) and not execution_allowed(
-            m.options.get("allow")
-        ):
-            raise CodeExecutionDisabled()
-
-
-def _repeat(items: Sequence[EvalItem], n: int) -> list[EvalItem]:
-    """Each item n times, as ``id#1`` .. ``id#n`` (the base id kept in metadata)."""
-    out: list[EvalItem] = []
-    for item in items:
-        for k in range(1, n + 1):
-            copy = item.model_copy(deep=True)
-            copy.id = f"{item.id}#{k}"
-            copy.metadata[SAMPLE_KEY] = item.id
-            out.append(copy)
-    return out
-
-
-SAMPLE_KEY = "sample_of"
-
-
-def _pass_at_k(
-    result: EvalResult, metrics: Sequence[Metric], n: int
-) -> dict[str, dict[int, float]]:
-    """pass@k per pass/fail metric over the questions, for k in 1, 5, 10, 100 up to n."""
-    from counterfix.detect.code.passk import mean_pass_at_k
-
-    ks = [k for k in (1, 5, 10, 100) if k <= n] or [1]
-    out: dict[str, dict[int, float]] = {}
-    for j, m in enumerate(metrics):
-        if m.threshold is None:
-            continue
-        groups: dict[str, list[bool]] = {}
-        for item in result.items:
-            r = item.metrics[j]
-            base = str(item.record.metadata.get(SAMPLE_KEY) or item.id.rsplit("#", 1)[0])
-            groups.setdefault(base, []).append(r.passed is True)
-        counts = [(len(v), sum(v)) for v in groups.values()]
-        values = {k: v for k in ks if (v := mean_pass_at_k(counts, k)) is not None}
-        if values:
-            out[m.name] = values
-    return out
