@@ -26,7 +26,7 @@ from counterfix.lint import lint
 from counterfix.runtime.context import context
 from counterfix.runtime.report import log_to
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     "CallRecord",

@@ -2,6 +2,17 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## 0.4.1 (2026-11-13)
+
+Documentation only; no code changes.
+
+- The README (also the PyPI page) is up to date with 0.4: the roadmap lists what
+  counterfix does today instead of a build log, the status note and the extras list no
+  longer name removed features, and "benchmark" now reads "probe set" where it means
+  counterfix's own probes.
+- The CLI reference shows `--from` and `--threshold`; CONTRIBUTING and the pull request
+  checklist include `lint-imports`, which CI runs.
+
 ## 0.4.0 (2026-11-13)
 
 counterfix now works with the evaluation tools you already use, and drops the parts that
