@@ -108,7 +108,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
 def cmd_diagnose(args: argparse.Namespace) -> int:
     """Check every call in a JSONL log and print, save or render what was found."""
     from counterfix.diagnose import diagnose
-    from counterfix.report import html_report, load_log, log_line, text_report
+    from counterfix.runtime.report import html_report, load_log, log_line, text_report
 
     try:
         records = load_log(args.log)
@@ -145,7 +145,7 @@ def cmd_fix(args: argparse.Namespace) -> int:
     from counterfix.core.presets import load_env_file
     from counterfix.diagnose import diagnose
     from counterfix.fixes.engine import fix
-    from counterfix.report import load_log
+    from counterfix.runtime.report import load_log
 
     load_env_file(Path.cwd() / ".env")
     try:
@@ -468,7 +468,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
         print(profiles.compare(old, new))
         return 0
     from counterfix.diagnose import diagnose
-    from counterfix.report import load_log
+    from counterfix.runtime.report import load_log
 
     judge = _judge_arg(args.judge)
     if judge is None:
@@ -548,7 +548,7 @@ def cmd_route(args: argparse.Namespace) -> int:
 def cmd_mcp(args: argparse.Namespace) -> int:
     """Run the MCP server on stdio (needs the mcp extra)."""
     try:
-        from counterfix.mcp_server import main as serve
+        from counterfix.integrations.mcp_server import main as serve
     except ImportError:
         print('The MCP server needs: pip install "counterfix[mcp]"')
         return 2
@@ -629,7 +629,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
         print(f"\nJudge test FAILED with {judge.name}: {verdict.reason}")
         return 1
     print(f"\nJudge test ok: {judge.name} said {verdict.label!r} in {took:.1f}s ({source})")
-    from counterfix.capabilities import probe_logprobs
+    from counterfix.integrations.capabilities import probe_logprobs
 
     specs = [spec for spec, _ in detect_judges()]
     if models:

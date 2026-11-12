@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from counterfix import mcp_server
+from counterfix.integrations import mcp_server
 
 
 def test_tools_work_without_a_model_call() -> None:

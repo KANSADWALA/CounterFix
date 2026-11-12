@@ -34,6 +34,14 @@ MOVED: dict[str, str] = {
     "counterfix.presets": "counterfix.core.presets",
     "counterfix.rules": "counterfix.fixes",
     "counterfix.rules.store": "counterfix.core.rules",
+    "counterfix.report": "counterfix.runtime.report",
+    "counterfix.background": "counterfix.runtime.background",
+    "counterfix.context": "counterfix.runtime.context",
+    "counterfix.perf": "counterfix.runtime.perf",
+    "counterfix.adapters": "counterfix.integrations",
+    "counterfix.otel": "counterfix.integrations.otel",
+    "counterfix.capabilities": "counterfix.integrations.capabilities",
+    "counterfix.mcp_server": "counterfix.integrations.mcp_server",
 }
 
 

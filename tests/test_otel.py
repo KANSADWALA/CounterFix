@@ -8,7 +8,7 @@ import pytest
 import counterfix
 from conftest import FakeClient, FakeCompletions, make_response
 from counterfix import Config, FailureType
-from counterfix.otel import SpanChecker, record_from_span
+from counterfix.integrations.otel import SpanChecker, record_from_span
 
 
 def test_record_from_new_and_old_genai_attributes() -> None:

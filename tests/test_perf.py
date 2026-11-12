@@ -12,7 +12,7 @@ import pytest
 import counterfix
 from conftest import FakeClient, FakeCompletions
 from counterfix import CallRecord, Config, Message, Timing, Usage
-from counterfix.perf import (
+from counterfix.runtime.perf import (
     cost_usd,
     percentile,
     set_prices,
@@ -241,7 +241,7 @@ def test_hooks_runs_each_hook_in_order() -> None:
 
 
 def test_text_and_html_reports_show_speed_per_model() -> None:
-    from counterfix.report import html_report, text_report
+    from counterfix.runtime.report import html_report, text_report
 
     records = [rec(ms, ttft=ms / 4) for ms in (100, 200, 300)]
     reports = [counterfix.diagnose(r, judge=False) for r in records]

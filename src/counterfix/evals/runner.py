@@ -38,7 +38,7 @@ from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType
 from counterfix.evals.data import EvalItem, is_suite, load_suite, make_items, read_rows
 from counterfix.metrics import Metric, MetricResult, get_metric
-from counterfix.perf import SpeedSummary, speed_summary
+from counterfix.runtime.perf import SpeedSummary, speed_summary
 
 Progress = Callable[[int, int, str], None]
 

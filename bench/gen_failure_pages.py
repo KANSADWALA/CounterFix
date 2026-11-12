@@ -36,7 +36,7 @@ TEXT = {
         "The answer states facts that are false or unsupported, usually because the model "
         "did not know.",
         "Judge: lists the factual claims and marks false or unsupported ones; with a "
-        "`source` (see `counterfix.context`) it checks the answer against that text. "
+        "`source` (see `counterfix.runtime.context`) it checks the answer against that text. "
         "`SamplingCheck` can also re-ask the model and flag answers that change.",
     ),
     "F5": (

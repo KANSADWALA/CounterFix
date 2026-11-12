@@ -9,7 +9,7 @@ import counterfix
 from conftest import FakeClient, FakeCompletions, make_response
 from counterfix import CallRecord, Config, Message
 from counterfix.cli import main
-from counterfix.report import html_report, text_report
+from counterfix.runtime.report import html_report, text_report
 
 
 def test_log_to_writes_every_guarded_call_and_load_log_reads_it(tmp_path: Path) -> None:
@@ -75,7 +75,10 @@ def test_context_block_attaches_source_and_reference(tmp_path: Path) -> None:
         FakeClient(FakeCompletions(make_response("21 days."))),
         config=Config(on_diagnosis=lambda r, d: seen.append(r)),
     )
-    with counterfix.context(source="Refunds within 21 days."), counterfix.context(reference="21"):
+    with (
+        counterfix.context(source="Refunds within 21 days."),
+        counterfix.context(reference="21"),
+    ):
         client.chat.completions.create(model="m", messages=[{"role": "user", "content": "?"}])
     client.chat.completions.create(model="m", messages=[{"role": "user", "content": "?"}])
     assert seen[0].metadata[CONTEXT_KEY] == "Refunds within 21 days."

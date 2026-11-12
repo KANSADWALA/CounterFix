@@ -139,7 +139,7 @@ ignore_missing_imports = true
 
 # The frameworks are optional: installed locally, missing in CI, so the ignores differ.
 [[tool.mypy.overrides]]
-module = ["counterfix.adapters.callbacks"]
+module = ["counterfix.integrations.callbacks"]
 warn_unused_ignores = false
 
 [tool.pytest.ini_options]
@@ -158,19 +158,15 @@ type = "layers"
 layers = [
   "counterfix.__main__",
   "counterfix.cli",
-  "counterfix.mcp_server",
   "counterfix.benchmarks",
   "counterfix.evals | counterfix.testing",
   "counterfix.metrics",
-  "counterfix.safety | counterfix.perplexity | counterfix.capabilities",
-  "counterfix.otel",
-  "counterfix.adapters",
-  "counterfix.background",
-  "counterfix.report",
-  "counterfix.perf",
+  "counterfix.safety | counterfix.perplexity",
+  "counterfix.integrations",
+  "counterfix.runtime",
   "counterfix.fixes",
   "counterfix.diagnose",
-  "counterfix.lint | counterfix.context",
+  "counterfix.lint",
   "counterfix.detect",
   "counterfix.judges",
   "counterfix.core",

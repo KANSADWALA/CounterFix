@@ -12,7 +12,7 @@ import pytest
 import counterfix
 from conftest import FakeClient, FakeCompletions, FlagAll, make_response
 from counterfix import Config
-from counterfix.adapters.openai_compat import settings
+from counterfix.integrations.openai_compat import settings
 
 
 def _state(client: Any) -> Any:

@@ -7,13 +7,13 @@ from types import SimpleNamespace
 from typing import Any
 
 import counterfix
-from counterfix.adapters.responses import (
+from counterfix.core.types import FailureType
+from counterfix.integrations.responses import (
     chat_params,
     messages_from_input,
     record_from_responses,
     responses_changes,
 )
-from counterfix.core.types import FailureType
 
 
 def _resp(text: str = "Paris.", status: str = "completed", reason: str | None = None, **extra):

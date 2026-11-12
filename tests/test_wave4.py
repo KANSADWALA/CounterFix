@@ -10,7 +10,6 @@ from typing import Any
 import pytest
 
 from counterfix import Config
-from counterfix.adapters.openai_compat import record_from_openai
 from counterfix.benchmarks import load_benchmark
 from counterfix.benchmarks.injection import InjectionResisted
 from counterfix.core.detector import SkipCheck, run_detectors
@@ -21,6 +20,7 @@ from counterfix.detect.confidence import describe, mean_probability
 from counterfix.detect.injection import CanaryCheck, InjectionCheck, canary_found
 from counterfix.evals import evaluate
 from counterfix.fixes.engine import INTERVENTIONS
+from counterfix.integrations.openai_compat import record_from_openai
 from counterfix.judges.base import Verdict
 from counterfix.judges.tasks import CONTEXT_KEY
 from counterfix.metrics import get_metric
@@ -57,7 +57,7 @@ def test_logprobs_summarised_on_the_record() -> None:
 
 
 def test_stream_keeps_logprobs() -> None:
-    from counterfix.adapters.streams import _OpenAIParts
+    from counterfix.integrations.streams import _OpenAIParts
 
     parts = _OpenAIParts()
     for tok, lp in (("Hi", -0.1), ("!", -0.5)):

@@ -131,7 +131,7 @@ def _timed(diagnoses: Iterable[Diagnosis]) -> list[CallRecord]:
 
 def speed_lines(diagnoses: Iterable[Diagnosis]) -> list[str]:
     """Speed and cost per model (latency, TTFT, tokens/s percentiles), when calls were timed."""
-    from counterfix.perf import by_model, speed_summary
+    from counterfix.runtime.perf import by_model, speed_summary
 
     timed = _timed(diagnoses)
     if not timed:
@@ -143,7 +143,7 @@ def speed_lines(diagnoses: Iterable[Diagnosis]) -> list[str]:
 
 
 def _speed_html(diagnoses: list[Diagnosis]) -> str:
-    from counterfix.perf import Spread, by_model, speed_summary
+    from counterfix.runtime.perf import Spread, by_model, speed_summary
 
     timed = _timed(diagnoses)
     if not timed:

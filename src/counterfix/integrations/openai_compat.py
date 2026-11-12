@@ -105,14 +105,14 @@ class _Guard:
     def check(self, record: CallRecord, response: Any) -> Diagnosis | None:
         """Run detectors on a record, attach the result, call hooks. Never raises if fail_open."""
         try:
-            from counterfix.context import apply
+            from counterfix.runtime.context import apply
 
             diagnosis: Diagnosis = run_detectors(apply(record), self.detectors, self.config)
             diagnosis._client = self.client
             attach(response, diagnosis)
             if self.config.on_diagnosis is not None:
                 self.config.on_diagnosis(record, diagnosis)
-            from counterfix import background
+            from counterfix.runtime import background
 
             if background.wants(diagnosis, self.config):
                 background.submit(record, self.config, self.client)
@@ -223,7 +223,7 @@ class _Guard:
 
     def wrap_stream(self, result: Any, kwargs: dict[str, Any], start: float) -> Any:
         """Pass a stream through chunk by chunk; check the whole answer when it ends."""
-        from counterfix.adapters.streams import GuardedStream
+        from counterfix.integrations.streams import GuardedStream
 
         kind = self.stream_kind
 
@@ -418,7 +418,7 @@ def settings(
         update["mode"] = mode
     if log is not None:
         from counterfix.core.config import hooks
-        from counterfix.report import log_to
+        from counterfix.runtime.report import log_to
 
         update["on_diagnosis"] = hooks(base.on_diagnosis, log_to(log))
     if judge is not None:
@@ -484,7 +484,7 @@ def guard(
 
         detectors = default_detectors()
     if not hasattr(client, "chat") and hasattr(client, "messages"):
-        from counterfix.adapters.anthropic import ANTHROPIC_RETRY_PARAMS, record_from_anthropic
+        from counterfix.integrations.anthropic import ANTHROPIC_RETRY_PARAMS, record_from_anthropic
 
         state = _Guard(
             config,
@@ -496,7 +496,7 @@ def guard(
         )
         state.client = client
     else:
-        from counterfix.adapters.responses import (
+        from counterfix.integrations.responses import (
             RESPONSES_PATHS,
             RESPONSES_RETRY_PARAMS,
             record_from_responses,

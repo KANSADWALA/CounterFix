@@ -13,7 +13,7 @@ import counterfix
 from conftest import FakeClient, FakeCompletions, make_response
 from counterfix import CallRecord, Config, FailureType, Message
 from counterfix.core.sync import clean_params, rerun_params, resolve, sync_client
-from counterfix.report import load_log, log_line
+from counterfix.runtime.report import load_log, log_line
 
 PLANETS = [{"role": "user", "content": "List the planets of the solar system, one per line."}]
 

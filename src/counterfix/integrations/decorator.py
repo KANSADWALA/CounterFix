@@ -22,11 +22,11 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
-from counterfix.adapters.openai_compat import _Guard, settings
 from counterfix.core.config import Config
 from counterfix.core.convert import record_from_openai
 from counterfix.core.detector import Detector
 from counterfix.core.record import CallRecord, Message
+from counterfix.integrations.openai_compat import _Guard, settings
 
 F = TypeVar("F", bound=Callable[..., Any])
 

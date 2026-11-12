@@ -56,7 +56,7 @@ class Config(BaseModel):
 
     sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     """Background judge checks: 0 (default) is off. Above 0, every flagged call plus this
-    share of the others is judged on a background thread (see ``counterfix.background``)."""
+    share of the others is judged on a background thread (see ``counterfix.runtime.background``)."""
 
     max_judged_per_hour: int = Field(default=60, ge=0)
     """Cost cap for background judge checks; calls over it are skipped, never delayed."""

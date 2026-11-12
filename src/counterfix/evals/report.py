@@ -158,7 +158,7 @@ def text_report(result: EvalResult) -> str:
 
 
 def html_report(result: EvalResult) -> str:
-    from counterfix.report import _CSS
+    from counterfix.runtime.report import _CSS
 
     e = html.escape
     rows = "".join(

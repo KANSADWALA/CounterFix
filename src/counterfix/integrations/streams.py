@@ -151,7 +151,7 @@ class GuardedStream:
         self._stream = stream
         # kind: "chat", "anthropic" or "responses" (True / False still mean anthropic / chat)
         if kind == "responses":
-            from counterfix.adapters.responses import ResponsesParts
+            from counterfix.integrations.responses import ResponsesParts
 
             self._parts: Any = ResponsesParts()
         elif kind is True or kind == "anthropic":
