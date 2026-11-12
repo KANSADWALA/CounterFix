@@ -2,6 +2,18 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
+## Unreleased
+
+- **Fix with your own test:** `counterfix.fix(response, check=my_test)` and
+  `counterfix fix calls.jsonl --check checks.py:my_test`. Your check (a function, a
+  counterfix `Metric`, or a wrapper around a DeepEval or Ragas metric) decides whether a
+  re-run passed; counterfix's diagnosis still picks what to try, and a change must still
+  beat a plain retry. If your check passes, nothing is re-run; if it fails and no cause is
+  found, counterfix says so instead of guessing. No judge is needed to confirm a fix when
+  a check is given. A check that raises on the original call gives a `CheckError`; a bare
+  score (not True/False) is refused. See
+  [Fix with your own test](https://kansadwala.github.io/CounterFix/your-check/).
+
 ## 0.3.0 (2026-11-12)
 
 A smaller front door, a new layout, and a clearer job: counterfix finds out why an LLM

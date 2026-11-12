@@ -29,6 +29,7 @@ nav:
       - Plug it in: plugs.md
       - Diagnose a call: diagnose.md
       - Verified fixes: fixes.md
+      - Fix with your own test: your-check.md
       - Prompt regression tests: testing.md
   - In production:
       - In production: production.md

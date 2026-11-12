@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from counterfix.cli.common import (
     _cli_judge,
@@ -92,7 +93,7 @@ def cmd_fix(args: argparse.Namespace) -> int:
     """Run the counterfactual engine on every flagged call in a log; save what worked."""
     from counterfix.core.presets import load_env_file
     from counterfix.diagnose import diagnose
-    from counterfix.fixes.engine import fix
+    from counterfix.fixes.engine import CheckError, fix
     from counterfix.runtime.report import load_log
 
     load_env_file(Path.cwd() / ".env")
@@ -108,13 +109,27 @@ def cmd_fix(args: argparse.Namespace) -> int:
             return 2
         judge = found
     caller = _rerun_caller(args.caller) if args.caller else None
+    check = None
+    if getattr(args, "check", None):
+        from counterfix.evals.data import load_callable
+
+        try:
+            check = load_callable(args.check)
+        except (ImportError, AttributeError, ValueError, OSError) as exc:
+            print(f"Cannot load the check {args.check}: {exc}")
+            return 2
     rows, fixed = [], 0
     for n, record in enumerate(records, 1):
-        report = diagnose(record, judge=judge)
-        if not report.model_failures:
-            continue
+        target: Any = record
+        if check is None:  # with a check, the check decides which calls failed
+            target = diagnose(record, judge=judge)
+            if not target.model_failures:
+                continue
         try:
-            result = fix(report, judge=judge, caller=caller, max_runs=args.max_runs)
+            result = fix(target, judge=judge, caller=caller, max_runs=args.max_runs, check=check)
+        except CheckError as exc:
+            print(f"Call {n}: {exc}")
+            return 2
         except ValueError as exc:
             # the API's own message mentions caller=...; say it in command-line terms
             why = str(exc)
@@ -130,6 +145,8 @@ def cmd_fix(args: argparse.Namespace) -> int:
             )
             print(f"Call {n} ({record.model or 'unknown model'}) cannot be re-run: {why}.{hint}")
             return 2
+        if result.check is not None and result.stopped.startswith("your check passes"):
+            continue
         fixed += result.fix is not None
         print(f"--- call {n} ({record.model})\n{result.explain()}\n")
         rows.append(

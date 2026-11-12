@@ -59,9 +59,13 @@ class FixResult(BaseModel):
     stopped: str = ""
     level: float | None = None
     """The p-value a change had to reach (``alpha`` over the number of changes)."""
+    check: str | None = None
+    """The name of your own check, when ``fix(check=...)`` decided which runs passed."""
 
     def explain(self) -> str:
         lines = [f"found: {self.diagnosis.summary()}"]
+        if self.check is not None:
+            lines.append(f"pass test: your check {self.check} (and no new failure)")
         if self.retry is not None:
             lines.append(f"plain retry: passed {self.retry.passed}/{self.retry.observed}")
         for a in self.attempts:
@@ -72,10 +76,13 @@ class FixResult(BaseModel):
                     f"{f.failure_type.value} {f.failure_type.label}"
                     for f in self.diagnosis.findings
                 }
+                yours = sorted({t for t in a.seen if t.startswith("your check")})
                 kept = sorted(t for t in set(a.seen) if t in found)
-                new = sorted(t for t in set(a.seen) if t not in found)
-                parts = ([f"still: {', '.join(kept)}"] if kept else []) + (
-                    [f"new: {', '.join(new)}"] if new else []
+                new = sorted(t for t in set(a.seen) if t not in found and t not in yours)
+                parts = (
+                    yours
+                    + ([f"still: {', '.join(kept)}"] if kept else [])
+                    + ([f"new: {', '.join(new)}"] if new else [])
                 )
                 still = f" ({'; '.join(parts)})"
             vs = ""

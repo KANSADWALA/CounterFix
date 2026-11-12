@@ -5,7 +5,7 @@
 | `counterfix setup [--test]` | which keys, local models and judge will be used (values never printed) |
 | `counterfix lint FILE... [--judge] [--fail-on-warning]` | prompt linter |
 | `counterfix diagnose LOG [--judge] [--html P] [--json P] [--fail-on-failure]` | report on a log of calls |
-| `counterfix fix LOG [--judge] [--caller SPEC] [--out P]` | verified fixes for the failed calls in a log |
+| `counterfix fix LOG [--judge] [--caller SPEC] [--check FILE:FN] [--max-runs N] [--out P]` | verified fixes for the failed calls in a log; `--check` uses your own test ([guide](your-check.md)) |
 | `counterfix eval DATA [--model SPEC] [--app MODULE:FN] [--metric M]... [--concurrency N] [--samples N] [--allow-code] [--sandbox docker] [--judge] [--fix N] [--out P] [--fail-under M=V] [--fail-on-flagged]` | run and score a dataset, misses by cause, verified fixes ([guide](evals.md)) |
 | `counterfix benchmark NAME --model SPEC [--limit N] [--per-group N] [--seed S] [--fix N] [--allow-code]` | MMLU, GSM8K, ARC, TruthfulQA, IFEval, HumanEval, MBPP (and their EvalPlus versions), prompt injection and tool use, with misses by cause ([guide](benchmarks.md)); `--list` shows them |
 | `counterfix export-tests FIXES [--out P]` | turn verified fixes into pytest cases |

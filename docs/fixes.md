@@ -81,3 +81,9 @@ pass (anything with `complete(messages, **params)`).
 With a [model profile](profiles.md), `fix()` tries first what worked before on that model
 and leaves never-working changes for last (`profile="auto"`, the default, loads the stored
 profile when there is one).
+
+## Your own test as the pass test
+
+Already testing answers with your own function, DeepEval or Ragas? Pass it as
+`fix(response, check=...)` and it decides which re-runs pass: see
+[Fix with your own test](your-check.md).

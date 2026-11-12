@@ -92,6 +92,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="SPEC",
         help="re-run on this model: provider:model, anthropic:MODEL or MODEL@http://host/v1",
     )
+    p_fix.add_argument(
+        "--check",
+        metavar="MODULE:FN",
+        help="your own test of an answer (module:function or file.py:function); it decides"
+        " which calls failed and which re-runs passed",
+    )
     p_fix.add_argument("--max-runs", type=int, default=30, help="re-runs per call (default 30)")
     p_fix.add_argument("--out", metavar="PATH", help="save results as JSON lines")
     p_fix.set_defaults(func=cmd_fix)
