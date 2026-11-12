@@ -45,14 +45,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from counterfix.benchmarks import get_benchmark  # noqa: E402
-from counterfix.benchmarks.ifeval import IfEvalStrict, score_instructions  # noqa: E402
-from counterfix.engine import _with_system  # noqa: E402
-from counterfix.presets import caller_for, load_env_file, pace_for  # noqa: E402
-
 from counterfix import CallRecord, Message, diagnose, fix  # noqa: E402
 from counterfix.core.caller import RateLimitedCaller  # noqa: E402
+from counterfix.core.presets import caller_for, load_env_file, pace_for  # noqa: E402
+from counterfix.evals.benchmarks import get_benchmark  # noqa: E402
+from counterfix.evals.benchmarks.ifeval import IfEvalStrict, score_instructions  # noqa: E402
 from counterfix.evals.runner import _with_metric_findings, fix_item, score  # noqa: E402
+from counterfix.fixes.engine import _with_system  # noqa: E402
 
 RESULTS = ROOT / "bench" / "results"
 CAREFUL = (
