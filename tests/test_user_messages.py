@@ -1,4 +1,5 @@
-"""Rough edges found by using counterfix as a new developer would (2026-11-11)."""
+"""What a new user sees: clear errors, did-you-mean hints, notes in reports, install hints,
+and wording that separates tested fixes from untested suggestions."""
 
 from __future__ import annotations
 

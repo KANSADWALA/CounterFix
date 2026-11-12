@@ -1,3 +1,5 @@
+"""Retry mode and the fix rules it applies."""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,9 +32,6 @@ def needs_tokens(threshold: int) -> Callable[[dict[str, Any]], Any]:
         return make_response("A long answer that got finished.", "stop")
 
     return respond
-
-
-# --- rules store ---------------------------------------------------------------------
 
 
 def test_builtin_rules_and_apply() -> None:
@@ -98,9 +97,6 @@ def test_retry_budget() -> None:
     assert Config(max_extra_calls=3).retry_budget == 0  # flag mode never retries
     assert Config(mode="retry").retry_budget == 1
     assert Config(mode="retry", max_extra_calls=2).retry_budget == 2
-
-
-# --- retry mode ----------------------------------------------------------------------
 
 
 def test_flag_mode_never_retries() -> None:
