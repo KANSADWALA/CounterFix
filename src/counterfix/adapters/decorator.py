@@ -19,9 +19,10 @@ import functools
 import inspect
 import time
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Any, TypeVar, cast
 
-from counterfix.adapters.openai_compat import _Guard, record_from_openai
+from counterfix.adapters.openai_compat import _Guard, record_from_openai, settings
 from counterfix.core.config import Config
 from counterfix.core.detector import Detector
 from counterfix.core.record import CallRecord, Message
@@ -64,13 +65,21 @@ def watch(
     model: str | None = None,
     config: Config | None = None,
     detectors: Sequence[Detector] | None = None,
+    log: str | Path | None = None,
+    judge: Any = None,
+    sample_rate: float | None = None,
 ) -> Any:
-    """Decorate a function that calls a model so each call gets the live checks."""
+    """Decorate a function that calls a model so each call gets the live checks.
+
+    ``log``, ``judge`` and ``sample_rate`` are the same shortcuts as in
+    :func:`counterfix.guard`. There is no retry mode: a plain function cannot be re-run with
+    a changed request."""
     if detectors is None:
         from counterfix.detectors import default_detectors
 
         detectors = default_detectors()
-    state = _Guard(config or Config(), detectors, provider=None)
+    config = settings(config, log=log, judge=judge, sample_rate=sample_rate)
+    state = _Guard(config, detectors, provider=None)
 
     def decorate(func: F) -> F:
         def check(args: tuple[Any, ...], kwargs: dict[str, Any], result: Any, ms: float) -> None:

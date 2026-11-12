@@ -1,10 +1,26 @@
 # In production
 
+The common settings are keyword shortcuts on `guard` (and `watch`), so most setups need
+no `Config` object:
+
+```python
+client = counterfix.guard(
+    OpenAI(),
+    log="calls.jsonl",  # every call and its diagnosis
+    sample_rate=0.05,  # background judge checks (see below)
+    judge="groq:qwen/qwen3.8-27b",  # optional; otherwise picked from your keys
+    mode="retry",  # re-run a flagged call once with a known fix
+)
+```
+
+For the other settings (hourly cap, hooks, rules) pass a `counterfix.Config`; shortcuts
+given next to it override the matching fields.
+
 ## Log every call
 
 ```python
-config = counterfix.Config(on_diagnosis=counterfix.log_to("calls.jsonl"))
-client = counterfix.guard(OpenAI(), config=config)
+client = counterfix.guard(OpenAI(), log="calls.jsonl")
+# same as: guard(OpenAI(), config=counterfix.Config(on_diagnosis=counterfix.log_to("calls.jsonl")))
 ```
 
 Each line is `{"record": ..., "diagnosis": ...}`: the call and what the live checks found.

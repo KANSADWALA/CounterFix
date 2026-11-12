@@ -5,13 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "counterfix"
 version = "0.2.1"
-description = "LLM evaluation that diagnoses failures and re-runs fixes to see which ones work."
+description = "Find out why an LLM call failed, and prove the fix works: a one-line wrapper that diagnoses failures and verifies fixes by re-running them."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Shubham Kansadwala" }]
-keywords = ["llm", "debugging", "hallucination", "evaluation", "reliability", "counterfactual"]
+keywords = ["llm", "reliability", "debugging", "root-cause", "hallucination", "evaluation", "counterfactual", "openai", "anthropic"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -54,6 +54,13 @@ cli = ["typer>=0.12", "rich>=13.7"]
 report = ["jinja2>=3.1"]
 jev = ["typesafe-sdk>=0.7"]
 mcp = ["mcp>=2.0"]
+# Bundles. "evals": dataset runner, metrics and benchmarks (not the heavy torch or safety
+# models, which stay in "semantic" and "safety"). "all": every integration and feature.
+evals = ["counterfix[eval,metrics,code,benchmarks,report,cli]"]
+all = [
+  "counterfix[openai,anthropic,litellm,langchain,llamaindex,otel,mcp,cache]",
+  "counterfix[evals,semantic,safety]",
+]
 docs = ["mkdocs-material>=9.5"]
 dev = [
   "pytest>=8.0",
@@ -108,6 +115,8 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 "bench/eval_metrics.py" = ["E501"]
 "bench/spot_check.py" = ["E501"]
 "tests/test_agents.py" = ["E501"]
+# re-exports: eager ones for the core loop, the rest only for type checkers (loaded lazily)
+"src/counterfix/__init__.py" = ["F401"]
 # non-ASCII punctuation, spaces and quotes are what these modules look for
 "src/counterfix/text.py" = ["RUF001"]
 "src/counterfix/detectors/instructions.py" = ["RUF001"]

@@ -12,6 +12,7 @@ import inspect
 import logging
 import time
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Any, Literal, TypeVar, cast
 
 from counterfix.adapters._attach import attach
@@ -475,12 +476,49 @@ RETRY_LIMIT_KEYS = ("max_tokens", "max_completion_tokens", "max_output_tokens")
 RETRY_MIN_LIMIT = 1024
 
 
+def settings(
+    config: Config | None = None,
+    *,
+    mode: Literal["flag", "retry"] | None = None,
+    log: str | Path | None = None,
+    judge: Any = None,
+    sample_rate: float | None = None,
+) -> Config:
+    """The :class:`Config` for ``guard`` and ``watch``: ``config`` (or the defaults) with the
+    keyword shortcuts applied, so common setups need no Config object.
+
+    ``mode="retry"`` re-runs a flagged call once with a known fix; ``log`` appends every call
+    to a JSONL file (after any ``on_diagnosis`` hook already set); ``judge`` picks the judge
+    for background checks and ``sample_rate`` the share of unflagged calls it checks.
+    """
+    base = config if config is not None else Config()
+    update: dict[str, Any] = {}
+    if mode is not None:
+        update["mode"] = mode
+    if log is not None:
+        from counterfix.core.config import hooks
+        from counterfix.report import log_to
+
+        update["on_diagnosis"] = hooks(base.on_diagnosis, log_to(log))
+    if judge is not None:
+        update["judge"] = judge
+    if sample_rate is not None:
+        update["sample_rate"] = sample_rate
+    if not update:
+        return base
+    return Config.model_validate({**dict(base), **update})
+
+
 def guard(
     client: ClientT,
     *,
     config: Config | None = None,
     detectors: Sequence[Detector] | None = None,
     provider: str | None = None,
+    mode: Literal["flag", "retry"] | None = None,
+    log: str | Path | None = None,
+    judge: Any = None,
+    sample_rate: float | None = None,
 ) -> ClientT:
     """Wrap an LLM client so every call is checked: an OpenAI-compatible client
     (``chat.completions.create``) or an Anthropic client (``messages.create``), sync or async.
@@ -490,13 +528,20 @@ def guard(
     >>> r = client.chat.completions.create(model="gpt-4o-mini", messages=[...])  # doctest: +SKIP
     >>> r.diagnosis.summary()              # doctest: +SKIP
 
+    Common settings need no :class:`Config`: ``guard(client, mode="retry")`` re-runs a
+    flagged call once with a known fix, ``log="calls.jsonl"`` records every call, and
+    ``judge=...`` with ``sample_rate=0.05`` adds background judge checks. A ``config`` and
+    these shortcuts can be combined; the shortcuts win.
+
     ``detectors`` defaults to the built-in live detectors. ``provider`` labels each record
     (e.g. "groq"); when not given it is read from the client's base URL where known, so
     ``fix()`` and exported regression tests can re-run the call later. The result is typed
     as the client you passed, so editors keep their completions.
     """
+    shortcuts = {"mode": mode, "log": log, "judge": judge, "sample_rate": sample_rate}
     if isinstance(client, GuardedClient):
-        if config is None and detectors is None and provider is None:
+        unchanged = config is None and detectors is None and provider is None
+        if unchanged and all(v is None for v in shortcuts.values()):
             return client
         client = client.unwrapped  # re-wrap with the new settings
     if isinstance(client, type):
@@ -511,6 +556,7 @@ def guard(
             "@counterfix.watch; for LiteLLM or LangChain use counterfix.litellm_callback() or "
             "counterfix.langchain_callback()."
         )
+    config = settings(config, **shortcuts)
     provider = provider or provider_from_url(getattr(client, "base_url", None))
     if detectors is None:
         from counterfix.detectors import default_detectors
@@ -520,7 +566,7 @@ def guard(
         from counterfix.adapters.anthropic import ANTHROPIC_RETRY_PARAMS, record_from_anthropic
 
         state = _Guard(
-            config or Config(),
+            config,
             detectors,
             provider or "anthropic",
             to_record=record_from_anthropic,
@@ -536,7 +582,7 @@ def guard(
             responses_changes,
         )
 
-        state = _Guard(config or Config(), detectors, provider)
+        state = _Guard(config, detectors, provider)
         state.client = client
         if hasattr(client, "responses"):
             state.sibling(

@@ -6,16 +6,19 @@
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://kansadwala.github.io/CounterFix/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/KANSADWALA/CounterFix/blob/main/LICENSE)
 
-**LLM evaluation that diagnoses failures and re-runs fixes to see which ones work.**
+**Find out why an LLM call failed, and prove the fix works.**
 
-Most LLM evaluation tools tell you *that* a model failed. counterfix also looks for
-*why*: it names the likely failure type (F1 to F14), then tests fixes. When a call fails,
-it changes one thing at a time (raises `max_tokens`, asks for bare JSON, adds the source
-text, tells the model to check the question's premises, repeats a missed instruction) and
-re-runs the call. A change counts only if it passes clearly more often than re-running
-the call unchanged (a Fisher exact test against a plain retry); when none does,
-counterfix says so and lists what to try next. A change that makes the failure go away is
-both the diagnosis and the prescription. We call this **counterfactual diagnosis**.
+One line around the client you already use. counterfix names the likely failure type
+(F1 to F14) on every call. Ask it for a fix and it changes one thing at a time (raises
+`max_tokens`, asks for bare JSON, adds the source text, tells the model to check the
+question's premises, repeats a missed instruction) and re-runs the call. A change counts
+only if it passes clearly more often than re-running the call unchanged (a Fisher exact
+test against a plain retry). When none does, counterfix says so and lists what to try
+next. We call this **counterfactual diagnosis**.
+
+counterfix works alongside your evaluation and tracing tools (DeepEval, Ragas, Promptfoo,
+Langfuse, MLflow, ...): they tell you *that* calls fail and how often; counterfix tells you
+*why* one failed and which change verifiably fixes it.
 
 > **Status: alpha** (latest version in the PyPI badge above). Everything below works today: live checks, judge checks,
 > verified fixes, reports, regression tests, profiles, dataset and RAG evaluation, code
@@ -39,30 +42,43 @@ both the diagnosis and the prescription. We call this **counterfactual diagnosis
 pip install counterfix
 ```
 
-That is all most people need: the core has 4 small dependencies and needs no API key.
-counterfix is an independent open-source project, not affiliated with any model provider.
-
-Optional extras add a provider's SDK only if you do not have it already:
-
-| You use | Install |
-| --- | --- |
-| OpenAI's SDK, or any OpenAI-compatible API through it (Groq, Gemini, OpenRouter, Ollama, vLLM, ...) | `pip install "counterfix[openai]"` |
-| Anthropic's SDK | `pip install "counterfix[anthropic]"` |
-| LiteLLM or LangChain | `pip install "counterfix[litellm]"` or `"counterfix[langchain]"` |
-| Benchmarks (MMLU, GSM8K, ARC, TruthfulQA, IFEval) | `pip install "counterfix[benchmarks]"` |
-| HumanEval / MBPP and HumanEval+ / MBPP+ (EvalPlus) | `pip install "counterfix[code]"` |
-| BLEU / chrF, or BERTScore, embeddings and perplexity | `"counterfix[metrics]"` or `"counterfix[semantic]"` |
-| Toxicity and Presidio personal-data checks | `pip install "counterfix[safety]"` |
-| Suite files in YAML, the MCP server, OpenTelemetry, LlamaIndex | `"counterfix[eval]"`, `"counterfix[mcp]"`, `"counterfix[otel]"`, `"counterfix[llamaindex]"` |
-
-If that SDK is already in your project, plain `pip install counterfix` is enough.
+The core has 4 small dependencies and needs no API key. counterfix is an independent
+open-source project, not affiliated with any model provider. If your project already has
+the OpenAI or Anthropic SDK, nothing else is needed; otherwise add it with
+`pip install "counterfix[openai]"` or `"counterfix[anthropic]"`.
 
 ## Quickstart
 
-### 1. See it work in 10 seconds (no key)
-
 ```python
 import counterfix
+from openai import OpenAI
+
+client = counterfix.guard(OpenAI())  # 1. wrap your client (same API as before)
+r = client.chat.completions.create(model="gpt-4o-mini", messages=[...])
+print(r.diagnosis.summary())  # 2. see why it failed (live checks, free)
+print(counterfix.fix(r).explain())  # 3. get a fix that was re-run and verified
+```
+
+```text
+found: F1 Truncation (95%)
+plain retry: passed 0/6
+tried raise_max_tokens: passed 0/2 vs retry 0/6, p=1.000 -> no (still: F1 Truncation)
+tried raise_max_tokens_more: passed 5/5 vs retry 0/6, p=0.002 -> VERIFIED
+fix: Raise max_tokens a lot (long answers, or reasoning that uses the budget)
+  change: {'max_tokens': 4096}
+13 re-run(s); stopped at the first verified fix
+```
+
+That is the whole loop. Step 2 costs nothing: live checks make no extra calls. Step 3
+re-runs the call (here 13 times) and may use a judge model for checks code cannot do; the
+judge comes from your own key (a free `GROQ_API_KEY` or `GEMINI_API_KEY` is enough; run
+`counterfix setup` to see what it finds). "Verified" means the change beat asking again
+*on this call*, not that it works on every prompt. How the test works:
+[Verified fixes](https://kansadwala.github.io/CounterFix/fixes/).
+
+**Try it with no key at all:**
+
+```python
 from counterfix import CallRecord, Message
 
 record = CallRecord(
@@ -78,239 +94,78 @@ F6 Dropped instruction (90%)
   try: Repeat the broken instructions at the end of the prompt as a short checklist. ...
 ```
 
-`judge=False` runs only the live checks: free, instant, no extra calls. More cases in
-[`examples/quickstart.py`](https://github.com/KANSADWALA/CounterFix/blob/main/examples/quickstart.py).
+## Plug it into what you use
 
-### 2. Wrap your client (one line)
+| You use | One line |
+| --- | --- |
+| OpenAI SDK, or any OpenAI-compatible API (Groq, Gemini, OpenRouter, Ollama, vLLM, ...) | `client = counterfix.guard(OpenAI(...))` |
+| Anthropic SDK | `client = counterfix.guard(Anthropic())` |
+| LiteLLM | `litellm.callbacks = [counterfix.litellm_callback()]` |
+| LangChain | `llm.invoke(..., config={"callbacks": [counterfix.langchain_callback()]})` |
+| Your own function | `@counterfix.watch(model="llama3.2")` on a function that takes a prompt and returns text |
 
-```python
-from openai import OpenAI
-import counterfix
-
-client = counterfix.guard(OpenAI())  # same API as before
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Why did Einstein win his third Nobel Prize?"}],
-)
-print(response.choices[0].message.content)
-print(response.diagnosis.summary())  # live checks, already run on this call
-```
-
-Any OpenAI-compatible endpoint works, for example a local Ollama server:
-
-```python
-client = counterfix.guard(OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"))
-```
-
-The guarded client behaves like the original: sync or `AsyncOpenAI`, `stream=True`,
-`chat.completions.parse()`, the Responses API (`responses.create` / `.parse`),
-`with` / `async with`, and `with_options()` all work and stay checked. Your type checker sees the client you passed. Two things differ:
+The guarded client behaves like the original: sync or async, `stream=True`,
+`chat.completions.parse()`, the Responses API, `with` blocks and `with_options()` all work
+and stay checked, and your type checker sees the client you passed. Two things differ:
 `isinstance(client, OpenAI)` is False (pass `client.unwrapped` where a library insists on
 the real object), and type checkers do not know `response.diagnosis`, so typed code can use
-`counterfix.get_diagnosis(response)`.
+`counterfix.adapters.get_diagnosis(response)`. Callbacks only observe; they never change a
+reply. Details: [Plug it in](https://kansadwala.github.io/CounterFix/plugs/).
 
-The Anthropic SDK works the same way (`messages.create`, sync or async; `tool_use`
-arguments are checked against each tool's `input_schema`):
-
-```python
-from anthropic import Anthropic
-
-client = counterfix.guard(Anthropic())
-```
-
-Already on LiteLLM or LangChain? Add a callback; it only observes, never changes a reply:
-
-```python
-litellm.callbacks = [counterfix.litellm_callback()]
-llm.invoke("...", config={"callbacks": [counterfix.langchain_callback()]})
-```
-
-Not using any of these? Decorate the function that calls your model (sync or
-async). It takes a prompt string or chat messages and returns text or a response:
-
-```python
-@counterfix.watch(model="llama3.2")
-def ask(prompt: str) -> str:
-    return my_local_model(prompt)
-
-
-answer = ask("Answer in one word: sky colour?")  # returned unchanged
-print(ask.last_diagnosis.summary())
-```
-
-### 3. Ask a judge for the deeper look
-
-```python
-report = counterfix.diagnose(response)  # adds judge checks: false premise, invented facts, ...
-print(report.explain())
-```
-
-The judge comes from your own key (a free `GROQ_API_KEY` or `GEMINI_API_KEY` is enough;
-see [Bring your own key](#bring-your-own-key)). Run `counterfix setup` to see what it
-found. Full script: [`examples/diagnose_with_judge.py`](https://github.com/KANSADWALA/CounterFix/blob/main/examples/diagnose_with_judge.py).
-
-### 4. Re-run fixes and keep the ones that work
-
-```python
-result = counterfix.fix(response)  # a guarded response, its diagnosis, or a CallRecord
-print(result.explain())
-```
-
-```text
-found: F1 Truncation (95%)
-plain retry: passed 0/6
-tried raise_max_tokens: passed 0/2 vs retry 0/6, p=1.000 -> no (still: F1 Truncation)
-tried raise_max_tokens_more: passed 5/5 vs retry 0/6, p=0.002 -> VERIFIED
-fix: Raise max_tokens a lot (long answers, or reasoning that uses the budget)
-  change: {'max_tokens': 4096}
-13 re-run(s); stopped at the first verified fix
-```
-
-For each failure, counterfix changes one thing (raise `max_tokens`, ask for bare JSON,
-check the question's premises, repeat missed instructions, add the source text, ...),
-re-runs the call, and re-checks it. It first re-runs the call unchanged, up to 6 times.
-A change counts as the fix only if it passes (failure gone, no new failure) clearly more
-often than that plain retry: a one-sided Fisher exact test at 5%, divided by the number of
-changes it may try. On a model that fails at random, so that no change can help, this
-called a change verified in under 1% of searches in our tests (the earlier 2-of-3 rule:
-up to a third). "Verified" means the change beat asking again *on this call*; it is not
-proof that it works on other prompts. The verified change is in `result.fix` (`changed`
-params, or full new `messages`) and on the finding's prescription (`verified=True`).
-`max_runs` caps the re-runs (30); judge calls come on top.
-When nothing passes, `result.escalation` lists what is left (retrieval, a larger model, a
-code tool, a clarifying question).
-
-### 5. Log calls, then report on them
+## In production
 
 ```python
 client = counterfix.guard(
-    OpenAI(), config=counterfix.Config(on_diagnosis=counterfix.log_to("calls.jsonl"))
+    OpenAI(),
+    log="calls.jsonl",  # every call and its diagnosis, as JSON lines
+    sample_rate=0.05,  # judge checks on every flagged call + 5% of the rest
+    mode="retry",  # re-run a flagged call once with a known fix
 )
 ```
 
-```bash
-counterfix diagnose calls.jsonl                      # terminal summary, live checks only (free)
-counterfix diagnose calls.jsonl --judge --html report.html --json results.jsonl
-counterfix diagnose calls.jsonl --fail-on-failure    # exit code 1 if any call failed (CI)
-```
-
-The HTML report is one self-contained file you can send to a teammate: totals per failure
-type, then each call with its prompt, answer, why it was flagged and what to try.
-The JSON lines (`{"record": ..., "diagnosis": ...}`) suit log pipelines, and can be read
-back with `counterfix diagnose` or `counterfix.load_log()`.
-
-### 6. Judge checks on production traffic, without slowing it down
-
-```python
-config = counterfix.Config(
-    sample_rate=0.05,  # every flagged call + 5% of the rest get judge checks
-    max_judged_per_hour=60,  # cost cap; calls over it are skipped, never delayed
-    on_judged=counterfix.log_to("judged.jsonl"),
-)
-client = counterfix.guard(OpenAI(), config=config)
-```
-
-Judge checks run on one background thread, so your call returns as fast as before. If the
-queue fills up, new calls are skipped rather than waited on; `counterfix.background.stats`
-counts what was judged and skipped. Call `counterfix.background.flush()` before a short
-script exits if you want the queued checks to finish.
-
-### 7. Evaluate a dataset: the score, the misses by cause, the fixes
+Judge checks run on a background thread, capped per hour, so calls return as fast as
+before. Retry mode is off by default; without it counterfix only reports. For anything
+else, pass a `counterfix.Config` (the shortcuts above override it).
 
 ```bash
-counterfix eval capitals.jsonl --model groq:openai/gpt-oss-120b --metric exact_match --judge --fix 5
-```
-
-Scores every answer (exact match, F1, ROUGE-L, BLEU, multiple choice, final number, JSON,
-latency, ...), groups the misses by cause (F1 to F14), and searches verified fixes on up to
-5 misses. Streamed calls also record TTFT; reports show latency, TTFT and tokens/s
-percentiles per model. Guides: [Evaluate a dataset](https://kansadwala.github.io/CounterFix/evals/),
-[Speed and cost](https://kansadwala.github.io/CounterFix/speed/).
-
-### 8. RAG: was it the retriever or the model?
-
-```bash
-counterfix eval rag.jsonl --model groq:openai/gpt-oss-120b --metric recall@5 --metric faithfulness --fix 5
-```
-
-Retrieval metrics from gold labels (hit, recall, precision, MRR, nDCG at k), judge metrics
-(faithfulness, context precision and recall, answer relevancy, citations), and the cause of
-each miss: F10 retrieval miss or F11 context ignored, with verified fixes (the gold passage
-proves the retriever was at fault; the key passage first fixes ignored context). To test
-your whole pipeline, pass it as a function: `counterfix eval qa.jsonl --app myapp:answer`
-(or `evaluate(..., app=answer)`; LangChain and LlamaIndex outputs are read as they are).
-Guide: [RAG evaluation](https://kansadwala.github.io/CounterFix/rag/).
-
-### 9. Code and benchmarks
-
-```bash
-counterfix eval coding.jsonl --model groq:openai/gpt-oss-120b --metric tests --allow-code --fix 5
-counterfix benchmark gsm8k --model ollama:qwen2.5:3b --limit 200
-counterfix benchmark humaneval+ --model groq:openai/gpt-oss-120b --allow-code
-```
-
-Code runs against its tests in a sandbox (Docker, or a subprocess for trusted
-benchmarks; off until you allow it). A failure is named (syntax, wrong name or signature,
-runtime error, wrong output, timeout: F12), with what the code returned, and fixes such as
-sending the error back are verified on re-run (measured so far: 2 of 8 repeatable
-failures fixed on qwen2.5:3b; gpt-oss-120b passed 18 of 20 HumanEval problems). `--samples N` reports pass@k. Benchmarks: MMLU, GSM8K, ARC-Challenge,
-TruthfulQA, IFEval (official checks), HumanEval/MBPP (counterfix's checker, any OS) and
-HumanEval+/MBPP+ (scored by EvalPlus, Linux and macOS), with seeded subsets that fit a free
-tier. Scores match lm-evaluation-harness on the same prompts (GSM8K 0.81 vs 0.79, MMLU
-abstract algebra 0.56 vs 0.56, on qwen2.5:3b). Guides: [Code evaluation](https://kansadwala.github.io/CounterFix/code/),
-[Benchmarks](https://kansadwala.github.io/CounterFix/benchmarks/).
-
-### 10. Prompt injection, personal data, token confidence
-
-```bash
-counterfix benchmark injection --model ollama:qwen2.5:3b --fix 10
-counterfix eval support.jsonl --model groq:openai/gpt-oss-120b --metric pii --metric toxicity
-counterfix eval qa.jsonl --model openai:gpt-4o-mini --param logprobs=true --metric confidence
-```
-
-20 injection probes (instructions planted in retrieved passages and tool results, checked
-exactly with canaries) and a judge check for any call with untrusted text: F13, with
-verified fixes such as marking untrusted text as data. PII in answers (built-in
-recognizers with checksums, optional Presidio), toxicity (Detoxify), and token confidence
-where the provider returns logprobs. Guides: [Safety](https://kansadwala.github.io/CounterFix/safety/),
-[Confidence and perplexity](https://kansadwala.github.io/CounterFix/confidence/).
-
-### 11. Agents and tool calls
-
-```bash
-counterfix benchmark tools --model ollama:qwen2.5:3b --fix 10
-counterfix eval tool_tests.jsonl --model groq:openai/gpt-oss-120b --metric tool_call --fix 5
-```
-
-```python
-rec = counterfix.agents.record(task, langgraph_result, tools=tools, expect_tools=["search"])
-counterfix.diagnose(rec)  # F14: unknown tool, loop, missing call; judge: task done, and why
-```
-
-Runs from OpenAI-style messages, LangChain/LangGraph, Anthropic, OpenTelemetry spans or
-guarded responses. Verified fixes for tool choice: `tool_choice`, naming the tool,
-describing the arguments. Guide: [Agents and tool calls](https://kansadwala.github.io/CounterFix/agents/).
-
-### 12. Keep fixed failures fixed (pytest)
-
-```bash
-counterfix fix calls.jsonl --judge --out fixes.jsonl
+counterfix diagnose calls.jsonl --judge --html report.html   # a report you can send a teammate
+counterfix fix calls.jsonl --judge --out fixes.jsonl          # search verified fixes in bulk
 counterfix export-tests fixes.jsonl --out tests/test_prompt_regressions.py
-pytest tests/test_prompt_regressions.py
 ```
 
-Each verified fix becomes a test case that fails if the failure comes back after a prompt
-edit or a model change. In your own tests, `counterfix.testing.assert_ok(response)` fails
-with the explanation when counterfix finds a failure.
+Each verified fix becomes a pytest case that fails if the failure comes back after a prompt
+edit or a model change; `counterfix.testing.assert_ok(response)` does the same in your own
+tests. Guides: [In production](https://kansadwala.github.io/CounterFix/production/),
+[Prompt regression tests](https://kansadwala.github.io/CounterFix/testing/).
+
+## The same checks over a dataset
+
+The checks and fixes above also run over a whole dataset, with a score per metric and the
+misses grouped by cause. Install with `pip install "counterfix[evals]"`.
+
+```bash
+counterfix eval qa.jsonl --model groq:openai/gpt-oss-120b --metric exact_match --judge --fix 5
+counterfix benchmark gsm8k --model ollama:qwen2.5:3b --limit 200
+```
+
+| Area | What you get | Guide |
+| --- | --- | --- |
+| Datasets | Exact match, F1, ROUGE-L, BLEU, JSON, latency and more; misses by cause; fixes on up to N misses | [Evaluate a dataset](https://kansadwala.github.io/CounterFix/evals/) |
+| RAG | Retrieval metrics from gold labels, judge metrics, and whether the retriever (F10) or the model (F11) caused each miss | [RAG evaluation](https://kansadwala.github.io/CounterFix/rag/) |
+| Code | Tests run in a sandbox, failures named (F12), pass@k, fixes such as sending the error back | [Code evaluation](https://kansadwala.github.io/CounterFix/code/) |
+| Benchmarks | MMLU, GSM8K, ARC, TruthfulQA, IFEval, HumanEval(+), MBPP(+), matching lm-evaluation-harness on the same prompts | [Benchmarks](https://kansadwala.github.io/CounterFix/benchmarks/) |
+| Safety | Prompt injection with canaries (F13), personal data, toxicity | [Safety](https://kansadwala.github.io/CounterFix/safety/) |
+| Agents | Tool misuse (F14) from OpenAI, LangGraph, Anthropic or OpenTelemetry runs | [Agents and tool calls](https://kansadwala.github.io/CounterFix/agents/) |
+| Speed and confidence | Latency, TTFT and tokens/s percentiles; token confidence where logprobs exist | [Speed](https://kansadwala.github.io/CounterFix/speed/), [Confidence](https://kansadwala.github.io/CounterFix/confidence/) |
 
 ### More
 
 | | |
 | --- | --- |
-| Streams (`stream=True`) | every chunk passes straight through; the whole answer is checked at the end |
 | `with counterfix.context(source=..., reference=...)` | tell the checks what the model was given (RAG) or the right answer |
 | `counterfix profile / compare / drift / route` | measure models, compare an upgrade on your own calls, alert on drift, pick the cheapest safe model per task |
 | `counterfix.otel.export()`, `counterfix.otel.SpanChecker()` | send diagnoses to OpenTelemetry, or check the GenAI spans you already have |
+| `counterfix lint prompts.jsonl` | catch prompt problems before you send them |
 | `counterfix mcp` | an MCP server so coding agents can lint prompts and check calls |
 
 Full docs: https://kansadwala.github.io/CounterFix/ (or build locally with `mkdocs serve`). Measured accuracy and fix rates:

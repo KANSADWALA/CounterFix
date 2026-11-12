@@ -1,6 +1,6 @@
 # counterfix
 
-**LLM evaluation that diagnoses failures and re-runs fixes to see which ones work.**
+**Find out why an LLM call failed, and prove the fix works.**
 
 Most LLM tools tell you *that* a call failed. counterfix also looks for *why* (one of
 fourteen failure types, F1 to F14), then tests fixes: it changes one thing at a time,
@@ -8,6 +8,10 @@ re-runs the call, and keeps only a change that made the failure go away clearly 
 often than re-running the call unchanged.
 When no change passes, it says so and lists what to try next. A change that works is both
 the diagnosis and the prescription.
+
+counterfix works alongside your evaluation and tracing tools (DeepEval, Ragas, Promptfoo,
+Langfuse, MLflow, ...): they tell you *that* calls fail and how often; counterfix tells you
+*why* one failed and which change verifiably fixes it.
 
 ```bash
 pip install counterfix
@@ -57,7 +61,7 @@ It plugs into OpenAI-compatible clients (OpenAI, Groq, Gemini, OpenRouter, Ollam
 the Anthropic SDK, LiteLLM, LangChain, OpenTelemetry GenAI spans, or any function via a
 decorator. See [Plug it in](plugs.md).
 
-Beyond single calls: [evaluate a dataset](evals.md) or your own app, [RAG
+The same checks over a dataset (`pip install "counterfix[evals]"`): [evaluate a dataset](evals.md) or your own app, [RAG
 evaluation](rag.md) (retriever or model at fault), [code evaluation](code.md) (sandboxed
 tests, pass@k), [benchmarks](benchmarks.md) (MMLU, GSM8K, ARC, TruthfulQA, IFEval,
 HumanEval, MBPP), [safety](safety.md) (prompt injection, personal data, toxicity), and [agents](agents.md)

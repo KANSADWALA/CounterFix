@@ -4,6 +4,33 @@ All notable changes to counterfix. Versions follow [semantic versioning](https:/
 
 ## Unreleased
 
+A smaller front door: counterfix is now presented as a reliability layer for single LLM
+calls ("find out why an LLM call failed, and prove the fix works"), with evaluation as the
+same checks run over a dataset. Nothing that worked in 0.2.1 stops working.
+
+- **Shortcuts on `guard()` and `watch()`:** `guard(client, mode="retry", log="calls.jsonl",
+  judge=..., sample_rate=0.05)` needs no `Config`. With a `config`, the shortcuts override
+  its matching fields; the object you passed is not changed. `watch()` takes `log`, `judge`
+  and `sample_rate`.
+- **`counterfix.__all__` lists 12 names** (`guard`, `watch`, `diagnose`, `fix`,
+  `configure`, `Config`, `Diagnosis`, `FixResult`, `FailureType`, `CallRecord`, `Message`,
+  `log_to`). The other 0.2 names (`evaluate`, `metrics`, `RuleStore`, `litellm_callback`,
+  ...) still import from `counterfix` with no warning; they now load on first use.
+- **`import counterfix` is about 40% faster** (it no longer loads the metrics, evaluation,
+  background and OpenTelemetry modules until used).
+- **New extras:** `counterfix[evals]` (dataset runner, metrics, benchmarks, code, reports,
+  CLI) and `counterfix[all]`.
+- README and docs reorganised around the three-step loop: wrap, see why, get a verified
+  fix. The docs menu now reads Core loop, In production, Evaluation (optional).
+- Fixed: `counterfix.fix(response)` raised `NoJudgeError` on a first run with no judge
+  key, even for a cut-off answer that needs no judge. It now falls back to judging with
+  the checked model (with `SelfJudgeWarning`, as `diagnose()` already did), and with no
+  model at all it fixes what the live checks find and warns that facts and premises were
+  not checked. A judge you name explicitly that cannot be built still raises.
+- A test now freezes the 0.2.1 public surface (every top-level name, module path and
+  subpackage export, and both entry points), so later restructuring cannot break imports
+  unnoticed.
+
 "Verified" now has a stated error rate.
 
 - **A change must beat a plain retry to count as a fix.** The plain retry and each change
