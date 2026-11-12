@@ -27,15 +27,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from counterfix.benchmarks import get_benchmark
 from counterfix.core.presets import PRESETS, parse_spec
 from counterfix.evals import evaluate
+from counterfix.evals.benchmarks import get_benchmark
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "results" / "lm_eval_parity_last.md"  # the curated summary: lm_eval_parity.md
 WORK = HERE / "results" / "lm_eval_parity"
 
-# lm-eval task files with counterfix's exact prompts (counterfix.benchmarks, template v1).
+# lm-eval task files with counterfix's exact prompts (counterfix.evals.benchmarks, template v1).
 TASK_FILES = {
     "gsm8k": """task: cf_gsm8k
 dataset_path: openai/gsm8k

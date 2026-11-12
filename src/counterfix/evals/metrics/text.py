@@ -15,7 +15,7 @@ from collections import Counter
 from typing import Any
 
 from counterfix.core.record import CallRecord
-from counterfix.metrics.base import Metric, references
+from counterfix.evals.metrics.base import Metric, references
 
 _ARTICLES = re.compile(r"\b(a|an|the)\b")
 _PUNCT = set(string.punctuation)

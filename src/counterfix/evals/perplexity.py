@@ -1,7 +1,7 @@
 """Corpus perplexity with a local Hugging Face model, by the sliding-window method of the
 Hugging Face perplexity guide (https://huggingface.co/docs/transformers/perplexity).
 
->>> from counterfix.perplexity import perplexity
+>>> from counterfix.evals.perplexity import perplexity
 >>> perplexity(texts, model="gpt2-large", stride=512).value     # doctest: +SKIP
 16.44
 

@@ -9,9 +9,9 @@ from typing import Any
 
 import pytest
 
-from counterfix import benchmarks
-from counterfix.benchmarks import get_benchmark, load_benchmark, run_benchmark, sample
 from counterfix.core.record import CallRecord
+from counterfix.evals import benchmarks
+from counterfix.evals.benchmarks import get_benchmark, load_benchmark, run_benchmark, sample
 
 FAKE = {
     ("cais/mmlu", "all"): [
@@ -103,7 +103,7 @@ def test_benchmark_list_cli(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_ifeval_official_checks() -> None:
     pytest.importorskip("lm_eval.tasks.ifeval.utils")
-    from counterfix.benchmarks.ifeval import score_instructions
+    from counterfix.evals.benchmarks.ifeval import score_instructions
 
     ref = {"key": 1, "prompt": "Answer in all lowercase letters.",
            "instruction_id_list": ["change_case:english_lowercase"], "kwargs": [{}]}  # fmt: skip
@@ -119,7 +119,7 @@ def test_evalplus_scorer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delitem(sys.modules, "datasets")  # EvalPlus has its own loader
     monkeypatch.setenv("COUNTERFIX_ALLOW_CODE", "1")
     monkeypatch.setenv("COUNTERFIX_SANDBOX", "subprocess")
-    from counterfix.benchmarks.evalplus import EvalPlusTests, problems
+    from counterfix.evals.benchmarks.evalplus import EvalPlusTests, problems
 
     p = problems("humaneval")["HumanEval/0"]
     m = EvalPlusTests()

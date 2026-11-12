@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from counterfix.core.record import CallRecord
-from counterfix.metrics.base import Metric
+from counterfix.evals.metrics.base import Metric
 
 
 class Latency(Metric):

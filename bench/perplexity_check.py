@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from counterfix.perplexity import perplexity
+from counterfix.evals.perplexity import perplexity
 
 GUIDE = {("gpt2-large", 512): 16.44, ("gpt2-large", 1024): 19.44}
 

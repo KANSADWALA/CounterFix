@@ -24,8 +24,8 @@ from counterfix.detect.retrieval import (
     to_chunks,
 )
 from counterfix.evals import evaluate
+from counterfix.evals.metrics import get_metric
 from counterfix.judges.base import JudgeTask, Verdict
-from counterfix.metrics import get_metric
 
 ROOT = Path(__file__).resolve().parents[1]
 

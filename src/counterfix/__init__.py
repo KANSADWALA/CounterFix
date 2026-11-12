@@ -90,7 +90,7 @@ _LAZY: dict[str, tuple[str, str | None]] = {
     "evaluate": ("counterfix.evals", "evaluate"),
     # modules
     "background": ("counterfix.runtime.background", None),
-    "metrics": ("counterfix.metrics", None),
+    "metrics": ("counterfix.evals.metrics", None),
     "otel": ("counterfix.integrations.otel", None),
     "perf": ("counterfix.runtime.perf", None),
 }
@@ -112,7 +112,6 @@ def __dir__() -> list[str]:
 
 
 if TYPE_CHECKING:
-    from counterfix import metrics
     from counterfix.core import (
         Detector,
         Evidence,
@@ -126,7 +125,7 @@ if TYPE_CHECKING:
         hooks,
         run_detectors,
     )
-    from counterfix.evals import EvalResult, evaluate
+    from counterfix.evals import EvalResult, evaluate, metrics
     from counterfix.fixes import FixRule, RuleStore
     from counterfix.fixes.engine import FixAttempt
     from counterfix.integrations import (

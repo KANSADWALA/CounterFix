@@ -7,7 +7,7 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
-from counterfix.metrics.base import Metric, MetricResult
+from counterfix.evals.metrics.base import Metric, MetricResult
 
 CODE_KEY = "code_check"
 """Record metadata: the last code check (cause, detail, signature) for fixes and reports."""

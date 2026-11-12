@@ -91,7 +91,7 @@ def test_top_level_is_small_and_old_names_still_work() -> None:
         assert counterfix.RuleStore is counterfix.fixes.RuleStore
         from counterfix import evaluate, metrics
 
-        assert callable(evaluate) and metrics.__name__ == "counterfix.metrics"
+        assert callable(evaluate) and metrics.__name__ == "counterfix.evals.metrics"
     assert "evaluate" in dir(counterfix)
     with pytest.raises(AttributeError):
         counterfix.not_a_name  # noqa: B018

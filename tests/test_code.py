@@ -17,7 +17,7 @@ from counterfix.detect.code import (
     run_python,
 )
 from counterfix.evals import evaluate
-from counterfix.metrics import get_metric
+from counterfix.evals.metrics import get_metric
 
 HUMANEVAL = {
     "task_id": "HumanEval/0",

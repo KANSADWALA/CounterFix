@@ -17,9 +17,9 @@ import re
 from typing import Any
 
 from counterfix.core.record import CallRecord
+from counterfix.evals.metrics.base import Metric
 from counterfix.judges import tasks
 from counterfix.judges.base import Judge, JudgeTask, Verdict
-from counterfix.metrics.base import Metric
 
 _CITE = re.compile(r"\[(\d{1,3})\]")
 

@@ -22,9 +22,9 @@ from pathlib import Path
 os.environ.setdefault("COUNTERFIX_ALLOW_CODE", "1")
 os.environ.setdefault("COUNTERFIX_SANDBOX", "subprocess")
 
-from counterfix.benchmarks.evalplus import EvalPlusTests, base_tests, truth
 from counterfix.core.record import CallRecord
 from counterfix.detect.code import check_code
+from counterfix.evals.benchmarks.evalplus import EvalPlusTests, base_tests, truth
 
 OUT = Path(__file__).resolve().parent / "results" / "code_parity.md"
 

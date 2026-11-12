@@ -14,7 +14,7 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
-from counterfix.metrics.base import Metric
+from counterfix.evals.metrics.base import Metric
 
 TOOL_KEY = "tool_check"
 NO_CALL = ("no_call", "none", "no tool")

@@ -12,7 +12,7 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
-from counterfix.metrics.base import Metric, MetricResult
+from counterfix.evals.metrics.base import Metric, MetricResult
 
 
 def _utils() -> Any:

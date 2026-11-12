@@ -108,8 +108,8 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 "bench/dev_walkthrough.py" = ["E501"]  # dataset rows are data
 "bench/make_injection_seed.py" = ["E501"]
 "bench/eval_injection.py" = ["E501"]
-"src/counterfix/benchmarks/injection.py" = ["E501"]
-"src/counterfix/benchmarks/tool_use.py" = ["E501"]
+"src/counterfix/evals/benchmarks/injection.py" = ["E501"]
+"src/counterfix/evals/benchmarks/tool_use.py" = ["E501"]
 "bench/make_agent_seed.py" = ["E501"]
 "bench/eval_agents.py" = ["E501"]
 "bench/make_metric_seed.py" = ["E501"]
@@ -153,15 +153,12 @@ root_package = "counterfix"
 exclude_type_checking_imports = true
 
 [[tool.importlinter.contracts]]
-name = "Layers: entry points > evaluation > integrations > fixes > detection > judges > core"
+name = "Layers: cli > evals > integrations > runtime > fixes > detect > judges > core"
 type = "layers"
 layers = [
   "counterfix.__main__",
   "counterfix.cli",
-  "counterfix.benchmarks",
   "counterfix.evals | counterfix.testing",
-  "counterfix.metrics",
-  "counterfix.safety | counterfix.perplexity",
   "counterfix.integrations",
   "counterfix.runtime",
   "counterfix.fixes",
@@ -171,9 +168,4 @@ layers = [
   "counterfix.judges",
   "counterfix.core",
   "counterfix._internal",
-]
-ignore_imports = [
-  # The metric registry knows three benchmark scorers by name (``--metric ifeval``).
-  # Both packages move under counterfix.evals in the restructure, which ends this.
-  "counterfix.metrics -> counterfix.benchmarks.*",
 ]

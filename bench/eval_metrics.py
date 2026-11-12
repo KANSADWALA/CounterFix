@@ -44,8 +44,8 @@ from counterfix.core.presets import (  # noqa: E402
     supports_json_mode,
 )
 from counterfix.detect.retrieval import record  # noqa: E402
+from counterfix.evals.metrics import get_metric  # noqa: E402
 from counterfix.judges import CachedJudge, LLMJudge  # noqa: E402
-from counterfix.metrics import get_metric  # noqa: E402
 
 SEED = ROOT / "bench" / "metric_seed.jsonl"
 OUT = ROOT / "bench" / "results" / "metrics.md"

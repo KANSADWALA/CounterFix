@@ -6,7 +6,7 @@ import math
 from typing import Any
 
 from counterfix.core.record import CallRecord
-from counterfix.metrics.base import Metric
+from counterfix.evals.metrics.base import Metric
 
 
 class Confidence(Metric):

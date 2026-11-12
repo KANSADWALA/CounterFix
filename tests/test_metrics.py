@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from counterfix import CallRecord, FailureType, Timing
-from counterfix.metrics import (
+from counterfix.evals.metrics import (
     METRICS,
     extract_choice,
     extract_code,

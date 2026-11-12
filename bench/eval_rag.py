@@ -45,9 +45,9 @@ from counterfix.core.presets import (  # noqa: E402
 )
 from counterfix.detect import ContextUseCheck, RetrievalLabelCheck  # noqa: E402
 from counterfix.detect.retrieval import record  # noqa: E402
+from counterfix.evals.metrics import Faithfulness  # noqa: E402
 from counterfix.judges import CachedJudge, JudgePanel, LLMJudge  # noqa: E402
 from counterfix.judges.base import Judge  # noqa: E402
-from counterfix.metrics import Faithfulness  # noqa: E402
 
 SEED = ROOT / "bench" / "rag_seed.jsonl"
 HOLDOUT = ROOT / "bench" / "rag_holdout.jsonl"

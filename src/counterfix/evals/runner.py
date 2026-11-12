@@ -37,7 +37,7 @@ from counterfix.core.diagnosis import Diagnosis, Evidence, Finding
 from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType
 from counterfix.evals.data import EvalItem, is_suite, load_suite, make_items, read_rows
-from counterfix.metrics import Metric, MetricResult, get_metric
+from counterfix.evals.metrics import Metric, MetricResult, get_metric
 from counterfix.runtime.perf import SpeedSummary, speed_summary
 
 Progress = Callable[[int, int, str], None]
@@ -634,7 +634,7 @@ def evaluate(
     )
     out_path = Path(out) if out else None
     cache = _cached(out_path, result.model)
-    from counterfix.metrics import JudgeMetric
+    from counterfix.evals.metrics import JudgeMetric
 
     judged_metrics = [m for m in chosen if isinstance(m, JudgeMetric) and m.judge is None]
     if judged_metrics and judge in (False, None):

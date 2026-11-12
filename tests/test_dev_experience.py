@@ -27,7 +27,7 @@ def test_did_you_mean_hints():
         evaluate(
             [{"id": "a", "prompt": "q", "response": "x", "answer": "x"}], metrics=["exact_mtch"]
         )
-    from counterfix.benchmarks import run_benchmark
+    from counterfix.evals.benchmarks import run_benchmark
 
     with pytest.raises(ValueError, match="did you mean 'gsm8k'"):
         run_benchmark("gsm8", model="ollama:x")

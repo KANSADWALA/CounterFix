@@ -9,7 +9,7 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
-from counterfix.metrics.base import Metric
+from counterfix.evals.metrics.base import Metric
 
 _FENCE = re.compile(r"^\s*```(?:json)?\s*\n?(.*?)\n?```\s*$", re.DOTALL | re.IGNORECASE)
 

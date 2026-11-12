@@ -17,8 +17,8 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
-from counterfix.metrics.base import Metric, MetricResult
-from counterfix.metrics.code import CODE_KEY, _signature, code_answer
+from counterfix.evals.metrics.base import Metric, MetricResult
+from counterfix.evals.metrics.code import CODE_KEY, _signature, code_answer
 
 _TRUTH: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
 _LOCK = threading.Lock()

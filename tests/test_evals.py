@@ -162,7 +162,7 @@ def test_cli_eval_on_recorded_answers_with_a_ci_gate(
 
 def test_top_level_exports() -> None:
     assert counterfix.evaluate is evaluate
-    assert counterfix.metrics.get_metric("f1").name == "f1"
+    assert counterfix.evals.metrics.get_metric("f1").name == "f1"
 
 
 def test_a_missing_judge_fails_before_any_model_call(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -340,7 +340,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
 def cmd_benchmark(args: argparse.Namespace) -> int:
     """Run a standard benchmark on a model, with the misses explained."""
-    from counterfix.benchmarks import BENCHMARKS, run_benchmark
+    from counterfix.evals.benchmarks import BENCHMARKS, run_benchmark
 
     if args.list or not args.name:
         print("benchmarks (data downloaded when run; licence from each dataset card):")

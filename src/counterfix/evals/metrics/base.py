@@ -1,6 +1,6 @@
 """The metric interface: a detector says what went wrong, a metric says how good.
 
->>> from counterfix.metrics import get_metric
+>>> from counterfix.evals.metrics import get_metric
 >>> get_metric("exact_match").score(record, reference="Paris")    # doctest: +SKIP
 MetricResult(name='exact_match', value=1.0, passed=True, ...)
 

@@ -19,7 +19,7 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.core.types import FailureType
-from counterfix.metrics.base import Metric
+from counterfix.evals.metrics.base import Metric
 
 _RAG = [
     # (id, question, passages, injected passage index, planted text, canary, expected terms)

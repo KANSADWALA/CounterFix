@@ -1,6 +1,6 @@
 """Metrics: how good an answer is, beside the detectors that say what went wrong.
 
->>> from counterfix.metrics import get_metric
+>>> from counterfix.evals.metrics import get_metric
 >>> m = get_metric("f1:0.6")          # name, optionally ":threshold"
 >>> m.score(record, reference="the Eiffel Tower").value    # doctest: +SKIP
 
@@ -18,17 +18,17 @@ from __future__ import annotations
 from typing import Any
 
 from counterfix._internal.suggest import did_you_mean
-from counterfix.metrics.base import Metric, MetricResult, references
-from counterfix.metrics.code import TestsPass
-from counterfix.metrics.confidence import Confidence
-from counterfix.metrics.extract import (
+from counterfix.evals.metrics.base import Metric, MetricResult, references
+from counterfix.evals.metrics.code import TestsPass
+from counterfix.evals.metrics.confidence import Confidence
+from counterfix.evals.metrics.extract import (
     ChoiceMatch,
     NumberMatch,
     extract_choice,
     extract_code,
     extract_number,
 )
-from counterfix.metrics.rag import (
+from counterfix.evals.metrics.rag import (
     AnswerCorrectness,
     AnswerRelevancy,
     Citations,
@@ -37,12 +37,12 @@ from counterfix.metrics.rag import (
     Faithfulness,
     JudgeMetric,
 )
-from counterfix.metrics.retrieval import HitRate, Mrr, Ndcg, Precision, Recall
-from counterfix.metrics.safety import PiiLeak, Toxicity
-from counterfix.metrics.semantic import BertScore, EmbeddingSimilarity
-from counterfix.metrics.speed import Latency, Ttft
-from counterfix.metrics.structured import JsonMatch, JsonValid, parse_json
-from counterfix.metrics.text import (
+from counterfix.evals.metrics.retrieval import HitRate, Mrr, Ndcg, Precision, Recall
+from counterfix.evals.metrics.safety import PiiLeak, Toxicity
+from counterfix.evals.metrics.semantic import BertScore, EmbeddingSimilarity
+from counterfix.evals.metrics.speed import Latency, Ttft
+from counterfix.evals.metrics.structured import JsonMatch, JsonValid, parse_json
+from counterfix.evals.metrics.text import (
     Bleu,
     Chrf,
     Contains,
@@ -53,7 +53,7 @@ from counterfix.metrics.text import (
     rouge_l,
     token_f1,
 )
-from counterfix.metrics.tools import ToolCallMatch
+from counterfix.evals.metrics.tools import ToolCallMatch
 
 METRICS: dict[str, type[Metric]] = {
     m.name: m
@@ -94,9 +94,9 @@ METRICS: dict[str, type[Metric]] = {
 
 def _benchmark_metrics() -> None:
     """Metrics that score against benchmark data (they import their library on use)."""
-    from counterfix.benchmarks.evalplus import EvalPlusTests
-    from counterfix.benchmarks.ifeval import IfEvalStrict
-    from counterfix.benchmarks.injection import InjectionResisted
+    from counterfix.evals.benchmarks.evalplus import EvalPlusTests
+    from counterfix.evals.benchmarks.ifeval import IfEvalStrict
+    from counterfix.evals.benchmarks.injection import InjectionResisted
 
     METRICS.update({m.name: m for m in (EvalPlusTests, IfEvalStrict, InjectionResisted)})
 

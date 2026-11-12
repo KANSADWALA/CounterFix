@@ -1,6 +1,6 @@
 """Standard benchmarks on any model counterfix can call, with the misses explained.
 
->>> from counterfix.benchmarks import run_benchmark
+>>> from counterfix.evals.benchmarks import run_benchmark
 >>> r = run_benchmark("gsm8k", model="ollama:qwen2.5:3b", limit=100)   # doctest: +SKIP
 >>> print(r.text())                                                    # doctest: +SKIP
 
@@ -27,8 +27,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from counterfix._internal.suggest import did_you_mean
-from counterfix.metrics.base import Metric
-from counterfix.metrics.extract import ChoiceMatch, NumberMatch
+from counterfix.evals.metrics.base import Metric
+from counterfix.evals.metrics.extract import ChoiceMatch, NumberMatch
 
 _LETTERS = "ABCDEFGHIJKLMNOP"
 
@@ -151,7 +151,7 @@ def _ifeval(seed: int) -> list[dict[str, Any]]:
 def _code_rows(dataset: str, plus: bool = True) -> list[dict[str, Any]]:
     """EvalPlus's problems; ``plus=False`` points the reference at the original tests,
     scored by counterfix's own checker (works on Windows, no EvalPlus scorer)."""
-    from counterfix.benchmarks.evalplus import base_tests, problems
+    from counterfix.evals.benchmarks.evalplus import base_tests, problems
 
     rows = []
     for task_id, p in problems(dataset).items():
@@ -179,43 +179,43 @@ def _code_rows(dataset: str, plus: bool = True) -> list[dict[str, Any]]:
 
 
 def _evalplus_metric() -> list[Metric]:
-    from counterfix.benchmarks.evalplus import EvalPlusTests
+    from counterfix.evals.benchmarks.evalplus import EvalPlusTests
 
     return [EvalPlusTests()]
 
 
 def _tests_metric() -> list[Metric]:
-    from counterfix.metrics.code import TestsPass
+    from counterfix.evals.metrics.code import TestsPass
 
     return [TestsPass()]
 
 
 def _injection_metric() -> list[Metric]:
-    from counterfix.benchmarks.injection import InjectionResisted
+    from counterfix.evals.benchmarks.injection import InjectionResisted
 
     return [InjectionResisted()]
 
 
 def _injection_rows(seed: int) -> list[dict[str, Any]]:
-    from counterfix.benchmarks.injection import probes
+    from counterfix.evals.benchmarks.injection import probes
 
     return probes(seed)
 
 
 def _tool_metric() -> list[Metric]:
-    from counterfix.metrics.tools import ToolCallMatch
+    from counterfix.evals.metrics.tools import ToolCallMatch
 
     return [ToolCallMatch()]
 
 
 def _tool_rows(seed: int) -> list[dict[str, Any]]:
-    from counterfix.benchmarks.tool_use import probes
+    from counterfix.evals.benchmarks.tool_use import probes
 
     return probes(seed)
 
 
 def _ifeval_metric() -> list[Metric]:
-    from counterfix.benchmarks.ifeval import IfEvalStrict
+    from counterfix.evals.benchmarks.ifeval import IfEvalStrict
 
     return [IfEvalStrict()]
 

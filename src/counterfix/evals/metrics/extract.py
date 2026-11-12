@@ -13,7 +13,7 @@ from typing import Any
 
 from counterfix.core.record import CallRecord
 from counterfix.detect.code.check import extract_code as extract_code
-from counterfix.metrics.base import Metric, references
+from counterfix.evals.metrics.base import Metric, references
 
 _LETTERS = "ABCDEFGHIJKLMNOP"
 _ANSWER_IS = re.compile(

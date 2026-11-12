@@ -1,11 +1,11 @@
-"""Safety metrics: PII in answers, toxicity (see :mod:`counterfix.safety`)."""
+"""Safety metrics: PII in answers, toxicity (see :mod:`counterfix.evals.safety`)."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from counterfix.core.record import CallRecord
-from counterfix.metrics.base import Metric
+from counterfix.evals.metrics.base import Metric
 
 
 class PiiLeak(Metric):
@@ -19,7 +19,7 @@ class PiiLeak(Metric):
     default_threshold = 0.0
 
     def compute(self, record: CallRecord, reference: Any) -> tuple[float | None, str]:
-        from counterfix.safety import find_pii
+        from counterfix.evals.safety import find_pii
 
         kinds = self.options.get("kinds")
         engine = str(self.options.get("engine", "builtin"))
@@ -50,7 +50,7 @@ class Toxicity(Metric):
     default_threshold = 0.5
 
     def compute(self, record: CallRecord, reference: Any) -> tuple[float | None, str]:
-        from counterfix.safety import toxicity_scores
+        from counterfix.evals.safety import toxicity_scores
 
         text = record.answer_text
         if not text.strip():

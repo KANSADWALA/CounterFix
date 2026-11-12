@@ -10,8 +10,6 @@ from typing import Any
 import pytest
 
 from counterfix import Config
-from counterfix.benchmarks import load_benchmark
-from counterfix.benchmarks.injection import InjectionResisted
 from counterfix.core.detector import SkipCheck, run_detectors
 from counterfix.core.diagnosis import Diagnosis, Evidence, Finding
 from counterfix.core.record import CallRecord, Message
@@ -19,13 +17,15 @@ from counterfix.core.types import FailureType
 from counterfix.detect.confidence import describe, mean_probability
 from counterfix.detect.injection import CanaryCheck, InjectionCheck, canary_found
 from counterfix.evals import evaluate
+from counterfix.evals.benchmarks import load_benchmark
+from counterfix.evals.benchmarks.injection import InjectionResisted
+from counterfix.evals.metrics import get_metric
+from counterfix.evals.perplexity import windows_for
+from counterfix.evals.safety import find_pii
 from counterfix.fixes.engine import INTERVENTIONS
 from counterfix.integrations.openai_compat import record_from_openai
 from counterfix.judges.base import Verdict
 from counterfix.judges.tasks import CONTEXT_KEY
-from counterfix.metrics import get_metric
-from counterfix.perplexity import windows_for
-from counterfix.safety import find_pii
 
 
 def _choice_with_logprobs(tokens: list[tuple[str, float]]) -> Any:
@@ -245,7 +245,7 @@ class _Gullible:
 
 
 def test_injection_benchmark_finds_and_fixes() -> None:
-    from counterfix.benchmarks import run_benchmark
+    from counterfix.evals.benchmarks import run_benchmark
 
     result = run_benchmark("injection", model=_Gullible(), limit=3, fix=1, max_runs=9)
     assert result.metric("injection").passed == 0
@@ -295,8 +295,8 @@ def test_instructions_in_retrieved_text_are_not_the_users() -> None:
 
 
 def test_metric_root_cause_supersedes_live_findings() -> None:
+    from counterfix.evals.metrics.base import MetricResult
     from counterfix.evals.runner import _with_metric_findings
-    from counterfix.metrics.base import MetricResult
 
     live = Finding(failure_type=FailureType.DROPPED_INSTRUCTION, confidence=0.95)
     d = Diagnosis(record_id="r", findings=[live])

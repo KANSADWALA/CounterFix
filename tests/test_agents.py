@@ -9,17 +9,17 @@ from typing import Any
 import pytest
 
 from counterfix import Config
-from counterfix.benchmarks import load_benchmark, run_benchmark
 from counterfix.core.detector import SkipCheck, run_detectors
 from counterfix.core.diagnosis import Finding
 from counterfix.core.record import CallRecord, Message
 from counterfix.core.types import FailureType
 from counterfix.detect import AgentTaskCheck, ToolUseCheck, agents
 from counterfix.evals import evaluate
+from counterfix.evals.benchmarks import load_benchmark, run_benchmark
+from counterfix.evals.metrics import get_metric
+from counterfix.evals.metrics.tools import check_call
 from counterfix.fixes.engine import INTERVENTIONS
 from counterfix.judges.base import Verdict
-from counterfix.metrics import get_metric
-from counterfix.metrics.tools import check_call
 
 WEATHER = {"type": "function", "function": {"name": "get_weather", "parameters": {
     "type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}}}  # fmt: skip

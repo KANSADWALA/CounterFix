@@ -42,6 +42,10 @@ MOVED: dict[str, str] = {
     "counterfix.otel": "counterfix.integrations.otel",
     "counterfix.capabilities": "counterfix.integrations.capabilities",
     "counterfix.mcp_server": "counterfix.integrations.mcp_server",
+    "counterfix.metrics": "counterfix.evals.metrics",
+    "counterfix.benchmarks": "counterfix.evals.benchmarks",
+    "counterfix.safety": "counterfix.evals.safety",
+    "counterfix.perplexity": "counterfix.evals.perplexity",
 }
 
 
