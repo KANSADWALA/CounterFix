@@ -2,11 +2,23 @@
 
 All notable changes to counterfix. Versions follow [semantic versioning](https://semver.org).
 
-## Unreleased
+## 0.3.0 (2026-11-12)
 
-A smaller front door: counterfix is now presented as a reliability layer for single LLM
-calls ("find out why an LLM call failed, and prove the fix works"), with evaluation as the
-same checks run over a dataset. Nothing that worked in 0.2.1 stops working.
+A smaller front door, a new layout, and a clearer job: counterfix finds out why an LLM
+call failed and proves which fix works, alongside your evaluation and tracing tools rather
+than in place of them. Nothing that worked in 0.2.1 stops working; see
+[Migrating to 0.3](https://kansadwala.github.io/CounterFix/migrating/).
+
+- **Evaluation features that other tools already provide are deprecated** (planned for
+  removal in 0.4). They keep working, with a `FutureWarning` that names what to use
+  instead: the metrics `bleu`, `chrf`, `rouge_l`, `bertscore`, `embedding_similarity`, the
+  judge-scored RAG metrics (`faithfulness`, `answer_relevancy`, `answer_correctness`,
+  `context_precision`, `context_recall`, `citations`; use Ragas or DeepEval), `pii` and
+  `toxicity` (Presidio, Detoxify), `ifeval` and `evalplus`; the benchmarks MMLU, GSM8K,
+  ARC, TruthfulQA, IFEval (lm-evaluation-harness), HumanEval(+) and MBPP(+) (EvalPlus);
+  and `counterfix.evals.perplexity`. What diagnosis and fixes rely on stays: the simple
+  checks, retrieval label metrics, `tests` (F12), `tool_call` (F14), `injection` (F13),
+  `confidence`, and the `injection` and `tools` probe benchmarks.
 
 - **Shortcuts on `guard()` and `watch()`:** `guard(client, mode="retry", log="calls.jsonl",
   judge=..., sample_rate=0.05)` needs no `Config`. With a `config`, the shortcuts override
@@ -18,8 +30,8 @@ same checks run over a dataset. Nothing that worked in 0.2.1 stops working.
   ...) still import from `counterfix` with no warning; they now load on first use.
 - **`import counterfix` is about 40% faster** (it no longer loads the metrics, evaluation,
   background and OpenTelemetry modules until used).
-- **New extras:** `counterfix[evals]` (dataset runner, metrics, benchmarks, code, reports,
-  CLI) and `counterfix[all]`.
+- **New extras:** `counterfix[evals]` (the dataset runner, its reports and the command
+  line) and `counterfix[all]`.
 - README and docs reorganised around the three-step loop: wrap, see why, get a verified
   fix. The docs menu now reads Core loop, In production, Evaluation (optional).
 - Fixed: `counterfix.fix(response)` raised `NoJudgeError` on a first run with no judge

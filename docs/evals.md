@@ -146,6 +146,9 @@ default; graded ones report a number and fail nothing unless you give a threshol
 | `latency`, `ttft` | milliseconds; pass at or under the threshold, e.g. `latency:2000` | core |
 | `hit`, `recall`, `precision`, `mrr`, `ndcg` (and `@k`), `faithfulness`, `context_precision`, `context_recall`, `answer_relevancy`, `citations` | RAG: see [RAG evaluation](rag.md) | labels or a judge |
 
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    `rouge_l`, `bleu`, `chrf`, `embedding_similarity`, `bertscore` and `answer_correctness`, and the judge-scored RAG metrics: use sacrebleu, rouge-score, bert-score, Ragas or DeepEval, or your evaluation tool's metrics. They still work in 0.3 with a warning.
+
 With several references (a list), a metric takes the best match. A metric that names a
 failure type (`json_valid` and `json_match` name F2) adds that cause to a miss, so the
 fix search can target it.

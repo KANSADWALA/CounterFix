@@ -36,7 +36,7 @@ from counterfix.runtime.report import log_to  # noqa: E402
 # can never replace the function on this package.
 _sys.modules.setdefault("counterfix.context", _sys.modules["counterfix.runtime.context"])
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 __all__ = [
     "CallRecord",

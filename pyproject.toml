@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "counterfix"
-version = "0.2.1"
+version = "0.3.0"
 description = "Find out why an LLM call failed, and prove the fix works: a one-line wrapper that diagnoses failures and verifies fixes by re-running them."
 readme = "README.md"
 license = "MIT"
@@ -54,9 +54,10 @@ cli = ["typer>=0.12", "rich>=13.7"]
 report = ["jinja2>=3.1"]
 jev = ["typesafe-sdk>=0.7"]
 mcp = ["mcp>=2.0"]
-# Bundles. "evals": dataset runner, metrics and benchmarks (not the heavy torch or safety
-# models, which stay in "semantic" and "safety"). "all": every integration and feature.
-evals = ["counterfix[eval,metrics,code,benchmarks,report,cli]"]
+# Bundles. "evals": the dataset runner, its reports and the command line. "all": every
+# integration and feature. The "metrics", "semantic", "safety", "benchmarks" and "code"
+# extras serve features deprecated in 0.3 (planned for removal in 0.4).
+evals = ["counterfix[eval,report,cli]"]
 all = [
   "counterfix[openai,anthropic,litellm,langchain,llamaindex,otel,mcp,cache]",
   "counterfix[evals,semantic,safety]",

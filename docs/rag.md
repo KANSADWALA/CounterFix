@@ -58,6 +58,9 @@ numbered passages, then the question. A `--template` can place them with `{conte
 | `citations` | share of cited sentences (`[n]`) that the cited passage supports | judge |
 | `answer_correctness` | does the answer agree with the reference in meaning: 1, 0.5 or 0 (passes at 1) | judge, reference |
 
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    The judge-scored metrics (`faithfulness`, `context_precision`, `context_recall`, `answer_relevancy`, `citations`, `answer_correctness`): use [Ragas](https://docs.ragas.io) or [DeepEval](https://deepeval.com). The label-based retrieval metrics and the F10/F11 diagnosis stay.
+
 Judge metrics use one judge call each per answer and follow the RAGAS definitions. They
 use the same judge as `--judge` (or the one counterfix picks from your keys), and turn on
 judge diagnosis of the misses, which is what finds F11.

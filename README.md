@@ -140,21 +140,25 @@ tests. Guides: [In production](https://kansadwala.github.io/CounterFix/productio
 
 ## The same checks over a dataset
 
-The checks and fixes above also run over a whole dataset, with a score per metric and the
-misses grouped by cause. Install with `pip install "counterfix[evals]"`.
+The checks and fixes above also run over a whole dataset: the misses grouped by cause, and
+a verified fix searched for each. Install with `pip install "counterfix[evals]"`.
 
 ```bash
 counterfix eval qa.jsonl --model groq:openai/gpt-oss-120b --metric exact_match --judge --fix 5
-counterfix benchmark gsm8k --model ollama:qwen2.5:3b --limit 200
 ```
+
+counterfix works alongside your evaluation tools rather than replacing them. Metrics and
+benchmarks those tools already provide (BLEU, ROUGE, BERTScore, judge-scored RAG metrics,
+PII and toxicity, MMLU, GSM8K, HumanEval and the like) still work in 0.3 but are
+deprecated, with a warning that names the tool to use instead, and are planned for removal
+in 0.4.
 
 | Area | What you get | Guide |
 | --- | --- | --- |
-| Datasets | Exact match, F1, ROUGE-L, BLEU, JSON, latency and more; misses by cause; fixes on up to N misses | [Evaluate a dataset](https://kansadwala.github.io/CounterFix/evals/) |
-| RAG | Retrieval metrics from gold labels, judge metrics, and whether the retriever (F10) or the model (F11) caused each miss | [RAG evaluation](https://kansadwala.github.io/CounterFix/rag/) |
+| Datasets | Exact match, F1, number, choice, JSON, latency; misses by cause; fixes on up to N misses | [Evaluate a dataset](https://kansadwala.github.io/CounterFix/evals/) |
+| RAG | Retrieval metrics from gold labels, and whether the retriever (F10) or the model (F11) caused each miss | [RAG evaluation](https://kansadwala.github.io/CounterFix/rag/) |
 | Code | Tests run in a sandbox, failures named (F12), pass@k, fixes such as sending the error back | [Code evaluation](https://kansadwala.github.io/CounterFix/code/) |
-| Benchmarks | MMLU, GSM8K, ARC, TruthfulQA, IFEval, HumanEval(+), MBPP(+), matching lm-evaluation-harness on the same prompts | [Benchmarks](https://kansadwala.github.io/CounterFix/benchmarks/) |
-| Safety | Prompt injection with canaries (F13), personal data, toxicity | [Safety](https://kansadwala.github.io/CounterFix/safety/) |
+| Prompt injection | Canary probes and a judge check (F13), with verified fixes | [Safety](https://kansadwala.github.io/CounterFix/safety/) |
 | Agents | Tool misuse (F14) from OpenAI, LangGraph, Anthropic or OpenTelemetry runs | [Agents and tool calls](https://kansadwala.github.io/CounterFix/agents/) |
 | Speed and confidence | Latency, TTFT and tokens/s percentiles; token confidence where logprobs exist | [Speed](https://kansadwala.github.io/CounterFix/speed/), [Confidence](https://kansadwala.github.io/CounterFix/confidence/) |
 

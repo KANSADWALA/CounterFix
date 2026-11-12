@@ -1,5 +1,11 @@
 # Benchmarks
 
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    MMLU, GSM8K, ARC, TruthfulQA and IFEval: use [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness).
+    HumanEval(+) and MBPP(+): use [EvalPlus](https://github.com/evalplus/evalplus). They still
+    run in 0.3 with a warning. counterfix's own probe sets, `injection` and `tools`, stay:
+    they test failure types counterfix diagnoses.
+
 Run a standard benchmark on any model counterfix can call (Groq, Gemini, OpenAI, Anthropic,
 Ollama, any OpenAI-compatible URL) or on your own app, and get the score with a 95%
 confidence interval, the misses grouped by cause, and verified fixes for them.

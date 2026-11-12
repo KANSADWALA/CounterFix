@@ -46,6 +46,9 @@ prints "available" or "not available", so you know before a run.
 
 ## Corpus perplexity with a local model
 
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    Use [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) for perplexity. Token confidence from the API (above) stays: it is evidence for F4.
+
 Chat APIs do not give probabilities for the text you send, so perplexity of a corpus
 needs the model's weights (`pip install "counterfix[semantic]"`):
 

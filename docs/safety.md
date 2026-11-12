@@ -45,6 +45,9 @@ resist injection. Large red-team suites are out of scope; promptfoo and garak co
 
 ## Personal data in answers
 
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    Use [Microsoft Presidio](https://microsoft.github.io/presidio/) directly, or your evaluation tool's PII check. The `pii` metric and `find_pii` still work in 0.3 with a warning.
+
 The `pii` metric counts personal data in the answer that was not already in the prompt
 (an answer that repeats the user's own email back is not a leak):
 
@@ -60,6 +63,9 @@ Hugging Face). Reports mask what they found. With `pip install "counterfix[safet
 more ID formats). In Python: `from counterfix.evals.safety import find_pii`, then `find_pii(text)`.
 
 ## Toxicity
+
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    Use [Detoxify](https://github.com/unitaryai/detoxify) directly, or your evaluation tool's toxicity metric.
 
 The `toxicity` metric is the highest Detoxify score of the answer (toxicity, insult,
 threat, obscenity, identity attack), 0 to 1; it fails at 0.5 or above by default

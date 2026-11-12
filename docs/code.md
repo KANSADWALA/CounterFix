@@ -72,6 +72,9 @@ check_code(answer, {"test_list": ["assert add(1, 2) == 3"]}, allow=True).why
 
 ## HumanEval+ and MBPP+
 
+!!! warning "Deprecated in 0.3, planned for removal in 0.4"
+    Use [EvalPlus](https://github.com/evalplus/evalplus) directly. Running model-written code against your own tests (`--metric tests`) and naming why it failed (F12) stay.
+
 The [benchmarks](benchmarks.md) `humaneval+` and `mbpp+` are scored by EvalPlus itself
 (`pip install "counterfix[code]"`), so their pass@1 is EvalPlus's number; counterfix adds
 the cause of each failure and the fix search. EvalPlus runs code in its own guarded child
