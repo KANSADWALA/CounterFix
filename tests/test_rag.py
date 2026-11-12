@@ -27,6 +27,11 @@ from counterfix.evals import evaluate
 from counterfix.evals.metrics import get_metric
 from counterfix.judges.base import JudgeTask, Verdict
 
+# Exercises a feature deprecated in 0.3 (removed in 0.4): its FutureWarning is expected.
+DEPRECATED_IN_0_3 = pytest.mark.filterwarnings(
+    "ignore:.*will be removed in counterfix:FutureWarning"
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -134,6 +139,7 @@ def test_retrieval_metrics_without_labels_are_not_scored() -> None:
 # --- judge metrics ---
 
 
+@DEPRECATED_IN_0_3
 def test_faithfulness_counts_supported_claims() -> None:
     judge = FakeJudge(
         {
@@ -156,6 +162,7 @@ def test_faithfulness_counts_supported_claims() -> None:
     assert task.material["context"] == "[1] p" and task.material["question"] == "Q?"
 
 
+@DEPRECATED_IN_0_3
 def test_faithfulness_with_no_claims_or_no_context_is_not_scored() -> None:
     judge = FakeJudge({"RAG_faithfulness": ("no_claims", {"claims": []})})
     m = get_metric("faithfulness").bind(judge)  # type: ignore[attr-defined]
@@ -165,6 +172,7 @@ def test_faithfulness_with_no_claims_or_no_context_is_not_scored() -> None:
     assert broken.score(rec(chunks=["p"])).reason.startswith("judge failed")
 
 
+@DEPRECATED_IN_0_3
 def test_context_precision_is_ragas_average_precision() -> None:
     judge = FakeJudge({"RAG_context_precision": ("some_useful", {"useful": [2, 3]})})
     r = get_metric("context_precision").bind(judge).score(rec(chunks=CHUNKS), "ref")  # type: ignore[attr-defined]
@@ -172,6 +180,7 @@ def test_context_precision_is_ragas_average_precision() -> None:
     assert "reference_answer" in judge.asked[0].material  # judged against the reference
 
 
+@DEPRECATED_IN_0_3
 def test_context_recall_relevancy_and_citations() -> None:
     judge = FakeJudge(
         {
@@ -308,6 +317,7 @@ def test_fix_search_proves_the_retriever_was_at_fault_and_reorders_ignored_passa
     assert result.fixes == {"gold_passage": 1, "key_passage_first": 1}
 
 
+@DEPRECATED_IN_0_3
 def test_judge_metrics_bind_the_run_judge_and_turn_on_diagnosis() -> None:
     judge = FakeJudge(
         {
@@ -378,6 +388,7 @@ def test_rag_seed_set_labels_and_the_free_check() -> None:
                 assert found, f"clear retrieval miss not caught: {r['id']}"
 
 
+@DEPRECATED_IN_0_3
 def test_answer_correctness_judges_meaning_against_the_reference() -> None:
     judge = FakeJudge({"answer_correctness": ("correct", {})})
     m = get_metric("answer_correctness").bind(judge)  # type: ignore[attr-defined]

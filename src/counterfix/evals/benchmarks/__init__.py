@@ -26,6 +26,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from counterfix._internal import deprecation
 from counterfix._internal.suggest import did_you_mean
 from counterfix.evals.metrics.base import Metric
 from counterfix.evals.metrics.extract import ChoiceMatch, NumberMatch
@@ -386,6 +387,8 @@ def get_benchmark(name: str) -> Benchmark:
             f"unknown benchmark {name!r}{did_you_mean(name, BENCHMARKS)}; "
             f"choose from {', '.join(BENCHMARKS)}"
         )
+    if key in deprecation.BENCHMARKS:
+        deprecation.warn(f"the {key!r} benchmark", deprecation.BENCHMARKS[key])
     return BENCHMARKS[key]
 
 

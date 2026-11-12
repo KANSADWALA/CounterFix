@@ -19,6 +19,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from counterfix._internal import deprecation
+
 
 class PerplexityResult(BaseModel):
     """Perplexity of a text under a model, and how it was measured."""
@@ -52,6 +54,7 @@ def perplexity(
     ("float16" or "bfloat16") halves GPU memory, for GPUs that cannot hold the model in
     full precision (results can differ from full precision in the second decimal).
     """
+    deprecation.warn("counterfix.evals.perplexity.perplexity", "use lm-evaluation-harness")
     try:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer

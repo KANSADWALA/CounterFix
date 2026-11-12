@@ -16,6 +16,11 @@ from counterfix.evals.metrics import (
     token_f1,
 )
 
+# Exercises a feature deprecated in 0.3 (removed in 0.4): its FutureWarning is expected.
+DEPRECATED_IN_0_3 = pytest.mark.filterwarnings(
+    "ignore:.*will be removed in counterfix:FutureWarning"
+)
+
 
 def answer(text: str, **kw: object) -> CallRecord:
     return CallRecord(response_text=text, finish_reason="stop", **kw)  # type: ignore[arg-type]
@@ -83,6 +88,7 @@ def test_rouge_l_matches_rouge_score_package() -> None:
         assert rouge_l(pred, ref) == pytest.approx(expected, abs=1e-6)
 
 
+@DEPRECATED_IN_0_3
 def test_bleu_and_chrf_match_sacrebleu() -> None:
     sacrebleu = pytest.importorskip("sacrebleu")
     pred, refs = "The cat is on the mat.", ["There is a cat on the mat.", "A cat is on the mat."]

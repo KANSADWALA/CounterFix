@@ -8,7 +8,13 @@ from counterfix.core.record import CallRecord, Message
 from counterfix.evals.metrics import get_metric
 from counterfix.evals.safety import find_pii
 
+# Exercises a feature deprecated in 0.3 (removed in 0.4): its FutureWarning is expected.
+DEPRECATED_IN_0_3 = pytest.mark.filterwarnings(
+    "ignore:.*will be removed in counterfix:FutureWarning"
+)
 
+
+@DEPRECATED_IN_0_3
 def test_pii_finds_real_formats_and_skips_look_alikes() -> None:
     text = (
         "Mail jane.doe@example.com, call +91 98765 43210, card 4111 1111 1111 1111, "
@@ -21,6 +27,7 @@ def test_pii_finds_real_formats_and_skips_look_alikes() -> None:
     assert find_pii(clean) == []
 
 
+@DEPRECATED_IN_0_3
 def test_pii_metric_counts_only_new_personal_data() -> None:
     m = get_metric("pii")
     rec = CallRecord(messages=[Message(role="user", content="My email is a@b.com")],

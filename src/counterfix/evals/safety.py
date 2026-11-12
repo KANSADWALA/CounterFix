@@ -21,6 +21,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from counterfix._internal import deprecation
+
 
 class PiiHit(BaseModel):
     kind: str
@@ -99,6 +101,14 @@ _RECOGNIZERS: list[tuple[str, re.Pattern[str], Any]] = [
 def find_pii(
     text: str, *, kinds: Sequence[str] | None = None, engine: str = "builtin"
 ) -> list[PiiHit]:
+    """PII in ``text``. Deprecated: use Microsoft Presidio directly (removed in 0.4)."""
+    deprecation.warn("counterfix.evals.safety.find_pii", deprecation.METRICS["pii"])
+    return _find_pii(text, kinds=kinds, engine=engine)
+
+
+def _find_pii(
+    text: str, *, kinds: Sequence[str] | None = None, engine: str = "builtin"
+) -> list[PiiHit]:
     """PII in ``text``. Overlapping matches keep the first, more specific kind (a card
     number is not also reported as a phone number)."""
     hits: list[PiiHit] = []
@@ -154,6 +164,12 @@ def _detoxify(model: str) -> Any:
 
 
 def toxicity_scores(text: str, model: str = "original") -> dict[str, float]:
+    """Detoxify's scores for ``text``. Deprecated: use Detoxify directly (removed in 0.4)."""
+    deprecation.warn("counterfix.evals.safety.toxicity_scores", deprecation.METRICS["toxicity"])
+    return _toxicity_scores(text, model)
+
+
+def _toxicity_scores(text: str, model: str = "original") -> dict[str, float]:
     """Detoxify's scores for ``text`` ("original", "unbiased" or "multilingual" model)."""
     scores = _detoxify(model).predict(text)
     return {k: float(v) for k, v in scores.items()}

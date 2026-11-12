@@ -148,6 +148,9 @@ warn_unused_ignores = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# A deprecation warning from counterfix itself is an error unless the test marks it as
+# expected: kept features must never warn.
+filterwarnings = ["error:.*will be removed in counterfix:FutureWarning"]
 
 # Layers, highest first: a module may import only from layers below it. Run `lint-imports`.
 # Matches the target layout in the restructure plan, spelled with today's module names.

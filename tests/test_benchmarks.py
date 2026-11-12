@@ -13,6 +13,11 @@ from counterfix.core.record import CallRecord
 from counterfix.evals import benchmarks
 from counterfix.evals.benchmarks import get_benchmark, load_benchmark, run_benchmark, sample
 
+# Exercises a feature deprecated in 0.3 (removed in 0.4): its FutureWarning is expected.
+DEPRECATED_IN_0_3 = pytest.mark.filterwarnings(
+    "ignore:.*will be removed in counterfix:FutureWarning"
+)
+
 FAKE = {
     ("cais/mmlu", "all"): [
         {"question": f"Q{i}?", "subject": s, "choices": ["w", "x", "y", "z"], "answer": i % 4}
@@ -46,6 +51,7 @@ def _fake_datasets(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "datasets", module)
 
 
+@DEPRECATED_IN_0_3
 def test_loaders_build_prompts_and_references() -> None:
     mmlu = load_benchmark("mmlu")
     assert len(mmlu) == 12 and mmlu[1]["reference"] == "B" and "anatomy" in mmlu[0]["prompt"]
@@ -57,6 +63,7 @@ def test_loaders_build_prompts_and_references() -> None:
     assert f"{letter}. right" in tqa["prompt"]  # shuffled, still pointing at the right one
 
 
+@DEPRECATED_IN_0_3
 def test_subsets_are_stratified_and_repeatable() -> None:
     rows = load_benchmark("mmlu")
     two = sample(rows, per_group=2, seed=3)
@@ -81,6 +88,7 @@ class _Picker:
         return CallRecord(response_text="Answer: A", params=params)
 
 
+@DEPRECATED_IN_0_3
 def test_run_benchmark_scores_and_reports() -> None:
     result = run_benchmark("mmlu", model=_Picker(), per_group=6, seed=0)
     assert result.info["template"] == "v1" and result.info["licence"] == "MIT"

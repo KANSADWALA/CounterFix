@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from counterfix._internal import deprecation
 from counterfix._internal.suggest import did_you_mean
 from counterfix.evals.metrics.base import Metric, MetricResult, references
 from counterfix.evals.metrics.code import TestsPass
@@ -120,6 +121,8 @@ def get_metric(spec: str | Metric, **options: Any) -> Metric:
             f"unknown metric {name!r}{did_you_mean(name, METRICS)}; "
             f"choose from {', '.join(sorted(METRICS))}"
         )
+    if name in deprecation.METRICS:
+        deprecation.warn(f"the {name!r} metric", deprecation.METRICS[name])
     if at:
         if name not in RANKED or not k.isdigit() or int(k) < 1:
             raise ValueError(f"{spec!r}: @k works only with {', '.join(sorted(RANKED))}, k >= 1")
